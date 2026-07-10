@@ -249,6 +249,9 @@ private:
     string _overrideTitle;
     //overrides command when load from session JSON
     string _overrideCommand;
+    //true when _overrideCommand came from a restored session file (untrusted),
+    //so it must be confirmed with the user before it is executed on load
+    bool _overrideCommandNeedsConfirm;
     //overrides badge
     string _overrideBadge;
     //Whether synchronized input is turned on in the session
@@ -3172,6 +3175,41 @@ public:
     }
 
     /**
+     * Ask the user to confirm running a command embedded in a restored
+     * session before it executes. Returns true to run it, false to open a
+     * normal shell instead. The command is shown as plain secondary text (not
+     * markup) so it cannot inject Pango markup, and the safe choice (Open
+     * Shell) is the default response.
+     */
+    bool confirmSessionCommand(string command) {
+        Window parent = cast(Window) getToplevel();
+        MessageDialog dialog = new MessageDialog(parent,
+            DialogFlags.MODAL + DialogFlags.USE_HEADER_BAR, MessageType.QUESTION, ButtonsType.NONE,
+            _("This session wants to run a command:"), null);
+        scope (exit) {
+            dialog.destroy();
+        }
+        if (parent !is null)
+            dialog.setTransientFor(parent);
+        dialog.setTitle(_("Run session command?"));
+
+        // Show the command in a plain (non-markup) Label so it renders
+        // literally — no Pango markup interpretation and no printf-format
+        // hazard from the untrusted command text.
+        Label lblCmd = new Label(command);
+        lblCmd.setHalign(GtkAlign.START);
+        lblCmd.setSelectable(true);
+        lblCmd.setLineWrap(true);
+        dialog.getMessageArea().add(lblCmd);
+        lblCmd.showAll();
+
+        dialog.addButton(_("Open Shell"), ResponseType.CANCEL);
+        dialog.addButton(_("Run Command"), ResponseType.OK);
+        dialog.setDefaultResponse(ResponseType.CANCEL);
+        return dialog.run() == ResponseType.OK;
+    }
+
+    /**
      * initializes the terminal, i.e spawns the child process.
      *
      * Params:
@@ -3181,6 +3219,18 @@ public:
     void initTerminal(string initialPath, bool firstRun) {
         trace("Initializing Terminal with directory " ~ initialPath);
         gst.initialCWD = initialPath;
+        // A command embedded in a restored session runs as the terminal's
+        // child process on load. Session files can be untrusted, so confirm
+        // before executing; on decline, fall back to a normal shell. Only the
+        // session-restore path sets this flag — CLI (-e/-x) and profile custom
+        // commands are trusted and never prompt.
+        if (_overrideCommandNeedsConfirm) {
+            _overrideCommandNeedsConfirm = false;
+            if (!confirmSessionCommand(_overrideCommand)) {
+                trace("User declined session command; opening a normal shell instead");
+                _overrideCommand = null;
+            }
+        }
         spawnTerminalProcess(initialPath, _overrideCommand);
         if (firstRun) {
             int width = gsProfile.getInt(SETTINGS_PROFILE_SIZE_COLUMNS_KEY);
@@ -3420,7 +3470,12 @@ public:
     void restore(TerminalSnapshot s) {
         if (!s.overrideTitle.isNull) _overrideTitle = s.overrideTitle.get;
         if (!s.overrideBadge.isNull) _overrideBadge = s.overrideBadge.get;
-        if (!s.overrideCommand.isNull) _overrideCommand = s.overrideCommand.get;
+        if (!s.overrideCommand.isNull) {
+            _overrideCommand = s.overrideCommand.get;
+            // Restored from a session file, which may be untrusted — require
+            // confirmation before this command runs (see initTerminal).
+            _overrideCommandNeedsConfirm = _overrideCommand.length > 0;
+        }
         vte.setInputEnabled(!s.readOnly);
         SimpleAction roAction = cast(SimpleAction) sagTerminalActions.lookup(ACTION_READ_ONLY);
         roAction.setState(new GVariant(s.readOnly));
