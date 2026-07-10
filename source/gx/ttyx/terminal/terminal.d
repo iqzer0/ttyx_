@@ -131,7 +131,7 @@ import gx.gtk.vte;
 import gx.i18n.l10n;
 import gx.util.array;
 import gx.util.geometry : Point, pointInTriangle;
-import gx.util.redact : stripUrlUserinfo;
+import gx.util.redact : stripUrlUserinfo, redactEnvEntry;
 import gx.util.string : parsePairs;
 
 import gx.ttyx.application;
@@ -2418,10 +2418,14 @@ private:
             errorf("Working Directory=%s", workingDir);
             error("Arguments used to execute process:");
             foreach (i, arg; args)
-                errorf("\targ %d=%s", i, arg);
+                errorf("\targ %d=%s", i, stripUrlUserinfo(arg));
+            // Redact secrets/proxy credentials before they reach the log sink.
+            // envv carries setProxyEnv() output, e.g. http_proxy with inline
+            // user:password, and this dump runs at error level (not gated
+            // behind verbose logging) on every spawn failure.
             error("Environment used to execute process:");
             foreach (i, env; envv)
-                errorf("\tenv %d=%s", i, env);
+                errorf("\tenv %d=%s", i, redactEnvEntry(env));
         }
 
         tracef("workingDir parameter=%s", workingDir);

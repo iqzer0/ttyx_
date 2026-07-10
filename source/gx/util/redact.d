@@ -63,7 +63,36 @@ string stripUrlUserinfo(string input) {
     return input.replaceAll(re, "$1");
 }
 
+/**
+ * Redact a single "KEY=VALUE" environment entry for logging. The value is
+ * run through redactSensitive keyed on KEY, so password/token/secret/auth
+ * values become the placeholder and proxy URLs have their userinfo stripped.
+ * An entry with no '=' (or an empty key) is returned unchanged.
+ */
+string redactEnvEntry(string entry) {
+    ptrdiff_t eq = entry.indexOf('=');
+    if (eq <= 0) return entry;
+    string key = entry[0 .. eq];
+    string value = entry[eq + 1 .. $];
+    return key ~ "=" ~ redactSensitive(key, value);
+}
+
 // -- tests --------------------------------------------------------------
+
+unittest {
+    // Sensitive and proxy values are redacted; the KEY= prefix is preserved.
+    assert(redactEnvEntry("PASSWORD=hunter2") == "PASSWORD=" ~ REDACTED);
+    assert(redactEnvEntry("http_proxy=http://user:pw@proxy.local:8080/")
+        == "http_proxy=http://proxy.local:8080/");
+    // Non-sensitive entries pass through unchanged.
+    assert(redactEnvEntry("PATH=/usr/bin:/bin") == "PATH=/usr/bin:/bin");
+    // A value containing '=' keeps everything after the first '='.
+    assert(redactEnvEntry("FOO=a=b=c") == "FOO=a=b=c");
+    // Malformed entries (no '=', or leading '=') are returned verbatim.
+    assert(redactEnvEntry("NOEQUALS") == "NOEQUALS");
+    assert(redactEnvEntry("=leadingeq") == "=leadingeq");
+    assert(redactEnvEntry("") == "");
+}
 
 unittest {
     assert(redactSensitive("PATH", "/usr/bin:/bin") == "/usr/bin:/bin");
