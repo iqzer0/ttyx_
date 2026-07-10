@@ -6,6 +6,10 @@ __dummy.html
 *.obj
 *.zip
 /tilix
+/ttyx
+ttyx-test-*
+experimental/gid/ttyx-gid-skeleton
+data/gsettings/gschemas.compiled
 __test__library__
 .vscode
 backup
