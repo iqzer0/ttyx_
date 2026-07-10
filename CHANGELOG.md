@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Security
+- **Paste sanitization now applied on every paste path** — `stripPasteEscapes` produced a sanitized string, but the default paste path (with neither `paste-strip-first-char` nor `paste-strip-trailing-whitespace` enabled, the shipped default) fell through to VTE's `pasteClipboard()`/`pastePrimary()`, which re-read the *raw* selection from the OS and discarded the sanitized result — contradicting the function's "unconditional sanitization" contract. All paste branches now feed the sanitized text through `vte_terminal_paste_text`, which still applies bracketed-paste wrapping, so editors keep receiving properly-bracketed pastes.
+- **Bracketed-paste stripping hardened against split/overlapping markers** — `stripPasteEscapes` ran each regex a single, non-overlapping, non-re-scanning pass, so removing one match could splice the surrounding bytes into a freshly-formed marker (e.g. `\x1b[20` + `\x1b[201~` + `1~` collapsed to a live `\x1b[201~` after the inner removal, terminating bracketed-paste mode early and letting the trailing bytes run as keystrokes). Stripping now loops to a fixed point; each pass only deletes, so it is guaranteed to terminate.
+- **Carriage return treated as a command submitter in paste checks** — `isPasteUnsafe`, the multi-line review gate, and the advanced-paste gate tested only for LF (`\n`), so a CR-terminated payload (`sudo reboot\r`) — which auto-executes just like LF — slipped past both the dangerous-command warning and the multi-line review dialog. A new `containsLineBreak` helper matches both LF and CR; unit tests cover the previously-evading cases.
+
 ## [1.2.0-beta.1] — 2026-04-29
 
 First beta of the 1.2.0 release. Validation period before GA.
