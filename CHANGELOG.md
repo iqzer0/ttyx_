@@ -12,6 +12,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Carriage return treated as a command submitter in paste checks** — `isPasteUnsafe`, the multi-line review gate, and the advanced-paste gate tested only for LF (`\n`), so a CR-terminated payload (`sudo reboot\r`) — which auto-executes just like LF — slipped past both the dangerous-command warning and the multi-line review dialog. A new `containsLineBreak` helper matches both LF and CR; unit tests cover the previously-evading cases.
 - **Proxy credentials redacted in the spawn-failure log** — when a child process failed to spawn, `spawnTerminalProcess` dumped the full environment at error level (not gated behind verbose logging), including the `http_proxy`/`https_proxy` URLs that `setProxyEnv` builds with inline `user:password`. The environment dump now runs each entry through a new `redactEnvEntry` helper (secret/token/auth values replaced with a placeholder, proxy-URL userinfo stripped), and the argument dump strips URL userinfo.
 
+### Fixed
+- **Crash loading a session with a corrupt orientation value** — a session JSON whose paned `orientation` was neither 0 nor 1 was cast straight to GTK's `Orientation` enum and hit a `final switch`, throwing a `SwitchError`. Because that is an `Error` rather than an `Exception`, the session-load `catch (Exception)` did not catch it and the app crashed on opening a crafted or corrupt session file. Orientation is now validated by a testable `parseOrientation` helper that rejects out-of-range values so the load fails gracefully.
+
 ## [1.2.0-beta.1] — 2026-04-29
 
 First beta of the 1.2.0 release. Validation period before GA.
