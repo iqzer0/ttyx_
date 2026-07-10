@@ -33,16 +33,29 @@ A security-focused tiling terminal emulator for Linux/GNOME. Competes with GNOME
 
 ## Phase 2: GTK4 migration
 
-**This is the critical path for long-term viability.**
+**This is the critical path for long-term viability.** Spiked July 2026 —
+full plan and findings in [docs/gid-migration.md](docs/gid-migration.md); a
+buildable giD seed lives in [experimental/gid/](experimental/gid/).
 
-- [ ] Migrate from GtkD to giD (GObject Introspection bindings for D)
-  - giD auto-generates bindings from GIR files — GTK4, libadwaita, VTE come for free
-  - First step: migrate on GTK3 to validate giD works for the codebase
-- [ ] GTK3 → GTK4 widget migration
-  - GTK4 API changes are significant but well-documented
-  - Migrate widget-by-widget
+**Spike outcome:** giD is viable and covers the whole stack (`gid:gtk3`,
+`gid:vte2` = VTE-for-GTK3, libsecret, xlib). A GTK3 window + VTE terminal
+compiles and links on giD. **But giD and GtkD cannot coexist in one build**
+(they share the `gtk`/`glib`/`gio`/`gobject`/… package names), so a
+half-migrated codebase does not compile — the migration is a **wholesale swap**,
+not incremental. Approach: a parallel giD rewrite that grows to parity (reusing
+the GtkD-free logic unchanged), then a single build swap.
+
+### Phase 2a — GtkD → giD, staying on GTK3
+- [ ] Grow `experimental/gid/` into a giD-based ttyx_ (own build target, always compiles)
+- [ ] Port the widget layer (app → window → session → terminal → prefs) to `gid:gtk3` + `gid:vte2`
+- [ ] Reuse `gx/util/*` and pure logic unchanged; collapse `exvte.d` into native giD VTE calls
+- [ ] Optionally drop vendored `secret/`/`x11/` for giD libsecret/xlib
+- [ ] Swap the main dub/meson build over, delete GtkD, ship
+
+### Phase 2b — GTK3 → GTK4 + libadwaita
+- [ ] Dependency swap to `gid:gtk4` / `gid:vte3` / `gid:adw1` + API-delta pass (`add`→`setChild`, `showAll`→`present`, event/controller model)
 - [ ] Adopt libadwaita for modern GNOME look and feel
-- [ ] VTE for GTK4 (`libvte-2.91-gtk4`) via giD GIR bindings
+- [ ] **Blocker:** giD's GTK4 bindings did not compile at v0.9.13 (accessibility binding bug) — pin a known-good release or fix upstream before starting
 
 ### Why this matters
 - GTK3 is EOL — no new features, limited bug fixes
