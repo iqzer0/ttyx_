@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 - **Crash loading a session with a corrupt orientation value** — a session JSON whose paned `orientation` was neither 0 nor 1 was cast straight to GTK's `Orientation` enum and hit a `final switch`, throwing a `SwitchError`. Because that is an `Error` rather than an `Exception`, the session-load `catch (Exception)` did not catch it and the app crashed on opening a crafted or corrupt session file. Orientation is now validated by a testable `parseOrientation` helper that rejects out-of-range values so the load fails gracefully.
+- **Crash reading a child process name from a malformed `/proc` stat** — `TerminalProcessQuery` sliced the `comm` field between `(` and `)` without checking they exist; a missing `)` made `lastIndexOf` return -1, which wrapped to `SIZE_MAX` in a `size_t` and threw a `RangeError` the `catch (FileException)` could not catch (reachable in the Flatpak path when the host toolbox returns empty/non-stat output). Parsing moved to a guarded, unit-tested `parseProcName` helper in `gx.util.proc` that returns null on malformed input.
 
 ## [1.2.0-beta.1] — 2026-04-29
 
