@@ -1,0 +1,11 @@
+{
+    "name": "ttyx-gid-skeleton",
+    "description": "giD migration seed: a GTK3 window with an embedded VTE terminal, built on giD instead of GtkD. Not part of the ttyx_ build; see ../../docs/gid-migration.md.",
+    "authors": ["gwelr"],
+    "license": "MPL-2.0",
+    "targetType": "executable",
+    "dependencies": {
+        "gid:gtk3": "0.9.13",
+        "gid:vte2": "0.9.13"
+    }
+}
