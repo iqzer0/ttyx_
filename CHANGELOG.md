@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Security
+- **Custom-link and trigger commands now shell-quote attacker-controlled substitutions** — clicking a custom link, and the `EXECUTE_COMMAND`/`RUN_PROCESS` triggers, substituted regex match tokens (`$0..$N`, drawn from terminal output) and terminal variables (`${title}`, `${hostname}`, ... — several remote-settable via OSC) into a string handed to `/bin/sh -c` with no escaping. A captured or OSC-set value containing shell metacharacters (`; rm -rf ~`, `` `…` ``, `$(…)`) therefore injected into the command — for custom links on a single click, for triggers automatically (trigger firing requires a Tilix-patched VTE). Every substituted value now passes through `g_shell_quote` via a new `replaceMatchTokensQuoted` helper and a shell-quoting mode of `replaceVariables`, so values become inert shell words while the user's own template syntax (pipes, `&&`, redirects) is preserved. Display/state/notification actions are unaffected (still substituted verbatim). As a side effect the trigger handler no longer mutates the shared trigger object, so repeated fires are idempotent.
+
 ## [1.2.0-beta.1] — 2026-04-29
 
 First beta of the 1.2.0 release. Validation period before GA.
