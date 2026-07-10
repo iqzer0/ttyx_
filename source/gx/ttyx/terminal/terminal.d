@@ -132,7 +132,7 @@ import gx.i18n.l10n;
 import gx.util.array;
 import gx.util.geometry : Point, pointInTriangle;
 import gx.util.redact : stripUrlUserinfo, redactEnvEntry;
-import gx.util.string : parsePairs;
+import gx.util.string : parsePairs, isAllowedUriScheme, boundedTail;
 
 import gx.ttyx.application;
 import gx.ttyx.bookmark.bmchooser;
@@ -1596,6 +1596,15 @@ private:
             //tracef("Checking from %d,%d to %d,%d",startRow, startCol, cursorRow, cursorCol);
             if (startRow <0) startRow = 0;
             string text = vte.getTextRange(startRow, startCol, cursorRow, cursorCol, null, null, attr);
+            // Bound the input scanned by the user-configured trigger regexes.
+            // std.regex is a backtracking engine with no step/time limit and
+            // cannot be interrupted, so a catastrophic pattern over a very large
+            // input would hang the UI thread. maxLines caps rows, but
+            // `unlimitedLines` or extremely wide lines could still feed
+            // megabytes here; cap the scanned text (keeping the most recent
+            // output) as defense-in-depth.
+            enum size_t MAX_TRIGGER_SCAN_BYTES = 256 * 1024;
+            text = boundedTail(text, MAX_TRIGGER_SCAN_BYTES);
             // Update position early in case we get re-entrant event
             triggerLastRowChecked = cursorRow;
             triggerLastColChecked = cursorCol;
@@ -2032,6 +2041,16 @@ private:
             return;
         default:
             break;
+        }
+        // An OSC 8 hyperlink carries an arbitrary URI chosen by whatever wrote
+        // to the terminal. Only hand allow-listed schemes to the desktop URI
+        // handler; refuse anything else (e.g. a scriptable custom scheme)
+        // rather than opening it blindly.
+        if (!isAllowedUriScheme(uri)) {
+            string message = format(_("Refusing to open link with a disallowed scheme.\nURI was '%s'"), stripUrlUserinfo(uri));
+            showErrorDialog(cast(Window) getToplevel(), message, _("Link Scheme Not Allowed"));
+            warning(message);
+            return;
         }
         try {
             tracef("Showing URI %s", uri);
