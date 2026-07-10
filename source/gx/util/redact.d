@@ -11,12 +11,9 @@ import std.string : indexOf, toLower;
 enum string REDACTED = "[redacted]";
 
 private immutable string[] SENSITIVE_KEY_FRAGMENTS = [
-    "password", "passwd", "token", "secret", "api_key", "apikey",
+    "password", "passwd", "pwd", "passphrase",
+    "token", "secret", "api_key", "apikey", "key", "private",
     "auth", "credential",
-];
-
-private immutable string[] PROXY_KEY_FRAGMENTS = [
-    "proxy",
 ];
 
 /**
@@ -27,7 +24,9 @@ private immutable string[] PROXY_KEY_FRAGMENTS = [
  * - Keys containing "proxy" have the userinfo segment of any URL-shaped
  *   value stripped, keeping `scheme://host[:port]/...` so the log remains
  *   useful for debugging connectivity.
- * - Other keys pass through unchanged.
+ * - Any other value also has URL userinfo stripped, so a credential-bearing
+ *   URL under an unrecognized key (e.g. `DATABASE_URL=postgres://u:pw@h/db`)
+ *   does not leak; non-URL values pass through unchanged.
  *
  * Matching is case-insensitive and fragment-based: both `HTTP_PROXY` and
  * `http_proxy`, both `API_TOKEN` and `apikey`, are recognized.
@@ -41,11 +40,9 @@ string redactSensitive(string key, string value) {
         if (lowerKey.indexOf(fragment) >= 0) return REDACTED;
     }
 
-    foreach (fragment; PROXY_KEY_FRAGMENTS) {
-        if (lowerKey.indexOf(fragment) >= 0) return stripUrlUserinfo(value);
-    }
-
-    return value;
+    // Proxy keys and everything else: strip URL userinfo. stripUrlUserinfo is
+    // a no-op on values with no URL, so non-URL vars are unaffected.
+    return stripUrlUserinfo(value);
 }
 
 /**
@@ -108,6 +105,24 @@ unittest {
     assert(redactSensitive("CLIENT_SECRET", "shh") == REDACTED);
     assert(redactSensitive("API_KEY", "k") == REDACTED);
     assert(redactSensitive("BASIC_AUTH", "dXNlcjpwdw==") == REDACTED);
+}
+
+unittest {
+    // Fragments added to close known gaps: pwd, key, private, passphrase.
+    assert(redactSensitive("MYSQL_PWD", "x") == REDACTED);
+    assert(redactSensitive("SSH_PRIVATE_KEY", "----") == REDACTED);
+    assert(redactSensitive("GPG_KEY", "k") == REDACTED);
+    assert(redactSensitive("SSH_PASSPHRASE", "p") == REDACTED);
+}
+
+unittest {
+    // A credential-bearing URL under an unrecognized key still has its
+    // userinfo stripped (not left verbatim); non-URL values are untouched.
+    assert(redactSensitive("DATABASE_URL", "postgres://u:pw@db.corp/app")
+        == "postgres://db.corp/app");
+    assert(redactSensitive("SOME_ENDPOINT", "https://user:secret@api.example/")
+        == "https://api.example/");
+    assert(redactSensitive("PATH", "/usr/bin:/bin") == "/usr/bin:/bin");
 }
 
 unittest {
