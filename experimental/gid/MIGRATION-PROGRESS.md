@@ -36,10 +36,10 @@ tests passing. `color.d` was verified with `dub test` against `gid:gdk3`.
 Number = count of GtkD imports (rough difficulty).
 
 ### Leaves (start here)
-- [x] **`gx/gtk/color.d`** (1) — ported + verified (`dub test` vs `gid:gdk3`).
-- [ ] `gx/gtk/clipboard.d` (1)
+- [x] **`gx/gtk/color.d`** (1) — ported + verified (`dub test` vs `gid:gdk3`). `gdk.RGBA` class → `gdk.rgba.RGBA` value struct.
+- [x] **`gx/gtk/clipboard.d`** (1) — ported + verified (compiles in skeleton). `gdk.Atom`/`intern` → `gdk.atom.Atom` class + `Atom.intern`.
+- [x] **`gx/i18n/l10n.d`** (1) — ported + verified (compiles in skeleton). `glib.Internationalization.*` → free functions in `glib.global` (`dgettext`, `dpgettext2`).
 - [ ] `gx/gtk/threads.d` (1)
-- [ ] `gx/i18n/l10n.d` (1)
 - [ ] `gx/ttyx/terminal/spawn.d` (1)
 - [ ] `gx/ttyx/terminal/types.d` (1)
 - [ ] `gx/ttyx/colorschemes.d` (2)
