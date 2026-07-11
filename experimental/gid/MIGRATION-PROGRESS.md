@@ -52,7 +52,7 @@ Number = count of GtkD imports (rough difficulty).
 - [ ] `gx/ttyx/colorschemes.d` (2)
 - [ ] `gx/ttyx/preferences.d` (2)
 - [ ] `gx/ttyx/terminal/context.d` (2)
-- [ ] `gx/gtk/settings.d` (3, C)
+- [x] **`gx/gtk/settings.d`** (3) — ported + verified. `GSettingsBindFlags` → `gio.types.SettingsBindFlags`; `gobject.ObjectG` → `gobject.object.ObjectWrap`; `Settings.unbind` is **static** in giD; wrapper-validity probe `getObjectGStruct()` → `_cPtr`.
 - [ ] `gx/ttyx/terminal/regex.d` (4, C)
 - [x] **`gx/gtk/vte.d`** (4) — ported + verified. Version via `vte.global.getMajorVersion`; keysyms `gdk.types.KEY_*`; patched-signal detection via `gobject.global.signalLookup` + `Terminal._getGType()`. **Behavioral note:** `DISABLE_BACKGROUND_DRAW` reported unavailable — giD binds only standard VTE (no patched `vte_terminal_get_disable_bg_draw`, no linker introspection); `isVTEBackgroundDrawEnabled()` falls back to the version check.
 - [ ] `gx/ttyx/cmdparams.d` (4)
