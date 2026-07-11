@@ -54,7 +54,7 @@ Number = count of GtkD imports (rough difficulty).
 - [ ] `gx/ttyx/terminal/context.d` (2)
 - [ ] `gx/gtk/settings.d` (3, C)
 - [ ] `gx/ttyx/terminal/regex.d` (4, C)
-- [ ] `gx/gtk/vte.d` (4)
+- [x] **`gx/gtk/vte.d`** (4) — ported + verified. Version via `vte.global.getMajorVersion`; keysyms `gdk.types.KEY_*`; patched-signal detection via `gobject.global.signalLookup` + `Terminal._getGType()`. **Behavioral note:** `DISABLE_BACKGROUND_DRAW` reported unavailable — giD binds only standard VTE (no patched `vte_terminal_get_disable_bg_draw`, no linker introspection); `isVTEBackgroundDrawEnabled()` falls back to the version check.
 - [ ] `gx/ttyx/cmdparams.d` (4)
 - [x] **`gx/gtk/dialog.d`** (5) — ported + verified (compiles/links in skeleton). First widget module: `MessageDialog.builder().build()` + property setters + `addButton` (no ctor/ButtonsType), enums PascalCase in `gtk.types`, `getMessageArea` cast to `Box`, `connectActivate`/`connectChanged`, `CheckButton.newWithLabel`.
 
