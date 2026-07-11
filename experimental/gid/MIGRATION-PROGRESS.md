@@ -56,7 +56,7 @@ Number = count of GtkD imports (rough difficulty).
 - [ ] `gx/ttyx/terminal/regex.d` (4, C)
 - [ ] `gx/gtk/vte.d` (4)
 - [ ] `gx/ttyx/cmdparams.d` (4)
-- [ ] `gx/gtk/dialog.d` (5)
+- [x] **`gx/gtk/dialog.d`** (5) — ported + verified (compiles/links in skeleton). First widget module: `MessageDialog.builder().build()` + property setters + `addButton` (no ctor/ButtonsType), enums PascalCase in `gtk.types`, `getMessageArea` cast to `Box`, `connectActivate`/`connectChanged`, `CheckButton.newWithLabel`.
 
 ### Mid (widgets, wrappers)
 - [ ] `gx/ttyx/terminal/flatpak.d` (6, C)
