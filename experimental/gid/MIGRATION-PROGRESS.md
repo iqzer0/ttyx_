@@ -66,7 +66,7 @@ Number = count of GtkD imports (rough difficulty).
 - [ ] `gx/ttyx/prefeditor/common.d` (7)
 - [ ] `gx/gtk/resource.d` (8, C)
 - [ ] `gx/ttyx/shortcuts.d` (8, C)
-- [ ] `gx/gtk/actions.d` (8)
+- [x] **`gx/gtk/actions.d`** (8) — ported + verified. Accelerators via `gtk.global.acceleratorParse/GetLabel`; `ActionMap`/`SimpleAction.newStateful`; signals `connectActivate`/`connectChangeState` (delegate `void(Variant, SimpleAction)`); app re-typed via `ObjectWrap._getDObject!(Application)(def._cPtr, No.Take)` (giD re-wrap idiom, not a plain cast). Pure string helpers + tests unchanged.
 - [ ] `gx/ttyx/bookmark/manager.d` (8)
 - [ ] `gx/ttyx/terminal/renderer.d` (8)
 - [ ] `gx/gtk/x11.d` (9, C) — or drop for `gid:xlib2`
