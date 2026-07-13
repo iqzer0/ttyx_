@@ -14,7 +14,7 @@ tests passing. `color.d` was verified with `dub test` against `gid:gdk3`.
 
 ## ▶ Resuming in a new session (start here)
 
-**Status:** 17 of ~44 modules ported. Everything is on `master` of the fork
+**Status:** 19 of ~44 modules ported. Everything is on `master` of the fork
 (`iqzer0/ttyx_`). The shipping GtkD app is untouched — all ports live only in
 `experimental/gid/`, which is not part of the main `meson`/`dub` build.
 
@@ -59,8 +59,13 @@ come last, once the shared modules exist.
 `source/x11/*` + `libs-linux: ["X11"]`). `gx/util/*`, `gx/ttyx/common`,
 `constants`, `encoding`, and the pure `terminal/*` logic carry over unchanged.
 
-**Outstanding manual checks:** `x11.d`'s `_NET_ACTIVE_WINDOW` send is
-compile-verified only — test window activation on a real X11 session.
+**Outstanding manual checks:**
+- `x11.d`'s `_NET_ACTIVE_WINDOW` send is compile-verified only — test window
+  activation on a real X11 session.
+- `flatpak.d`'s HostCommand D-Bus path is compile-verified only — test inside
+  a real Flatpak sandbox.
+- `exvte.d`'s patched-VTE signal marshals and disable-bg-draw dlsym path are
+  compile-verified only — test against a patched VTE build (e.g. Fedora).
 
 ## Translation cheat-sheet (GtkD → giD)
 
@@ -101,7 +106,7 @@ Number = count of GtkD imports (rough difficulty).
 - [x] **`gx/ttyx/terminal/types.d`** (1) — ported + verified (`dub test`: SumType sync events, TerminalSnapshot golden roundtrip, trigger tests all pass). Mechanical: `gdk.Event` → `gdk.event : Event` (Boxed class, still nullable — in-contracts unchanged).
 - [x] **`gx/ttyx/colorschemes.d`** (2) — ported + verified (`dub test`: full suite passes — JSON roundtrip, parse, matching). **Gotcha: giD `RGBA` struct fields default-init to NaN** (bare `double`s) vs GtkD’s zeroed `new RGBA()` — every former `new RGBA()` is now explicit `RGBA(0,0,0,0)`; `parseColor` takes `ref RGBA`; `glib.Util.*` → `glib.global` free functions.
 - [x] **`gx/ttyx/preferences.d`** (2) — ported + verified (`dub test` in skeleton: clamp/ProfileInfo/prctl tests pass). Near-mechanical: `gio.settings`/`glib.variant` imports, `new GSettings(id, path)` → static `GSettings.newWithPath(id, path)`; everything else unchanged. First `gx/ttyx` module: pulled reusable GtkD-free `gx/util/array.d`, `gx/ttyx/common.d`, `gx/ttyx/constants.d` into the build via dub.json `sourceFiles`. **`dub test` works on the skeleton** (test runner skips `main`) — use it as the verify step from now on.
-- [ ] `gx/ttyx/terminal/context.d` (2)
+- [x] **`gx/ttyx/terminal/context.d`** (2) — ported + verified (`dub test`: PreferenceRegistry suite passes). Mechanical import swap. Reuses `gx/ttyx/terminal/state.d` (added to dub.json).
 - [x] **`gx/gtk/settings.d`** (3) — ported + verified. `GSettingsBindFlags` → `gio.types.SettingsBindFlags`; `gobject.ObjectG` → `gobject.object.ObjectWrap`; `Settings.unbind` is **static** in giD; wrapper-validity probe `getObjectGStruct()` → `_cPtr`.
 - [ ] `gx/ttyx/terminal/regex.d` (4, C)
 - [x] **`gx/gtk/vte.d`** (4) — ported + verified. Version via `vte.global.getMajorVersion`; keysyms `gdk.types.KEY_*`; patched-signal detection via `gobject.global.signalLookup` + `Terminal._getGType()`. **Behavioral note:** `DISABLE_BACKGROUND_DRAW` reported unavailable — giD binds only standard VTE (no patched `vte_terminal_get_disable_bg_draw`, no linker introspection); `isVTEBackgroundDrawEnabled()` falls back to the version check.
@@ -112,7 +117,7 @@ Number = count of GtkD imports (rough difficulty).
 - [x] **`gx/ttyx/terminal/flatpak.d`** (6, C) — ported + verified (compiles/links; **Flatpak D-Bus path needs a runtime check inside a real sandbox**). All raw C is gone: `g_variant_new` varargs → typed `Variant.newBytestring/newBytestringArray/newDictEntry/newHandle/newTuple` (VariantBuilders kept so empty `a{uh}`/`a{ss}` stay correctly typed); extern(C) signal callback + `GC.addRoot` → D-delegate `signalSubscribe` closure over a heap state struct; `callWithUnixFdListSync` **throws `ErrorWrap`** instead of returning null; dropped GtkD’s manual `doref()`. Also fixed an upstream bug: `scope(exit) pipe.close()` closed a fresh pipe, not `output`.
 - [ ] `gx/ttyx/prefeditor/bookmarkeditor.d` (6)
 - [ ] `gx/ttyx/terminal/layout.d` (6)
-- [ ] `gx/ttyx/terminal/exvte.d` (7, C) — VTE subclass; much of it becomes native `gid:vte2` (no hand-written C bindings)
+- [x] **`gx/ttyx/terminal/exvte.d`** (7, C) — ported + verified (compiles/links; enum-converter tests pass. **Patched-VTE signals + disable-bg-draw need a runtime check on a patched VTE build**). `vtePasteText` is native `Terminal.pasteText` in giD (GtkD-3.10 shim gone). Patched-VTE signals use hand-written closure marshals mirroring giD generated `connect*` code (`DClosure` + `connectSignalClosure` + `signalLookup` probe; **pattern for any unbound signal**). `vte_terminal_get/set_disable_bg_draw` resolved via `dlsym(RTLD_DEFAULT)` with null-guards (link-time extern(C) would fail on standard VTE). VTE enums: `vte.types` PascalCase.
 - [ ] `gx/ttyx/prefeditor/common.d` (7)
 - [x] **`gx/gtk/resource.d`** (8) — ported + verified. `GException` → `glib.error.ErrorWrap`; `Util.getSystemDataDirs` → `glib.global.getSystemDataDirs`; `Resource.register`/`resourcesLookupData` (GtkD statics) → free funcs `gio.global.resourcesRegister`/`resourcesLookupData` (`Resource.load` stays static); `Bytes.getData` → `ubyte[]`; `CssProvider.loadFromData(ubyte[])`; `ResourceLookupFlags.None`.
 - [ ] `gx/ttyx/shortcuts.d` (8, C)
