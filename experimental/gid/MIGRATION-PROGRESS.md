@@ -69,7 +69,7 @@ Number = count of GtkD imports (rough difficulty).
 - [x] **`gx/gtk/actions.d`** (8) — ported + verified. Accelerators via `gtk.global.acceleratorParse/GetLabel`; `ActionMap`/`SimpleAction.newStateful`; signals `connectActivate`/`connectChangeState` (delegate `void(Variant, SimpleAction)`); app re-typed via `ObjectWrap._getDObject!(Application)(def._cPtr, No.Take)` (giD re-wrap idiom, not a plain cast). Pure string helpers + tests unchanged.
 - [ ] `gx/ttyx/bookmark/manager.d` (8)
 - [ ] `gx/ttyx/terminal/renderer.d` (8)
-- [ ] `gx/gtk/x11.d` (9, C) — or drop for `gid:xlib2`
+- [x] **`gx/gtk/x11.d`** (9) — ported + verified (compiles+links; **X11 runtime behavior untested headlessly — verify _NET_ACTIVE_WINDOW on a real X11 session**). giD binds neither the GDK X11 backend nor raw Xlib events, so: reuse the vendored GtkD-free `x11.X`/`x11.Xlib` bindings (wired via `sourceFiles`+`importPaths ../../source`+`libs X11` in dub.json — the **reuse-vendored-source pattern** for later modules); declare `gdk_x11_*` helpers as plain `extern(C)` (resolve from libgdk-3 at link, no runtime Linker); `gtk.global.getCurrentEventTime`, `gdk.global.errorTrapPush/Pop/flush`, GdkWindow* via `_cPtr`.
 - [ ] `gx/ttyx/bookmark/bmchooser.d` (10)
 - [ ] `gx/ttyx/terminal/clipboard.d` (11, C)
 - [ ] `gx/ttyx/prefeditor/titleeditor.d` (13)

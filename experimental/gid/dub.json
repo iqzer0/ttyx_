@@ -4,6 +4,10 @@
     "authors": ["gwelr"],
     "license": "MPL-2.0",
     "targetType": "executable",
+    "sourcePaths": ["source"],
+    "importPaths": ["source", "../../source"],
+    "sourceFiles": ["../../source/x11/X.d", "../../source/x11/Xlib.d"],
+    "libs-linux": ["X11"],
     "dependencies": {
         "gid:gtk3": "0.9.13",
         "gid:vte2": "0.9.13"
