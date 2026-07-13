@@ -14,7 +14,7 @@ tests passing. `color.d` was verified with `dub test` against `gid:gdk3`.
 
 ## ▶ Resuming in a new session (start here)
 
-**Status:** 11 of ~44 modules ported. Everything is on `master` of the fork
+**Status:** 12 of ~44 modules ported. Everything is on `master` of the fork
 (`iqzer0/ttyx_`). The shipping GtkD app is untouched — all ports live only in
 `experimental/gid/`, which is not part of the main `meson`/`dub` build.
 
@@ -96,7 +96,7 @@ Number = count of GtkD imports (rough difficulty).
 - [x] **`gx/gtk/color.d`** (1) — ported + verified (`dub test` vs `gid:gdk3`). `gdk.RGBA` class → `gdk.rgba.RGBA` value struct.
 - [x] **`gx/gtk/clipboard.d`** (1) — ported + verified (compiles in skeleton). `gdk.Atom`/`intern` → `gdk.atom.Atom` class + `Atom.intern`.
 - [x] **`gx/i18n/l10n.d`** (1) — ported + verified (compiles in skeleton). `glib.Internationalization.*` → free functions in `glib.global` (`dgettext`, `dpgettext2`).
-- [ ] `gx/gtk/threads.d` (1)
+- [x] **`gx/gtk/threads.d`** (1) — ported + verified (probe-instantiated all caller shapes). Big simplification: giD's `gdk.global.threadsAddIdle/threadsAddTimeout` take D delegates directly (internal `freezeDelegate`/`thawDelegate` handles GC rooting), so the grestful `DelegatePointer` + C-trampoline machinery is gone; public API unchanged. Priorities passed explicitly (`PRIORITY_DEFAULT_IDLE` / `PRIORITY_DEFAULT` from `glib.types`) since giD only binds the `*_full` variants.
 - [ ] `gx/ttyx/terminal/spawn.d` (1)
 - [ ] `gx/ttyx/terminal/types.d` (1)
 - [ ] `gx/ttyx/colorschemes.d` (2)
