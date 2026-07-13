@@ -14,7 +14,7 @@ tests passing. `color.d` was verified with `dub test` against `gid:gdk3`.
 
 ## ▶ Resuming in a new session (start here)
 
-**Status:** 10 of ~44 modules ported. Everything is on `master` of the fork
+**Status:** 11 of ~44 modules ported. Everything is on `master` of the fork
 (`iqzer0/ttyx_`). The shipping GtkD app is untouched — all ports live only in
 `experimental/gid/`, which is not part of the main `meson`/`dub` build.
 
@@ -47,9 +47,8 @@ Exit 0 = every ported module still compiles+links.
       `git push`. Merge to `master` at milestones (each merge is
       `experimental/gid`-only, so safe; re-runs CI on the app, which stays green).
 
-**4. Do the NEXT modules in this order:** `util.d` (now unblocked by `x11.d`;
-big — tree-models, gobject introspection, style colours, widget traversal) →
-`threads.d` → then the `gx/ttyx` layer starting with its low-import leaves
+**4. Do the NEXT modules in this order:** `threads.d` → then the `gx/ttyx`
+layer starting with its low-import leaves
 (`types`, `spawn`, `colorschemes`, `preferences`, `context`, ...). Heavy widgets
 (`session`, `sidebar`, `application`, `prefdialog`, `appwindow`, `terminal.d`)
 come last, once the shared modules exist.
@@ -137,7 +136,7 @@ Number = count of GtkD imports (rough difficulty).
 ### Heavy (the core widgets — port last, once patterns are solid)
 - [ ] `gx/ttyx/session.d` (28)
 - [ ] `gx/ttyx/sidebar.d` (29)
-- [ ] `gx/gtk/util.d` (33)
+- [x] **`gx/gtk/util.d`** (33) — ported + verified (incl. force-instantiating every template via a temp probe file). `File.parseName` native in giD; `Container.getChildren` → `Widget[]`; tree stores `append(out iter)` + `setValue(iter, col, new Value(v))` (templated `Value` ctor); `ComboBox.newWithModel` + CellLayout `packStart`/`addAttribute`; `Settings.getDefault().gtkThemeName` typed property; `isWayland` via extern(C) `gdk_x11_window_get_type` + `gobject.global.typeCheckInstanceIsA` on a `TypeInstance(No.Take)`; **RGBA is a value struct → `equal(RGBA, RGBA)` lost null handling — callers must compare directly**; combo-factory tail deduped into `wireNameValueCombo`.
 - [ ] `gx/ttyx/application.d` (36, C)
 - [ ] `gx/ttyx/prefeditor/profileeditor.d` (40)
 - [ ] `gx/ttyx/prefeditor/prefdialog.d` (56)
