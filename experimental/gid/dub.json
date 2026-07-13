@@ -10,7 +10,9 @@
         "../../source/x11/X.d",
         "../../source/x11/Xlib.d",
         "../../source/gx/util/array.d",
+        "../../source/gx/util/redact.d",
         "../../source/gx/ttyx/common.d",
+        "../../source/gx/ttyx/terminal/util.d",
         "../../source/gx/ttyx/constants.d"
     ],
     "libs-linux": ["X11"],
