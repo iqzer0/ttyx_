@@ -64,7 +64,7 @@ Number = count of GtkD imports (rough difficulty).
 - [ ] `gx/ttyx/terminal/layout.d` (6)
 - [ ] `gx/ttyx/terminal/exvte.d` (7, C) — VTE subclass; much of it becomes native `gid:vte2` (no hand-written C bindings)
 - [ ] `gx/ttyx/prefeditor/common.d` (7)
-- [ ] `gx/gtk/resource.d` (8, C)
+- [x] **`gx/gtk/resource.d`** (8) — ported + verified. `GException` → `glib.error.ErrorWrap`; `Util.getSystemDataDirs` → `glib.global.getSystemDataDirs`; `Resource.register`/`resourcesLookupData` (GtkD statics) → free funcs `gio.global.resourcesRegister`/`resourcesLookupData` (`Resource.load` stays static); `Bytes.getData` → `ubyte[]`; `CssProvider.loadFromData(ubyte[])`; `ResourceLookupFlags.None`.
 - [ ] `gx/ttyx/shortcuts.d` (8, C)
 - [x] **`gx/gtk/actions.d`** (8) — ported + verified. Accelerators via `gtk.global.acceleratorParse/GetLabel`; `ActionMap`/`SimpleAction.newStateful`; signals `connectActivate`/`connectChangeState` (delegate `void(Variant, SimpleAction)`); app re-typed via `ObjectWrap._getDObject!(Application)(def._cPtr, No.Take)` (giD re-wrap idiom, not a plain cast). Pure string helpers + tests unchanged.
 - [ ] `gx/ttyx/bookmark/manager.d` (8)
