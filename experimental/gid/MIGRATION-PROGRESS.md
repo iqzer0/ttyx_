@@ -14,7 +14,7 @@ tests passing. `color.d` was verified with `dub test` against `gid:gdk3`.
 
 ## ▶ Resuming in a new session (start here)
 
-**Status:** 12 of ~44 modules ported. Everything is on `master` of the fork
+**Status:** 13 of ~44 modules ported. Everything is on `master` of the fork
 (`iqzer0/ttyx_`). The shipping GtkD app is untouched — all ports live only in
 `experimental/gid/`, which is not part of the main `meson`/`dub` build.
 
@@ -100,7 +100,7 @@ Number = count of GtkD imports (rough difficulty).
 - [ ] `gx/ttyx/terminal/spawn.d` (1)
 - [ ] `gx/ttyx/terminal/types.d` (1)
 - [ ] `gx/ttyx/colorschemes.d` (2)
-- [ ] `gx/ttyx/preferences.d` (2)
+- [x] **`gx/ttyx/preferences.d`** (2) — ported + verified (`dub test` in skeleton: clamp/ProfileInfo/prctl tests pass). Near-mechanical: `gio.settings`/`glib.variant` imports, `new GSettings(id, path)` → static `GSettings.newWithPath(id, path)`; everything else unchanged. First `gx/ttyx` module: pulled reusable GtkD-free `gx/util/array.d`, `gx/ttyx/common.d`, `gx/ttyx/constants.d` into the build via dub.json `sourceFiles`. **`dub test` works on the skeleton** (test runner skips `main`) — use it as the verify step from now on.
 - [ ] `gx/ttyx/terminal/context.d` (2)
 - [x] **`gx/gtk/settings.d`** (3) — ported + verified. `GSettingsBindFlags` → `gio.types.SettingsBindFlags`; `gobject.ObjectG` → `gobject.object.ObjectWrap`; `Settings.unbind` is **static** in giD; wrapper-validity probe `getObjectGStruct()` → `_cPtr`.
 - [ ] `gx/ttyx/terminal/regex.d` (4, C)
