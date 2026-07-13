@@ -73,7 +73,7 @@ Number = count of GtkD imports (rough difficulty).
 - [ ] `gx/ttyx/bookmark/bmchooser.d` (10)
 - [ ] `gx/ttyx/terminal/clipboard.d` (11, C)
 - [ ] `gx/ttyx/prefeditor/titleeditor.d` (13)
-- [ ] `gx/gtk/cairo.d` (14, C)
+- [x] **`gx/gtk/cairo.d`** (14) — ported + verified. giD binds cairo *procedurally*: no `ImageSurface` class (use `cairo.surface.Surface` + `cairo.global.imageSurfaceCreate/GetWidth/GetHeight`, `cairo.global.create` for a Context); enums `cairo.types.Format.Argb32`/`Operator.Source`/`Filter.Bilinear`/`Extend.Repeat`/`Content.Color`; gdk↔cairo via `gdk.global.cairoSetSourcePixbuf`/`pixbufGetFromSurface`; cairo objects are GC-managed (dropped explicit `.destroy()`); `gtk.Main` → `gtk.global.eventsPending`/`mainIterationDo`; `addOnDamage` → `connectDamageEvent(bool delegate(EventExpose, Widget))`.
 - [ ] `gx/ttyx/terminal/advpaste.d` (14)
 - [ ] `gx/ttyx/customtitle.d` (15, C)
 - [ ] `gx/ttyx/bookmark/bmtreeview.d` (17)
