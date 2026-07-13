@@ -12,6 +12,57 @@ and are reused as-is; only the GtkD-coupled files are ported here.
 **Verification:** each ported module must compile against giD and keep its unit
 tests passing. `color.d` was verified with `dub test` against `gid:gdk3`.
 
+## ▶ Resuming in a new session (start here)
+
+**Status:** 10 of ~44 modules ported. Everything is on `master` of the fork
+(`iqzer0/ttyx_`). The shipping GtkD app is untouched — all ports live only in
+`experimental/gid/`, which is not part of the main `meson`/`dub` build.
+
+**1. Toolchain (persistent — already installed, no setup):**
+```bash
+export PATH="$HOME/dlang/ldc-1.40.0/bin:$PATH"   # bundles dub
+# leave DUB_HOME unset → uses ~/.dub, where giD 0.9.13 is already cached
+```
+If `~/dlang` is ever gone: re-extract the LDC 1.40 tarball
+(`github.com/ldc-developers/ldc/releases/download/v1.40.0/ldc2-1.40.0-linux-x86_64.tar.xz`)
+into `~/dlang/ldc-1.40.0`.
+
+**2. Confirm the current ports still build (the giD skeleton compiles them all):**
+```bash
+cd experimental/gid && dub build --compiler=ldc2
+```
+Exit 0 = every ported module still compiles+links.
+
+**3. Port the next module — the loop that has worked every time:**
+   1. Pick the next unchecked box below (they're ordered low-import → high).
+   2. Read the GtkD original at `source/<path>`.
+   3. Recon each unfamiliar giD API from the cached bindings — grep
+      `~/.dub/packages/gid/0.9.13/gid/packages/<pkg>/...` (e.g. `gtk3/gtk/`,
+      `gio2/gio/`, `glib2/glib/`, `glib2/gobject/`, `gdk3/gdk/`, `vte2/vte/`).
+      The cheat-sheet below has the recurring idioms.
+   4. Write the port to `experimental/gid/source/<same path>`.
+   5. `cd experimental/gid && dub build --compiler=ldc2 --force` → fix errors,
+      repeat until clean.
+   6. Tick the box here, `git commit` (`feat:`/`chore:` `Phase 2a — port X to giD`),
+      `git push`. Merge to `master` at milestones (each merge is
+      `experimental/gid`-only, so safe; re-runs CI on the app, which stays green).
+
+**4. Do the NEXT modules in this order:** `util.d` (now unblocked by `x11.d`;
+big — tree-models, gobject introspection, style colours, widget traversal) →
+`threads.d` → then the `gx/ttyx` layer starting with its low-import leaves
+(`types`, `spawn`, `colorschemes`, `preferences`, `context`, ...). Heavy widgets
+(`session`, `sidebar`, `application`, `prefdialog`, `appwindow`, `terminal.d`)
+come last, once the shared modules exist.
+
+**5. Reusing GtkD-free `source/` files:** add them to the build via
+`sourceFiles` + `importPaths: ["source", "../../source"]` in
+`experimental/gid/dub.json` (see the `x11.d` precedent — it reuses
+`source/x11/*` + `libs-linux: ["X11"]`). `gx/util/*`, `gx/ttyx/common`,
+`constants`, `encoding`, and the pure `terminal/*` logic carry over unchanged.
+
+**Outstanding manual checks:** `x11.d`'s `_NET_ACTIVE_WINDOW` send is
+compile-verified only — test window activation on a real X11 session.
+
 ## Translation cheat-sheet (GtkD → giD)
 
 | GtkD | giD |
