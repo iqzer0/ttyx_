@@ -10,6 +10,7 @@
         "../../source/x11/X.d",
         "../../source/x11/Xlib.d",
         "../../source/gx/util/array.d",
+        "../../source/gx/util/path.d",
         "../../source/gx/util/redact.d",
         "../../source/gx/ttyx/common.d",
         "../../source/gx/ttyx/terminal/util.d",
@@ -19,6 +20,7 @@
     "libs-linux": ["X11"],
     "dependencies": {
         "gid:gtk3": "0.9.13",
+        "gid:pangocairo1": "0.9.13",
         "gid:vte2": "0.9.13"
     }
 }
