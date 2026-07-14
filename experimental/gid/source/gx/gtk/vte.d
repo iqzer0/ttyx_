@@ -13,9 +13,11 @@
  *    VTE Terminal GType — this works under giD too.
  *  - DISABLE_BACKGROUND_DRAW was detected in GtkD by inspecting linker load
  *    failures for the patched `vte_terminal_get_disable_bg_draw` symbol. giD
- *    binds only standard VTE (that symbol isn't in VTE's GIR) and has no linker
- *    introspection, so the feature is reported unavailable; isVTEBackgroundDraw-
- *    Enabled() falls back to the VTE version check, which covers modern VTE.
+ *    binds only standard VTE (that symbol isn't in VTE's GIR), so the port
+ *    probes the already-loaded libvte with dlsym(RTLD_DEFAULT) — the same
+ *    mechanism exvte.d uses to bind the getter/setter. On standard VTE the
+ *    probe returns null and isVTEBackgroundDrawEnabled() falls back to the
+ *    VTE version check.
  */
 module gx.gtk.vte;
 
@@ -129,10 +131,13 @@ bool checkVTEFeature(TerminalFeature feature) {
             terminalFeatures[cast(TerminalFeature) i] = supported;
         }
 
-        // See the module header: the patched disable-background-draw symbol is
-        // not bound by giD (standard-VTE GIR), so report it unavailable. The
-        // caller falls back to the version check for modern VTE.
-        terminalFeatures[TerminalFeature.DISABLE_BACKGROUND_DRAW] = false;
+        // The patched disable-background-draw symbol is not bound by giD
+        // (standard-VTE GIR); probe the loaded libvte for it at runtime,
+        // matching GtkD's linker-introspection behavior (see module header).
+        import core.sys.linux.dlfcn : RTLD_DEFAULT;
+        import core.sys.posix.dlfcn : dlsym;
+        terminalFeatures[TerminalFeature.DISABLE_BACKGROUND_DRAW] =
+            dlsym(RTLD_DEFAULT, "vte_terminal_get_disable_bg_draw") !is null;
 
         featuresInitialized = true;
     }

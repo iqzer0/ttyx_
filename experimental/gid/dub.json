@@ -23,6 +23,7 @@
     "dependencies": {
         "gid:gtk3": "0.9.13",
         "gid:pangocairo1": "0.9.13",
+        "gid:secret1": "0.9.13",
         "gid:vte2": "0.9.13"
     }
 }
