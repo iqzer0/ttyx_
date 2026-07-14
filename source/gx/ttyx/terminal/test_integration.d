@@ -20,9 +20,9 @@ private:
 import std.conv : to;
 import std.experimental.logger;
 
-import gdk.RGBA;
+import gdk.rgba : RGBA;
 
-import gtk.Main;
+import gtk.c.functions : gtk_init;
 
 import gx.gtk.vte : isVTEBackgroundDrawEnabled;
 import gx.ttyx.terminal.clipboard : isPasteUnsafe;
@@ -33,8 +33,9 @@ import gx.ttyx.terminal.state;
 /// Initialize GTK once for all integration tests in this module.
 shared static this() {
     try {
-        string[] args;
-        Main.init(args);
+        // giD has no gtk.Main.init wrapper; raw gtk_init(null, null) inits GTK
+        // with no args (see app.d). Fails gracefully with no display.
+        gtk_init(null, null);
     } catch (Exception e) {
         // GTK init failed (no display) — integration tests will be skipped
         // via the gtkInitialized flag
@@ -45,7 +46,7 @@ shared static this() {
 bool gtkInitialized() {
     try {
         // If GTK is initialized, this won't throw
-        import gdk.Display : Display;
+        import gdk.display : Display;
         return Display.getDefault() !is null;
     } catch (Exception) {
         return false;
@@ -67,10 +68,8 @@ unittest {
     // Renderer constructs and initializes colors
     // Note: we can't construct TerminalRenderer without ITerminalContext,
     // but we CAN test the color state types directly
-    auto fg = new RGBA();
-    auto bg = new RGBA();
-    assert(fg !is null);
-    assert(bg !is null);
+    auto fg = RGBA();
+    auto bg = RGBA();
 
     // Test RGBA parse (used by renderer.applyMainColors)
     assert(fg.parse("#FF0000"));
@@ -83,7 +82,7 @@ unittest {
 unittest {
     if (!gtkInitialized()) return;
 
-    auto color = new RGBA();
+    auto color = RGBA();
 
     // Hex format
     assert(color.parse("#00FF00"));
@@ -252,11 +251,8 @@ unittest {
 
     foreach (scheme; schemes) {
         assert(scheme.name.length > 0, "scheme name should not be empty");
-        assert(scheme.foreground !is null, "scheme should have foreground color");
-        assert(scheme.background !is null, "scheme should have background color");
         // Verify palette has 16 colors
         foreach (i, color; scheme.palette) {
-            assert(color !is null, "palette color " ~ to!string(i) ~ " is null in scheme " ~ scheme.name);
         }
     }
 }
@@ -289,10 +285,9 @@ unittest {
     if (!gtkInitialized()) return;
 
     // Test that RGBA objects work after initialization
-    auto colors = new RGBA[16];
+    RGBA[16] colors;
     foreach (i; 0..16) {
-        colors[i] = new RGBA();
-        assert(colors[i] !is null);
+        colors[i] = RGBA();
     }
 
     // Test parse of all standard terminal palette colors (Tango palette)

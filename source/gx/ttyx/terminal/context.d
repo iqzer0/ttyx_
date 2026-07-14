@@ -2,13 +2,18 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
  * distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+/*
+ * giD port of source/gx/ttyx/terminal/context.d. Mechanical: gio.Settings ->
+ * gio.settings, gtk.Widget -> gtk.widget. The interfaces and the pure-D
+ * PreferenceRegistry are unchanged.
+ */
 module gx.ttyx.terminal.context;
 
 private:
 
-import gio.Settings : GSettings = Settings;
+import gio.settings : GSettings = Settings;
 
-import gtk.Widget;
+import gtk.widget : Widget;
 
 import gx.ttyx.terminal.exvte;
 import gx.ttyx.terminal.state;

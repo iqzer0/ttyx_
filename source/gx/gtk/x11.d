@@ -15,46 +15,57 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * giD port of source/gx/gtk/x11.d.
+ *
+ * giD does not bind the GDK X11 backend, and its xlib2 binding lacks the raw
+ * event types (XClientMessageEvent / XSendEvent). So this port:
+ *   - reuses ttyx_'s vendored, GtkD-free x11.X / x11.Xlib bindings for raw Xlib;
+ *   - declares the four gdk_x11_* backend helpers (plus gdk_x11_window_get_xid)
+ *     directly as extern(C) — they resolve at link time from libgdk-3, so no
+ *     runtime Linker is needed (GtkD had to dlsym them);
+ *   - uses giD's gtk.global / gdk.global for the current-event-time and error
+ *     trap / flush calls, and reaches the underlying GdkWindow* via _cPtr.
+ *
+ * NOTE: the raw _NET_ACTIVE_WINDOW event send cannot be exercised in a headless
+ * build; verify window activation on a real X11 session.
+ */
 module gx.gtk.x11;
 
 import std.experimental.logger;
 import std.string;
 
-import gtkc.glibtypes;
+import gdk.window : GdkWindowWrap = Window;
+import gdk.c.types : GdkWindow;
+import gdk.global : errorTrapPush, errorTrapPop, flush;
 
-import gtkc.Loader;
-import gtkc.paths;
+import gtk.global : getCurrentEventTime;
+import gtk.window : GtkWindow = Window;
 
-import gdk.Atom;
-import gdk.Gdk;
-import gdk.X11;
-
-import gtk.Main;
-import gtk.Window;
-
-import x11.X: Atom, ClientMessage, StructureNotifyMask, XWindow=Window;
-import x11.Xlib: Display, XClientMessageEvent, XSendEvent, XEvent;
+import x11.X : Atom, ClientMessage, StructureNotifyMask, XWindow = Window;
+import x11.Xlib : Display, XClientMessageEvent, XSendEvent, XEvent;
 
 /**
- * This function activates an X11 using the _NET_ACTIVE_WINDOW
- * event for X11. Works around some edge cases with respect to
- * window focus.
+ * This function activates an X11 window using the _NET_ACTIVE_WINDOW
+ * event for X11. Works around some edge cases with respect to window focus.
  *
  * Code was translated from a C version in xfce4_terminal, see original here:
  * http://bazaar.launchpad.net/~vcs-imports/xfce4-terminal/trunk/view/head:/terminal/terminal-util.c
  *
- * The original xfce code was licensed under GPL and that license remains in effect for this method only,
- * since code translations are considered a derived work under GPL.
+ * The original xfce code was licensed under GPL and that license remains in
+ * effect for this method only, since code translations are considered a
+ * derived work under GPL.
  */
-void activateX11Window(Window window) {
-    uint timestamp = Main.getCurrentEventTime();
+void activateX11Window(GtkWindow window) {
+    GdkWindowWrap gdkWindow = window.getWindow();
+    uint timestamp = getCurrentEventTime();
 
     if (timestamp == 0)
-        timestamp = gdk_x11_get_server_time(window.getWindow().getWindowStruct());
+        timestamp = gdk_x11_get_server_time(cast(GdkWindow*) gdkWindow._cPtr);
 
     XClientMessageEvent event;
     event.type = ClientMessage;
-    event.window = getXid(window.getWindow());
+    event.window = gdk_x11_window_get_xid(cast(GdkWindow*) gdkWindow._cPtr);
     const(char*) name = toStringz("_NET_ACTIVE_WINDOW");
     event.message_type = gdk_x11_get_xatom_by_name(name);
     event.format = 32;
@@ -65,36 +76,22 @@ void activateX11Window(Window window) {
     Display* display = gdk_x11_get_default_xdisplay();
     XWindow root = gdk_x11_get_default_root_xwindow();
 
-    Gdk.errorTrapPush();
+    errorTrapPush();
     XSendEvent(display, root, false, StructureNotifyMask, cast(XEvent*) &event);
-    Gdk.flush;
-    if (Gdk.errorTrapPop() != 0) {
+    flush();
+    if (errorTrapPop() != 0) {
         error("Failed to focus window");
     }
 }
 
 private:
 
-import gdk.c.functions;
-
-shared static this()
-{
-    // Link in some extra functions not provided by GtkD
-    Linker.link(gdk_x11_get_xatom_by_name, "gdk_x11_get_xatom_by_name", LIBRARY_GDK);
-    Linker.link(gdk_x11_get_default_xdisplay, "gdk_x11_get_default_xdisplay", LIBRARY_GDK);
-    Linker.link(gdk_x11_get_default_root_xwindow, "gdk_x11_get_default_root_xwindow", LIBRARY_GDK);
-    Linker.link(gdk_x11_get_server_time, "gdk_x11_get_server_time", LIBRARY_GDK);
+// GDK X11 backend helpers. giD does not bind the GDK X11 backend, so declare
+// them directly; they resolve at link time from libgdk-3 (linked via gid:gtk3).
+extern(C) {
+    Atom gdk_x11_get_xatom_by_name(const(char)* atom_name);
+    Display* gdk_x11_get_default_xdisplay();
+    XWindow gdk_x11_get_default_root_xwindow();
+    uint gdk_x11_get_server_time(GdkWindow* window);
+    XWindow gdk_x11_window_get_xid(GdkWindow* window);
 }
-
-__gshared extern(C)
-{
-    Atom function(const(char)* atom_name) c_gdk_x11_get_xatom_by_name;
-    Display* function() c_gdk_x11_get_default_xdisplay;
-    XWindow function() c_gdk_x11_get_default_root_xwindow;
-    uint function(GdkWindow* window) c_gdk_x11_get_server_time;
-}
-
-alias c_gdk_x11_get_xatom_by_name gdk_x11_get_xatom_by_name;
-alias c_gdk_x11_get_default_xdisplay gdk_x11_get_default_xdisplay;
-alias c_gdk_x11_get_default_root_xwindow gdk_x11_get_default_root_xwindow;
-alias c_gdk_x11_get_server_time gdk_x11_get_server_time;

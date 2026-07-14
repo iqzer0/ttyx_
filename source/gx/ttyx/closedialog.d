@@ -2,37 +2,80 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
  * distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+
+/*
+ * giD port of source/gx/ttyx/closedialog.d. Differences from GtkD:
+ *   - Dialog(title, parent, flags, buttons[], responses[]) wraps the varargs
+ *     gtk_dialog_new_with_buttons, which giD does not bind, and use-header-bar
+ *     is construct-only: the dialog is created via raw
+ *     g_object_new(Dialog._getGType(), "use-header-bar", 1, null) passed to
+ *     super(ptr, No.Take), then setTitle/setModal/setTransientFor/addButton
+ *     (the advpaste.d pattern).
+ *   - IconInfo.loadIcon() throws glib.error.ErrorWrap instead of returning
+ *     null on failure — wrapped in try/catch so a missing/broken icon still
+ *     only logs a warning like the original.
+ *   - new TreeStore(GType[]) → TreeStore.new_(GType[]); createIter(parent) →
+ *     append(out iter, parent); setValue takes a gobject.value.Value (its
+ *     templated ctor covers strings and Pixbuf); Pixbuf.getType() →
+ *     Pixbuf._getGType(); GType.STRING → cast(GType) GTypeEnum.String.
+ *   - new TreeView(model) → TreeView.newWithModel(model);
+ *     new TreeViewColumn(title, renderer, attr, col) → new TreeViewColumn() +
+ *     setTitle + packStart + addAttribute.
+ *   - crt.setProperty("ellipsize", new Value(...)) / crp.setProperty(
+ *     "stock-size", 16) → giD's generated typed property setters
+ *     (crt.ellipsize = EllipsizeMode.End; crp.stockSize = 16) — giD's
+ *     Value-from-enum init uses abstract G_TYPE_ENUM, so the typed setters
+ *     are the reliable route for enum-typed properties.
+ *   - addOnKeyRelease(Event, Widget) + event.getKeyval(out kv) →
+ *     connectGdkEvent!EventKey(this, "key-release-event", bool delegate(EventKey)) with direct .keyval
+ *     field access; keysyms are module-level gdk.types.KEY_* constants.
+ *   - new ScrolledWindow(tv) → new ScrolledWindow() + add(tv);
+ *     new CheckButton(label) → CheckButton.newWithLabel(label).
+ *   - Enums are PascalCase in <pkg>.types (ResponseType.Ok, Align.Start,
+ *     Orientation.Vertical, ShadowType.EtchedIn, PolicyType.Never/Automatic,
+ *     IconLookupFlags).
+ */
 module gx.ttyx.closedialog;
 
 import std.experimental.logger;
 import std.format;
 
-import gdkpixbuf.Pixbuf;
+import gid.gid : No;
 
-import gdk.Event;
-import gdk.Keysyms;
+import gdkpixbuf.pixbuf : Pixbuf;
 
-import gio.Settings: GSettings = Settings;
+import gdk.event_key : EventKey;
+import gdk.types : KEY_Escape, KEY_Return;
 
-import gobject.Value;
+import gio.settings : GSettings = Settings;
 
-import gtk.Box;
-import gtk.CellRendererPixbuf;
-import gtk.CellRendererText;
-import gtk.CheckButton;
-import gtk.Dialog;
-import gtk.IconInfo;
-import gtk.IconTheme;
-import gtk.Label;
-import gtk.ScrolledWindow;
-import gtk.TreeIter;
-import gtk.TreeStore;
-import gtk.TreeView;
-import gtk.TreeViewColumn;
-import gtk.Window;
+import glib.error : ErrorWrap;
+
+import gobject.c.functions : g_object_new;
+import gobject.types : GType, GTypeEnum;
+import gobject.value : Value;
+
+import gtk.box : Box;
+import gtk.cell_renderer_pixbuf : CellRendererPixbuf;
+import gtk.cell_renderer_text : CellRendererText;
+import gtk.check_button : CheckButton;
+import gtk.dialog : Dialog;
+import gtk.icon_info : IconInfo;
+import gtk.icon_theme : IconTheme;
+import gtk.label : Label;
+import gtk.scrolled_window : ScrolledWindow;
+import gtk.tree_iter : TreeIter;
+import gtk.tree_store : TreeStore;
+import gtk.tree_view : TreeView;
+import gtk.tree_view_column : TreeViewColumn;
+import gtk.types : Align, IconLookupFlags, Orientation, PolicyType, ResponseType, ShadowType;
+import gtk.window : Window;
+
+import pango.types : EllipsizeMode;
 
 import gx.i18n.l10n;
 import gx.gtk.util;
+import gx.gtk.events;
 
 import gx.ttyx.common;
 import gx.ttyx.preferences;
@@ -49,13 +92,13 @@ bool promptCanCloseProcesses(GSettings gsSettings, Window window, ProcessInforma
     scope(exit) { dialog.destroy();}
     dialog.showAll();
     int result =  dialog.run();
-    if (result == ResponseType.OK && dialog.futureIgnore) {
+    if (result == ResponseType.Ok && dialog.futureIgnore) {
         gsSettings.setBoolean(SETTINGS_PROMPT_ON_CLOSE_PROCESS_KEY, false);
     }
 
     // Weird looking code, exists because of the way hotkeys get interpreted into results, it's
     // easier to check if the result is not OK
-    bool cancelClose = (result != ResponseType.OK);
+    bool cancelClose = (result != ResponseType.Ok);
     return !cancelClose;
 }
 
@@ -82,57 +125,64 @@ private:
         IconTheme iconTheme = new IconTheme();
         IconInfo iconInfo = iconTheme.lookupIcon("utilities-terminal", 16, cast(IconLookupFlags) 0);
         if (iconInfo !is null) {
-            pbTerminal = iconInfo.loadIcon();
-            tracef("Pixbuf width,height = %d,%d", pbTerminal.getWidth(), pbTerminal.getHeight());
+            try {
+                pbTerminal = iconInfo.loadIcon();
+                tracef("Pixbuf width,height = %d,%d", pbTerminal.getWidth(), pbTerminal.getHeight());
+            } catch (ErrorWrap e) {
+                warningf("Could not load icon for 'utilities-terminal': %s", e.msg);
+            }
         } else {
             warning("Could not load icon for 'utilities-terminal'");
         }
         setAllMargins(getContentArea(), 18);
-        Box box = new Box(Orientation.VERTICAL, 6);
+        Box box = new Box(Orientation.Vertical, 6);
 
         Label lbl = new Label("There are processes still running as shown below, close anyway?");
-        lbl.setHalign(GtkAlign.START);
+        lbl.setHalign(Align.Start);
         lbl.setMarginBottom(6);
         box.add(lbl);
 
-        ts = new TreeStore([GType.STRING, Pixbuf.getType(), GType.STRING]);
+        ts = TreeStore.new_([cast(GType) GTypeEnum.String, Pixbuf._getGType(), cast(GType) GTypeEnum.String]);
         loadProcesses();
 
-        tv = new TreeView(ts);
-        tv.addOnKeyRelease(delegate(Event event, Widget) {
-            uint keyval;
-            if (event.getKeyval(keyval)) {
-                switch (keyval) {
-                    case GdkKeysyms.GDK_Escape:
-                        response(GtkResponseType.CANCEL);
-                        break;
-                    case GdkKeysyms.GDK_Return:
-                        response(GtkResponseType.OK);
-                        break;
-                    default:
-                }
+        tv = TreeView.newWithModel(ts);
+        connectGdkEvent!EventKey(tv, "key-release-event", delegate bool(EventKey event) {
+            switch (event.keyval) {
+                case KEY_Escape:
+                    response(ResponseType.Cancel);
+                    break;
+                case KEY_Return:
+                    response(ResponseType.Ok);
+                    break;
+                default:
             }
             return false;
-
         });
         tv.setHeadersVisible(false);
 
         CellRendererText crt = new CellRendererText();
-        crt.setProperty("ellipsize", new Value(PangoEllipsizeMode.END));
+        crt.ellipsize = EllipsizeMode.End;
 
-        TreeViewColumn column = new TreeViewColumn(_("Title"), crt, "text", COLUMNS.NAME);
+        TreeViewColumn column = new TreeViewColumn();
+        column.setTitle(_("Title"));
+        column.packStart(crt, true);
+        column.addAttribute(crt, "text", COLUMNS.NAME);
         column.setExpand(true);
         tv.appendColumn(column);
 
         CellRendererPixbuf crp = new CellRendererPixbuf();
-        crp.setProperty("stock-size", 16);
-        column = new TreeViewColumn(_("Icon"), crp, "pixbuf", COLUMNS.ICON);
+        crp.stockSize = 16;
+        column = new TreeViewColumn();
+        column.setTitle(_("Icon"));
+        column.packStart(crp, true);
+        column.addAttribute(crp, "pixbuf", COLUMNS.ICON);
         column.setExpand(true);
         tv.appendColumn(column);
 
-        ScrolledWindow sw = new ScrolledWindow(tv);
-        sw.setShadowType(ShadowType.ETCHED_IN);
-        sw.setPolicy(PolicyType.NEVER, PolicyType.AUTOMATIC);
+        ScrolledWindow sw = new ScrolledWindow();
+        sw.add(tv);
+        sw.setShadowType(ShadowType.EtchedIn);
+        sw.setPolicy(PolicyType.Never, PolicyType.Automatic);
         sw.setHexpand(true);
         sw.setVexpand(true);
         sw.setSizeRequest(-1, 300);
@@ -140,7 +190,7 @@ private:
         box.add(sw);
         tv.expandAll();
 
-        cbIgnore = new CheckButton(_("Do not show this again"));
+        cbIgnore = CheckButton.newWithLabel(_("Do not show this again"));
         box.add(cbIgnore);
 
         getContentArea().add(box);
@@ -161,22 +211,23 @@ private:
     }
 
     void loadProcess(TreeIter parent, ProcessInformation pi) {
-        TreeIter current = ts.createIter(parent);
-        if (pi.source == ProcessInfoSource.TERMINAL) {
-            ts.setValue(current, COLUMNS.ICON, pbTerminal);
+        TreeIter current;
+        ts.append(current, parent);
+        if (pi.source == ProcessInfoSource.TERMINAL && pbTerminal !is null) {
+            ts.setValue(current, COLUMNS.ICON, new Value(pbTerminal));
         }
         switch (pi.source) {
             case ProcessInfoSource.WINDOW:
-                ts.setValue(current, COLUMNS.NAME, format(_("Window (%s)"), pi.description));
+                ts.setValue(current, COLUMNS.NAME, new Value(format(_("Window (%s)"), pi.description)));
                 break;
             case ProcessInfoSource.SESSION:
-                ts.setValue(current, COLUMNS.NAME, format(_("Session (%s)"), pi.description));
+                ts.setValue(current, COLUMNS.NAME, new Value(format(_("Session (%s)"), pi.description)));
                 break;
             default:
-                ts.setValue(current, COLUMNS.NAME, pi.description);
+                ts.setValue(current, COLUMNS.NAME, new Value(pi.description));
                 break;
         }
-        ts.setValue(current, COLUMNS.UUID, pi.uuid);
+        ts.setValue(current, COLUMNS.UUID, new Value(pi.uuid));
 
         foreach(child; pi.children) {
             loadProcess(current, child);
@@ -199,9 +250,17 @@ private:
 public:
 
     this(Window parent, ProcessInformation processes) {
-        super(getTitle(processes.source), parent, GtkDialogFlags.MODAL + GtkDialogFlags.USE_HEADER_BAR, [_("OK"), _("Cancel")], [GtkResponseType.OK, GtkResponseType.CANCEL]);
+        // gtk_dialog_new_with_buttons is varargs (not bound by giD) and
+        // use-header-bar is construct-only, so construct the underlying
+        // GtkDialog directly with the property set (see advpaste.d).
+        super(cast(void*) g_object_new(Dialog._getGType(), cast(const(char)*) "use-header-bar", 1, cast(const(char)*) null), No.Take);
+        setTitle(getTitle(processes.source));
+        setModal(true);
+        setTransientFor(parent);
+        addButton(_("OK"), ResponseType.Ok);
+        addButton(_("Cancel"), ResponseType.Cancel);
         this.processes = processes;
-        setDefaultResponse(GtkResponseType.OK);
+        setDefaultResponse(ResponseType.Ok);
         createUI();
     }
 

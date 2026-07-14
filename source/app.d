@@ -1,22 +1,49 @@
-﻿/*
+/*
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
  * distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/*
+ * giD port of source/app.d — the real ttyx_ entry point. This REPLACES the
+ * original giD migration seed (the proof-of-concept ApplicationWindow+VTE
+ * skeleton) that used to live in this file; nothing from the skeleton is
+ * load-bearing beyond having a main() for `dub build`.
+ *
+ * Differences from the GtkD original:
+ *  - glib.Util.getCurrentDir/getHomeDir/setPrgname and glib.FileUtils.chdir ->
+ *    free functions in glib.global (chdir, getCurrentDir, getHomeDir,
+ *    setPrgname).
+ *  - gtk.Main.init(args) -> raw gtk.c.functions.gtk_init (giD does not bind
+ *    gtk_init as a D wrapper; GApplication would init GTK during run(), but
+ *    the original inits early so localization and the pre-run version-check
+ *    MessageDialogs work). argc/argv are marshalled by hand and args is
+ *    rebuilt afterwards so GTK can strip its own arguments, matching GtkD's
+ *    Main.init(args) in-place behavior.
+ *  - gtk.Version.checkVersion -> gtk.global.checkVersion (returns null, not
+ *    "", when compatible); Version.getMajorVersion etc. ->
+ *    gtk.global.getMajorVersion/getMinorVersion/getMicroVersion.
+ *  - MessageDialog has no varargs ctor in giD: builder().build() + property
+ *    setters + addButton (same pattern as the ported gx.gtk.dialog); enums
+ *    are PascalCase in gtk.types (MessageType.Error, ResponseType.Ok).
+ *  - Everything else (log-path resolution, -x/-e rewrite, TTYX_ID/TILIX_ID
+ *    UUID forwarding, DBusActivatable CWD fix, version output) is unchanged.
  */
 import std.stdio;
 
 import std.array;
+import std.conv : to;
 import std.experimental.logger;
 import std.file;
 import std.format;
 import std.process;
 import std.string;
 
-import glib.FileUtils;
-import glib.Util;
+import glib.global : chdir, getCurrentDir, getHomeDir, setPrgname;
 
-import gtk.Main;
-import gtk.Version;
-import gtk.MessageDialog;
+import gtk.c.functions : gtk_init;
+import gtk.global : checkVersion, getMajorVersion, getMinorVersion, getMicroVersion;
+import gtk.message_dialog : MessageDialog;
+import gtk.types : MessageType, ResponseType;
 
 import gx.i18n.l10n;
 import gx.gtk.util;
@@ -74,6 +101,40 @@ private string resolveLogPath() {
     return "/tmp/ttyx.log";
 }
 
+/**
+ * GtkD's Main.init(args) equivalent: hand-marshal args to gtk_init and
+ * rebuild args from whatever GTK leaves behind (GTK strips the arguments
+ * it consumes, e.g. --display).
+ */
+private void initGtk(ref string[] args) {
+    import std.string : toStringz, fromStringz;
+
+    int argc = cast(int) args.length;
+    char*[] argv;
+    argv.reserve(args.length + 1);
+    foreach (arg; args) {
+        argv ~= cast(char*) toStringz(arg);
+    }
+    argv ~= null;
+    char** argvPtr = argv.ptr;
+    gtk_init(&argc, &argvPtr);
+    string[] result;
+    result.reserve(argc);
+    foreach (i; 0 .. argc) {
+        result ~= fromStringz(argvPtr[i]).idup;
+    }
+    args = result;
+}
+
+private MessageDialog createErrorDialog(string message) {
+    MessageDialog dialog = MessageDialog.builder().build();
+    dialog.messageType = MessageType.Error;
+    dialog.text = message;
+    dialog.addButton(_("_OK"), ResponseType.Ok);
+    dialog.setModal(true);
+    return dialog;
+}
+
 int main(string[] args) {
     static if (USE_FILE_LOGGING) {
         // FileLogger's constructors aren't `shared`, so build an unshared
@@ -84,7 +145,7 @@ int main(string[] args) {
     bool newProcess = false;
     string group;
 
-    string cwd = Util.getCurrentDir();
+    string cwd = getCurrentDir();
     string pwd;
     string de;
     trace("CWD = " ~ cwd);
@@ -101,7 +162,7 @@ int main(string[] args) {
         error("Unexpected error occurred", e);
     }
 
-    string uhd = Util.getHomeDir();
+    string uhd = getHomeDir();
     trace("UHD = " ~ uhd);
 
     //Debug args
@@ -149,10 +210,10 @@ int main(string[] args) {
     //textdomain
     textdomain(TTYX_DOMAIN);
     // Set application ID for GTK3 on Wayland
-    Util.setPrgname(APPLICATION_ID);
+    setPrgname(APPLICATION_ID);
     // Init GTK early so localization is available
     // Note used to pass empty args but was interfering with GTK default args
-    Main.init(args);
+    initGtk(args);
 
     trace(format("Starting ttyx with %d arguments...", args.length));
     foreach(i, arg; args) {
@@ -163,7 +224,7 @@ int main(string[] args) {
             infof("CWD = %s", cwd);
             infof("PWD = %s", pwd);
             cwd = pwd;
-            FileUtils.chdir(cwd);
+            chdir(cwd);
         } else if (arg == "--new-process") {
             newProcess = true;
         } else if (arg == "-g") {
@@ -192,11 +253,11 @@ int main(string[] args) {
     }
 
     //Version checking cribbed from grestful, thanks!
-    string gtkError = Version.checkVersion(GTK_VERSION_MAJOR, GTK_VERSION_MINOR, GTK_VERSION_PATCH);
+    string gtkError = checkVersion(GTK_VERSION_MAJOR, GTK_VERSION_MINOR, GTK_VERSION_PATCH);
     if (gtkError !is null) {
-        MessageDialog dialog = new MessageDialog(null, DialogFlags.MODAL, MessageType.ERROR, ButtonsType.OK,
-                format(_("Your GTK version is too old, you need at least GTK %d.%d.%d!"), GTK_VERSION_MAJOR, GTK_VERSION_MINOR, GTK_VERSION_PATCH), null);
-        dialog.setDefaultResponse(ResponseType.OK);
+        MessageDialog dialog = createErrorDialog(
+                format(_("Your GTK version is too old, you need at least GTK %d.%d.%d!"), GTK_VERSION_MAJOR, GTK_VERSION_MINOR, GTK_VERSION_PATCH));
+        dialog.setDefaultResponse(ResponseType.Ok);
 
         dialog.run();
         return 1;
@@ -204,9 +265,9 @@ int main(string[] args) {
 
     // check minimum VTE version
     if (!checkVTEVersion(VTE_VERSION_MINIMAL)) {
-        MessageDialog dialog = new MessageDialog(null, DialogFlags.MODAL, MessageType.ERROR, ButtonsType.OK,
-                format(_("Your VTE version is too old, you need at least VTE %d.%d!"), VTE_VERSION_MINIMAL[0], VTE_VERSION_MINIMAL[1]), null);
-        dialog.setDefaultResponse(ResponseType.OK);
+        MessageDialog dialog = createErrorDialog(
+                format(_("Your VTE version is too old, you need at least VTE %d.%d!"), VTE_VERSION_MINIMAL[0], VTE_VERSION_MINIMAL[1]));
+        dialog.setDefaultResponse(ResponseType.Ok);
 
         dialog.run();
         return 1;
@@ -230,12 +291,11 @@ int main(string[] args) {
 private:
     void outputVersions() {
         import gx.gtk.vte: getVTEVersion, checkVTEFeature, TerminalFeature, isVTEBackgroundDrawEnabled;
-        import gtk.Version: Version;
 
         writeln(_("Versions"));
         writeln("\t" ~ format(_("ttyx_ version: %s"), APPLICATION_VERSION));
         writeln("\t" ~ format(_("VTE version: %s"), getVTEVersion()));
-        writeln("\t" ~ format(_("GTK Version: %d.%d.%d") ~ "\n", Version.getMajorVersion(), Version.getMinorVersion(), Version.getMicroVersion()));
+        writeln("\t" ~ format(_("GTK Version: %d.%d.%d") ~ "\n", getMajorVersion(), getMinorVersion(), getMicroVersion()));
         writeln(_("ttyx_ Special Features"));
         writeln("\t" ~ format(_("Notifications enabled=%b"), checkVTEFeature(TerminalFeature.EVENT_NOTIFICATION)));
         writeln("\t" ~ format(_("Triggers enabled=%b"), checkVTEFeature(TerminalFeature.EVENT_SCREEN_CHANGED)));

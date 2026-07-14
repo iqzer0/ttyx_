@@ -2,6 +2,73 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
  * distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+
+/*
+ * giD port of source/gx/ttyx/appwindow.d. GtkD -> giD notes:
+ *  - ApplicationWindow subclass: giD binds this(gtk.application.Application)
+ *    directly, super(application) carries over. Implements the GActionMap/
+ *    GActionGroup D interfaces, so registerAction[WithSettings],
+ *    insertActionGroup and changeActionState work unchanged.
+ *  - addOn* -> connect*; ConnectFlags.AFTER -> Yes.After; EVERY delegate
+ *    literal parameter is named (giD template inference requirement).
+ *  - Typed event structs replace generic gdk.Event: delete-event keeps
+ *    gdk.event.Event, focus in/out get gdk.event_focus.EventFocus,
+ *    window-state gets gdk.event_window_state.EventWindowState (.newWindowState
+ *    field, no pointer), scroll gets gdk.event_scroll.EventScroll (.direction
+ *    field replaces getScrollDirection), button press gets
+ *    gdk.event_button.EventButton (.type/.button fields), key press gets
+ *    gdk.event_key.EventKey (.keyval field replaces out-param getKeyval).
+ *  - size-allocate delegate receives gtk.types.Allocation (alias of the
+ *    gdk.rectangle.Rectangle value struct) instead of GdkRectangle*.
+ *  - GdkRectangle -> gdk.rectangle.Rectangle value struct; GdkWindowState ->
+ *    gdk.types.WindowState; GdkGravity -> gdk.types.Gravity; GdkModifierType
+ *    -> gdk.types.ModifierType; keysyms GdkKeysyms.GDK_* -> gdk.types.KEY_*;
+ *    gsSettings.setInt of a WindowState needs an explicit cast(int).
+ *  - cairo is procedural in giD: ImageSurface -> cairo.surface.Surface
+ *    (matches the ported gx.gtk.cairo renderImage signatures); surfaces are
+ *    GC-managed so the explicit isBGImage.destroy() calls are gone (cache
+ *    invalidation just drops the reference); cairo_font_slant_t/
+ *    cairo_font_weight_t/cairo_filter_t/cairo_text_extents_t ->
+ *    cairo.types.FontSlant/FontWeight/Filter/TextExtents;
+ *    cr.textExtents(text, &extents) -> out-param textExtents(text, extents);
+ *    draw callbacks are bool(Context, Widget) (no Scoped!Context).
+ *  - Icon buttons/images: new Button(icon, IconSize)/new Image(icon, IconSize)
+ *    -> Button.newFromIconName/Image.newFromIconName; IconSize PascalCase.
+ *  - new Popover(parent, model) -> Popover.newFromModel(parent, model).
+ *  - Session-rename MessageDialog: GtkD's flags ctor is unbound; USE_HEADER_BAR
+ *    and ButtonsType are construct-only -> MessageDialog.builder()
+ *    .useHeaderBar(1).buttons(ButtonsType.OkCancel).build() + messageType/text
+ *    property setters; getMessageArea() returns Widget -> cast to Box.
+ *  - FileChooserDialog: the GtkD convenience ctor (varargs
+ *    gtk_file_chooser_dialog_new) is unbound -> raw
+ *    g_object_new(FileChooserDialog._getGType(), null) + this(ptr, No.Take),
+ *    then setAction/setTitle/addButton. Button/response mapping preserved from
+ *    GtkD's default: first button -> ResponseType.Ok, second ->
+ *    ResponseType.Cancel. getFilenames() returns string[] directly (no
+ *    ListSG.toArray).
+ *  - gobject.Signals.handlerBlock/Unblock -> free functions
+ *    gobject.global.signalHandlerBlock/signalHandlerUnblock.
+ *  - gtkc.glib g_source_remove -> glib.source.Source.remove(tag).
+ *  - gtk.Version.checkVersion -> gtk.global.checkVersion (same null-on-ok
+ *    contract).
+ *  - getWindowStruct() identity comparisons -> _cPtr comparisons;
+ *    window.listToplevels() (ListG) -> static gtk.window.Window.listToplevels()
+ *    returning Widget[].
+ *  - GSettings.addOnChanged(dg) -> connectChanged(null, dg) (detail comes
+ *    first, null = all keys).
+ *  - hide()/present() overrides must be `override ... nothrow` (giD methods
+ *    are nothrow); their bodies read the _quake field directly instead of
+ *    calling isQuake().
+ *  - Fix: tbSideBar.addEvents(EventType.SCROLL) passed a GdkEventType constant
+ *    (31) where an event *mask* is expected; the port passes
+ *    cast(int) EventMask.ScrollMask, which is what the code intended.
+ *  - Preserved quirk: SessionTabLabel's Return-key handler commits the label's
+ *    current `text` property (not the entry text) exactly like the GtkD
+ *    original; the real commit happens in the focus-out handler.
+ *  - Dropped unused GtkD imports (vte.Pty/vte.Terminal, gdkpixbuf.Pixbuf,
+ *    glib.ListG/ListSG/Util/GException, gobject.Value, and the gtk widgets
+ *    this module never instantiates).
+ */
 module gx.ttyx.appwindow;
 
 import core.memory;
@@ -14,85 +81,75 @@ import std.math;
 import std.format;
 import std.json;
 import std.path;
-import std.process;
 import std.string;
+import std.typecons : No, Yes;
 import std.uuid;
 
-import cairo.Context;
-import cairo.ImageSurface;
+import cairo.context : Context;
+import cairo.surface : Surface;
+import cairo.types : Filter, FontSlant, FontWeight, TextExtents;
 
-import gtk.Application : Application;
-import gio.Application : GioApplication = Application;
-import gtk.ApplicationWindow : ApplicationWindow;
-import gtkc.giotypes : GApplicationFlags;
+import gdk.event : Event;
+import gdk.event_button : EventButton;
+import gdk.event_focus : EventFocus;
+import gdk.event_key : EventKey;
+import gdk.event_scroll : EventScroll;
+import gdk.event_window_state : EventWindowState;
+import gdk.rectangle : Rectangle;
+import gdk.rgba : RGBA;
+import gdk.screen : Screen;
+import gdk.types : EventMask, EventType, Gravity, KEY_Escape, KEY_Return, ModifierType, ScrollDirection, WindowState;
+import gdk.visual : Visual;
 
-import gdkpixbuf.Pixbuf;
+import gid.basictypes : gulong;
+import gid.gid : No, Yes;
 
-import gdk.Event;
-import gdk.Keysyms;
-import gdk.RGBA;
-import gdk.Screen;
-import gdk.Visual;
+import gio.menu : GMenu = Menu;
+import gio.menu_item : GMenuItem = MenuItem;
+import gio.notification : Notification;
+import gio.settings : GSettings = Settings;
+import gio.simple_action : SimpleAction;
+import gio.simple_action_group : SimpleActionGroup;
 
-import gio.ActionIF;
-import gio.ActionMapIF;
-import gio.Menu : GMenu = Menu;
-import gio.MenuItem : GMenuItem = MenuItem;
-import gio.Notification;
-import gio.Settings : GSettings = Settings;
-import gio.SimpleAction;
-import gio.SimpleActionGroup;
+import glib.source : Source;
+import glib.variant : GVariant = Variant;
 
-import glib.GException;
-import glib.ListG;
-import glib.ListSG;
-import glib.Util;
-import glib.Variant : GVariant = Variant;
-import glib.VariantType : GVariantType = VariantType;
+import gobject.c.functions : g_object_new;
+import gobject.global : signalHandlerBlock, signalHandlerUnblock;
 
-import gobject.Signals;
-import gobject.Value;
+import gtk.application : Application;
+import gtk.application_window : ApplicationWindow;
+import gtk.aspect_frame : AspectFrame;
+import gtk.box : Box;
+import gtk.button : Button;
+import gtk.dialog : Dialog;
+import gtk.entry : Entry;
+import gtk.event_box : EventBox;
+import gtk.file_chooser_dialog : FileChooserDialog;
+import gtk.file_filter : FileFilter;
+import gtk.global : checkVersion;
+import gtk.header_bar : HeaderBar;
+import gtk.image : Image;
+import gtk.label : Label;
+import gtk.menu_button : MenuButton;
+import gtk.message_dialog : MessageDialog;
+import gtk.notebook : Notebook;
+import gtk.overlay : Overlay;
+import gtk.popover : Popover;
+import gtk.stack : Stack;
+import gtk.toggle_button : ToggleButton;
+import gtk.types : Allocation, ButtonsType, FileChooserAction, IconSize, MessageType, Orientation, PositionType,
+    ReliefStyle, ResponseType, ShadowType;
+import gtk.widget : Widget;
+import gtk.window : Window;
+import gtk.window_group : WindowGroup;
 
-import gtk.AspectFrame;
-import gtk.Box;
-import gtk.Button;
-import gtk.CheckButton;
-import gtk.Dialog;
-import gtk.Entry;
-import gtk.EventBox;
-import gtk.FileChooserDialog;
-import gtk.FileFilter;
-import gtk.Frame;
-import gtk.Grid;
-import gtk.HeaderBar;
-import gtk.Image;
-import gtk.Label;
-import gtk.ListBox;
-import gtk.ListBoxRow;
-import gtk.MenuButton;
-import gtk.MessageDialog;
-import gtk.Notebook;
-import gtk.Overlay;
-import gtk.Popover;
-import gtk.Revealer;
-import gtk.ScrolledWindow;
-import gtk.Settings;
-import gtk.Stack;
-import gtk.StyleContext;
-import gtk.ToggleButton;
-import gtk.Version;
-import gtk.Widget;
-import gtk.Window;
-import gtk.WindowGroup;
-
-import gtkc.glib;
-
-import vte.Pty;
-import vte.Terminal;
+import pango.types : EllipsizeMode;
 
 import gx.gtk.actions;
 import gx.gtk.cairo;
 import gx.gtk.dialog;
+import gx.gtk.events;
 import gx.gtk.threads;
 import gx.gtk.util;
 import gx.i18n.l10n;
@@ -177,7 +234,7 @@ private:
     GSettings gsSettings;
 
     // Cached rendered background image
-    ImageSurface isBGImage;
+    Surface isBGImage;
     // Track size changes, only invalidate if size really changed
     int lastWidth, lastHeight;
 
@@ -237,12 +294,12 @@ private:
             nb.getStyleContext().addClass("ttyx-background");
             nb.setScrollable(true);
             nb.setGroupName("ttyx");
-            nb.addOnCreateWindow(&onCreateWindow);
+            nb.connectCreateWindow(&onCreateWindow);
             nb.setCanFocus(false);
         }
-        nb.addOnPageAdded(&onPageAdded);
-        nb.addOnPageRemoved(&onPageRemoved);
-        nb.addOnSwitchPage(delegate(Widget page, uint, Notebook) {
+        nb.connectPageAdded(&onPageAdded);
+        nb.connectPageRemoved(&onPageRemoved);
+        nb.connectSwitchPage(delegate(Widget page, uint pageNum, Notebook notebook) {
             trace("Switched Sessions");
             Session session = cast(Session) page;
             //Remove any sessions associated with current page
@@ -266,7 +323,7 @@ private:
                 });
             }
             tilix.withdrawNotification(session.uuid);
-        }, ConnectFlags.AFTER);
+        }, Yes.After);
         if (!useTabs) {
             sb = new SideBar();
             sb.onSelected.connect(&onSessionSelected);
@@ -290,7 +347,7 @@ private:
 
         if (isQuake() || isCSDDisabled()) {
             hb.getStyleContext().addClass("ttyx-embedded-headerbar");
-            Box box = new Box(Orientation.VERTICAL, 0);
+            Box box = new Box(Orientation.Vertical, 0);
             box.add(hb);
             if (overlay !is null) box.add(overlay);
             else box.add(nb);
@@ -312,13 +369,13 @@ private:
         //New tab button
         Button btnNew;
         if (useTabs) {
-            btnNew = new Button("tab-new-symbolic", IconSize.BUTTON);
+            btnNew = Button.newFromIconName("tab-new-symbolic", IconSize.Button);
         } else {
-            btnNew = new Button("list-add-symbolic", IconSize.BUTTON);
+            btnNew = Button.newFromIconName("list-add-symbolic", IconSize.Button);
         }
         btnNew.setFocusOnClick(false);
         btnNew.setAlwaysShowImage(true);
-        btnNew.addOnClicked(delegate(Button) {
+        btnNew.connectClicked(delegate(Button button) {
             createSession();
         });
         btnNew.setTooltipText(_("Create a new session"));
@@ -329,31 +386,30 @@ private:
             //View sessions button
             tbSideBar = new ToggleButton();
             tbSideBar.getStyleContext().addClass("session-sidebar-button");
-            Box b = new Box(Orientation.HORIZONTAL, 6);
+            Box b = new Box(Orientation.Horizontal, 6);
             lblSideBar = new Label("1 / 1");
-            Image img = new Image("pan-down-symbolic", IconSize.MENU);
+            Image img = Image.newFromIconName("pan-down-symbolic", IconSize.Menu);
             b.add(lblSideBar);
             b.add(img);
             tbSideBar.add(b);
             tbSideBar.setTooltipText(_("View session sidebar"));
             tbSideBar.setFocusOnClick(false);
             tbSideBar.setActionName(getActionDetailedName("win", ACTION_WIN_SIDEBAR));
-            tbSideBar.addOnDraw(&drawSideBarBadge, ConnectFlags.AFTER);
-            tbSideBar.addOnScroll(delegate(Event event, Widget w) {
-                ScrollDirection direction;
-                event.getScrollDirection(direction);
+            tbSideBar.connectDraw(&drawSideBarBadge, Yes.After);
+            connectGdkEvent!EventScroll(tbSideBar, "scroll-event", delegate(EventScroll event, Widget w) {
+                ScrollDirection direction = event.direction;
 
-                if (direction == ScrollDirection.UP) {
+                if (direction == ScrollDirection.Up) {
                     focusPreviousSession();
-                } else if (direction == ScrollDirection.DOWN) {
+                } else if (direction == ScrollDirection.Down) {
                     focusNextSession();
                 }
 
                 return false;
             });
-            tbSideBar.addEvents(EventType.SCROLL);
+            tbSideBar.addEvents(cast(int) EventMask.ScrollMask);
 
-            bSessionButtons = new Box(Orientation.HORIZONTAL, 0);
+            bSessionButtons = new Box(Orientation.Horizontal, 0);
             bSessionButtons.getStyleContext().addClass("linked");
             btnNew.getStyleContext().addClass("session-new-button");
             bSessionButtons.packStart(tbSideBar, false, false, 0);
@@ -363,26 +419,26 @@ private:
         //Session Actions
         mbSessionActions = new MenuButton();
         mbSessionActions.setFocusOnClick(false);
-        Image iHamburger = new Image("open-menu-symbolic", IconSize.MENU);
+        Image iHamburger = Image.newFromIconName("open-menu-symbolic", IconSize.Menu);
         mbSessionActions.add(iHamburger);
         mbSessionActions.setPopover(createPopover(mbSessionActions));
 
-        Button btnAddHorizontal = new Button("ttyx-add-horizontal-symbolic", IconSize.MENU);
+        Button btnAddHorizontal = Button.newFromIconName("ttyx-add-horizontal-symbolic", IconSize.Menu);
         btnAddHorizontal.setDetailedActionName(getActionDetailedName(ACTION_PREFIX, ACTION_SESSION_ADD_RIGHT));
         btnAddHorizontal.setFocusOnClick(false);
         btnAddHorizontal.setTooltipText(_("Add terminal right"));
 
-        Button btnAddVertical = new Button("ttyx-add-vertical-symbolic", IconSize.MENU);
+        Button btnAddVertical = Button.newFromIconName("ttyx-add-vertical-symbolic", IconSize.Menu);
         btnAddVertical.setDetailedActionName(getActionDetailedName(ACTION_PREFIX, ACTION_SESSION_ADD_DOWN));
         btnAddVertical.setTooltipText(_("Add terminal down"));
         btnAddVertical.setFocusOnClick(false);
 
         // Add find button
         tbFind = new ToggleButton();
-        tbFind.setImage(new Image("edit-find-symbolic", IconSize.MENU));
+        tbFind.setImage(Image.newFromIconName("edit-find-symbolic", IconSize.Menu));
         tbFind.setTooltipText(_("Find text in terminal"));
         tbFind.setFocusOnClick(false);
-        _tbFindToggledId = tbFind.addOnToggled(delegate(ToggleButton) {
+        _tbFindToggledId = tbFind.connectToggled(delegate(ToggleButton tb) {
             if (getCurrentSession() !is null) {
                 getCurrentSession().toggleTerminalFind();
             }
@@ -437,7 +493,7 @@ private:
      */
     void createWindowActions(GSettings gsShortcuts) {
         debug(GC) {
-            registerAction(this, "win", "gc", null, delegate(GVariant, SimpleAction) {
+            registerAction(this, "win", "gc", null, delegate(GVariant value, SimpleAction sa) {
                 trace("Performing collection");
                 core.memory.GC.collect();
                 core.memory.GC.minimize();
@@ -447,7 +503,7 @@ private:
         //Create Switch to Session (0..9) actions
         //Can't use :: action targets for this since action name needs to be preferences
         for (int i = 0; i <= 9; i++) {
-            registerActionWithSettings(this, "win", ACTION_WIN_SESSION_X ~ to!string(i), gsShortcuts, delegate(GVariant, SimpleAction sa) {
+            registerActionWithSettings(this, "win", ACTION_WIN_SESSION_X ~ to!string(i), gsShortcuts, delegate(GVariant value, SimpleAction sa) {
                 int index = to!int(sa.getName()[$ - 1 .. $]);
                 if (index == 0)
                     index = 9;
@@ -459,24 +515,24 @@ private:
             });
         }
 
-        registerActionWithSettings(this, "win", ACTION_WIN_NEXT_SESSION, gsShortcuts, delegate(GVariant, SimpleAction) {
+        registerActionWithSettings(this, "win", ACTION_WIN_NEXT_SESSION, gsShortcuts, delegate(GVariant value, SimpleAction sa) {
             focusNextSession();
         });
-        registerActionWithSettings(this, "win", ACTION_WIN_PREVIOUS_SESSION, gsShortcuts, delegate(GVariant, SimpleAction) {
+        registerActionWithSettings(this, "win", ACTION_WIN_PREVIOUS_SESSION, gsShortcuts, delegate(GVariant value, SimpleAction sa) {
             focusPreviousSession();
         });
 
-        registerActionWithSettings(this, "win", ACTION_SESSION_REORDER_PREVIOUS, gsShortcuts, delegate(GVariant, SimpleAction) {
+        registerActionWithSettings(this, "win", ACTION_SESSION_REORDER_PREVIOUS, gsShortcuts, delegate(GVariant value, SimpleAction sa) {
             reorderCurrentSessionRelative(-1);
         });
 
-        registerActionWithSettings(this, "win", ACTION_SESSION_REORDER_NEXT, gsShortcuts, delegate(GVariant, SimpleAction) {
+        registerActionWithSettings(this, "win", ACTION_SESSION_REORDER_NEXT, gsShortcuts, delegate(GVariant value, SimpleAction sa) {
             reorderCurrentSessionRelative(1);
         });
 
         registerActionWithSettings(this, "win", ACTION_WIN_FULLSCREEN, gsShortcuts, delegate(GVariant value, SimpleAction sa) {
             trace("Setting fullscreen");
-            if (getWindow() !is null && ((getWindow().getState() & GdkWindowState.FULLSCREEN) == GdkWindowState.FULLSCREEN)) {
+            if (getWindow() !is null && ((getWindow().getState() & WindowState.Fullscreen) == WindowState.Fullscreen)) {
                 unfullscreen();
                 sa.setState(new GVariant(false));
             } else {
@@ -519,7 +575,7 @@ private:
         //Create Switch to Terminal (0..9) actions
         //Can't use :: action targets for this since action name needs to be preferences
         for (int i = 0; i <= 9; i++) {
-            registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_SESSION_TERMINAL_X ~ to!string(i), gsShortcuts, delegate(GVariant, SimpleAction sa) {
+            registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_SESSION_TERMINAL_X ~ to!string(i), gsShortcuts, delegate(GVariant value, SimpleAction sa) {
                 Session session = getCurrentSession();
                 if (session !is null) {
                     auto terminalID = to!size_t(sa.getName()[$ - 1 .. $]);
@@ -533,7 +589,7 @@ private:
         //Create directional Switch to Terminal actions
         const string[] directions = ["up", "down", "left", "right"];
         foreach (string direction; directions) {
-            registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_SESSION_TERMINAL_X ~ direction, gsShortcuts, delegate(GVariant, SimpleAction sa) {
+            registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_SESSION_TERMINAL_X ~ direction, gsShortcuts, delegate(GVariant value, SimpleAction sa) {
                 Session session = getCurrentSession();
                 if (session !is null) {
                     string actionName = sa.getName();
@@ -545,7 +601,7 @@ private:
 
         //Create directional Resize to Terminal actions
         foreach (string direction; directions) {
-            registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_RESIZE_TERMINAL_DIRECTION ~ direction, gsShortcuts, delegate(GVariant, SimpleAction sa) {
+            registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_RESIZE_TERMINAL_DIRECTION ~ direction, gsShortcuts, delegate(GVariant value, SimpleAction sa) {
                 Session session = getCurrentSession();
                 if (session !is null) {
                     string actionName = sa.getName();
@@ -556,77 +612,86 @@ private:
         }
 
         //Add Terminal Actions
-        saSessionAddRight = registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_SESSION_ADD_RIGHT, gsShortcuts, delegate(GVariant, SimpleAction) {
+        saSessionAddRight = registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_SESSION_ADD_RIGHT, gsShortcuts, delegate(GVariant value, SimpleAction sa) {
             Session session = getCurrentSession();
             if (session !is null && !session.maximized)
-                session.addTerminal(Orientation.HORIZONTAL);
+                session.addTerminal(Orientation.Horizontal);
         });
-        saSessionAddDown = registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_SESSION_ADD_DOWN, gsShortcuts, delegate(GVariant, SimpleAction) {
+        saSessionAddDown = registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_SESSION_ADD_DOWN, gsShortcuts, delegate(GVariant value, SimpleAction sa) {
             Session session = getCurrentSession();
             if (session !is null && !session.maximized)
-                session.addTerminal(Orientation.VERTICAL);
+                session.addTerminal(Orientation.Vertical);
         });
-        saSessionAddAuto = registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_SESSION_ADD_AUTO, gsShortcuts, delegate(GVariant, SimpleAction) {
+        saSessionAddAuto = registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_SESSION_ADD_AUTO, gsShortcuts, delegate(GVariant value, SimpleAction sa) {
             Session session = getCurrentSession();
             if (session !is null && !session.maximized)
                 session.addAutoOrientedTerminal();
         });
 
         /* TODO - GTK doesn't support settings Tab for accelerators, need to look into this more */
-        registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_SESSION_NEXT_TERMINAL, gsShortcuts, delegate(GVariant, SimpleAction) {
+        registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_SESSION_NEXT_TERMINAL, gsShortcuts, delegate(GVariant value, SimpleAction sa) {
             Session session = getCurrentSession();
             if (session !is null)
                 session.focusNext();
         });
-        registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_SESSION_PREV_TERMINAL, gsShortcuts, delegate(GVariant, SimpleAction) {
+        registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_SESSION_PREV_TERMINAL, gsShortcuts, delegate(GVariant value, SimpleAction sa) {
             Session session = getCurrentSession();
             if (session !is null)
                 session.focusPrevious();
         });
 
         //Close Session
-        registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_SESSION_CLOSE, gsShortcuts, delegate(GVariant, SimpleAction) {
+        registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_SESSION_CLOSE, gsShortcuts, delegate(GVariant value, SimpleAction sa) {
             CumulativeResult!bool results = new CumulativeResult!bool();
             onUserSessionClose(getCurrentSession().uuid, results);
         });
 
         //Load Session
-        registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_SESSION_OPEN, gsShortcuts, delegate(GVariant, SimpleAction) { loadSession(); });
+        registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_SESSION_OPEN, gsShortcuts, delegate(GVariant value, SimpleAction sa) { loadSession(); });
 
         //Save Session
-        registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_SESSION_SAVE, gsShortcuts, delegate(GVariant, SimpleAction) { saveSession(false); });
+        registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_SESSION_SAVE, gsShortcuts, delegate(GVariant value, SimpleAction sa) { saveSession(false); });
 
         //Save As Session
-        registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_SESSION_SAVE_AS, gsShortcuts, delegate(GVariant, SimpleAction) { saveSession(true); });
+        registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_SESSION_SAVE_AS, gsShortcuts, delegate(GVariant value, SimpleAction sa) { saveSession(true); });
 
         //Change name of session
-        registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_SESSION_NAME, gsShortcuts, delegate(GVariant, SimpleAction) {
+        registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_SESSION_NAME, gsShortcuts, delegate(GVariant value, SimpleAction sa) {
             Session session = getCurrentSession();
 
-            MessageDialog dialog = new MessageDialog(this, DialogFlags.MODAL + DialogFlags.USE_HEADER_BAR, MessageType.QUESTION, ButtonsType.OK_CANCEL, _("Enter a new name for the session"), null);
+            // GtkD's MessageDialog flags ctor is unbound in giD; use-header-bar
+            // and buttons are construct-only -> builder pattern.
+            MessageDialog dialog = MessageDialog.builder()
+                .useHeaderBar(1)
+                .buttons(ButtonsType.OkCancel)
+                .build();
+            dialog.messageType = MessageType.Question;
+            dialog.text = _("Enter a new name for the session");
+            dialog.setModal(true);
             dialog.setTransientFor(this);
             dialog.setTitle( _("Change Session Name"));
-            Entry entry = new Entry(session.name);
+            Entry entry = new Entry();
+            entry.setText(session.name);
             entry.setWidthChars(30);
-            entry.addOnActivate(delegate(Entry) {
-                dialog.response(ResponseType.OK);
+            entry.connectActivate(delegate(Entry e) {
+                dialog.response(ResponseType.Ok);
             });
             // Note check for Wayland below otherwise popover will clip
-            if (isWayland(this) && Version.checkVersion(3, 16, 0).length == 0) {
-                dialog.getMessageArea().add(createTitleEditHelper(entry, TitleEditScope.SESSION));
+            if (isWayland(this) && checkVersion(3, 16, 0).length == 0) {
+                (cast(Box) dialog.getMessageArea()).add(createTitleEditHelper(entry, TitleEditScope.SESSION));
             } else {
-                dialog.getMessageArea().add(entry);
+                (cast(Box) dialog.getMessageArea()).add(entry);
             }
-            dialog.setDefaultResponse(ResponseType.OK);
-            dialog.addOnResponse(delegate(int response, Dialog) {
-                if (response == ResponseType.OK && entry.getText().length > 0) {
+            dialog.setDefaultResponse(ResponseType.Ok);
+            dialog.connectResponse(delegate(int response, Dialog d) {
+                if (response == ResponseType.Ok && entry.getText().length > 0) {
                     session.name = entry.getText();
                     updateTitle();
                 }
                 dialog.hide();
                 dialog.destroy();
             });
-            dialog.addOnClose(delegate(Dialog dlg) {
+            dialog.connectClose(delegate(Dialog dlg) {
                 dlg.destroy();
             });
             dialog.showAll();
@@ -654,7 +719,7 @@ private:
     void createDelegatedTerminalActions(GSettings gsShortcuts) {
         import gx.ttyx.terminal.terminal : Terminal;
 
-        if (Version.checkVersion(3, 15, 3).length != 0) {
+        if (checkVersion(3, 15, 3).length != 0) {
             SimpleActionGroup terminalActions = new SimpleActionGroup();
 
             foreach (string action; gsShortcuts.listKeys) {
@@ -712,7 +777,7 @@ private:
             model.appendSection(null, mDebugSection);
         }
 
-        return new Popover(parent, model);
+        return Popover.newFromModel(parent, model);
     }
 
     /**
@@ -738,7 +803,7 @@ private:
         addSession(session);
     }
 
-    void onPageAdded(Widget page, uint index, Notebook) {
+    void onPageAdded(Widget page, uint index, Notebook notebook) {
         trace("**** Adding page");
 
         Session session = cast(Session) page;
@@ -978,7 +1043,7 @@ private:
     /*
      * Event occurs when tab is detached from notebook
      */
-    Notebook onCreateWindow(Widget page, int x, int y, Notebook) {
+    Notebook onCreateWindow(Widget page, int x, int y, Notebook notebook) {
         trace("Detaching tab, create new window");
         SessionTabLabel label = cast(SessionTabLabel) nb.getTabLabel(page);
         if (label !is null) {
@@ -1018,9 +1083,9 @@ private:
             updateUIState();
             updateTitle();
             if (stateChange == SessionStateChange.TERMINAL_FOCUSED) {
-                Signals.handlerBlock(tbFind, _tbFindToggledId);
+                signalHandlerBlock(tbFind, _tbFindToggledId);
                 tbFind.setActive(getActiveTerminal().isFindToggled());
-                Signals.handlerUnblock(tbFind, _tbFindToggledId);
+                signalHandlerUnblock(tbFind, _tbFindToggledId);
             }
         }
         if (useTabs) {
@@ -1091,7 +1156,7 @@ private:
         return title;
     }
 
-    bool drawSideBarBadge(Scoped!Context cr, Widget widget) {
+    bool drawSideBarBadge(Context cr, Widget widget) {
 
         // pw, ph, ps = percent width, height, size
         void drawBadge(double pw, double ph, double ps, RGBA fg, RGBA bg, int value) {
@@ -1107,12 +1172,12 @@ private:
             cr.arc(x, y, radius, 0.0, 2.0 * PI);
             cr.fillPreserve();
             cr.stroke();
-            cr.selectFontFace("monospace", cairo_font_slant_t.NORMAL, cairo_font_weight_t.NORMAL);
+            cr.selectFontFace("monospace", FontSlant.Normal, FontWeight.Normal);
             cr.setFontSize(10);
             cr.setSourceRgba(fg.red, fg.green, fg.blue, 1.0);
             string text = to!string(value);
-            cairo_text_extents_t extents;
-            cr.textExtents(text, &extents);
+            TextExtents extents;
+            cr.textExtents(text, extents);
             cr.moveTo(x - extents.width / 2, y + extents.height / 2);
             cr.showText(text);
             cr.restore();
@@ -1200,7 +1265,7 @@ private:
         return false;
     }
 
-    void onWindowDestroyed(Widget) {
+    void onWindowDestroyed(Widget widget) {
         tracef("AppWindow %s destroyed", uuid);
         _destroyed = true;
         tilix.withdrawNotification(uuid);
@@ -1214,7 +1279,7 @@ private:
         group = null;
     }
 
-    void onWindowShow(Widget) {
+    void onWindowShow(Widget widget) {
         if (tilix.getGlobalOverrides().maximize) {
             maximize();
         } else if (tilix.getGlobalOverrides().minimize) {
@@ -1233,21 +1298,21 @@ private:
                 getCurrentSession().focusTerminal(1);
             }
         } else if (tilix.getGlobalOverrides().geometry.flag == GeometryFlag.NONE && !isWayland(this) && gsSettings.getBoolean(SETTINGS_WINDOW_SAVE_STATE_KEY)) {
-            GdkWindowState state = cast(GdkWindowState)gsSettings.getInt(SETTINGS_WINDOW_STATE_KEY);
-            if (state & GdkWindowState.MAXIMIZED) {
+            WindowState state = cast(WindowState)gsSettings.getInt(SETTINGS_WINDOW_STATE_KEY);
+            if (state & WindowState.Maximized) {
                 maximize();
-            } else if (state & GdkWindowState.ICONIFIED) {
+            } else if (state & WindowState.Iconified) {
                 iconify();
-            } else if (state & GdkWindowState.FULLSCREEN) {
+            } else if (state & WindowState.Fullscreen) {
                 fullscreen();
             }
-            if (state & GdkWindowState.STICKY) {
+            if (state & WindowState.Sticky) {
                 stick();
             }
         }
     }
 
-    void onWindowRealized(Widget) {
+    void onWindowRealized(Widget widget) {
         if (isQuake()) {
             applyPreference(SETTINGS_QUAKE_HEIGHT_PERCENT_KEY);
         } else {
@@ -1259,21 +1324,21 @@ private:
         if (!isQuake() && tilix.getGlobalOverrides().geometry.flag == GeometryFlag.FULL && !isWayland(this)) {
             int x, y;
             Geometry geometry = tilix.getGlobalOverrides().geometry;
-            Gravity gravity = Gravity.NORTH_WEST;
+            Gravity gravity = Gravity.NorthWest;
             int width = nb.getAllocatedWidth();
             int height = nb.getAllocatedHeight();
             if (!geometry.xNegative)
                 x = geometry.x;
             else {
                 x = getScreen().getWidth() - width + geometry.x;
-                gravity = Gravity.NORTH_EAST;
+                gravity = Gravity.NorthEast;
             }
 
             if (!geometry.yNegative)
                 y = geometry.y;
             else {
                 y = getScreen().getHeight() - height + geometry.y;
-                gravity = (geometry.xNegative) ? Gravity.SOUTH_EAST : Gravity.SOUTH_WEST;
+                gravity = (geometry.xNegative) ? Gravity.SouthEast : Gravity.SouthWest;
             }
             setGravity(gravity);
             move(x, y);
@@ -1282,7 +1347,7 @@ private:
         return false;
     }
 
-    void onCompositedChanged(Widget) {
+    void onCompositedChanged(Widget widget) {
         trace("Composite changed");
         updateVisual();
     }
@@ -1290,9 +1355,9 @@ private:
     void updateTabPosition() {
         if (useTabs) {
             if (isQuake) {
-                nb.setTabPos(cast(GtkPositionType) gsSettings.getEnum(SETTINGS_QUAKE_TAB_POSITION_KEY));
+                nb.setTabPos(cast(PositionType) gsSettings.getEnum(SETTINGS_QUAKE_TAB_POSITION_KEY));
             } else {
-                nb.setTabPos(cast(GtkPositionType) gsSettings.getEnum(SETTINGS_TAB_POSITION_KEY));
+                nb.setTabPos(cast(PositionType) gsSettings.getEnum(SETTINGS_TAB_POSITION_KEY));
             }
             for (int i=0; i<nb.getNPages; i++) {
                 SessionTabLabel label = cast(SessionTabLabel) nb.getTabLabel(nb.getNthPage(i));
@@ -1351,7 +1416,7 @@ private:
 
     void moveAndSizeQuake() {
         if (getWindow() is null) return;
-        GdkRectangle rect;
+        Rectangle rect;
         getQuakePosition(rect);
         trace("Actually move/resize quake window");
         if (getWindow() !is null) {
@@ -1362,7 +1427,7 @@ private:
         }
     }
 
-    void getQuakePosition(out GdkRectangle rect) {
+    void getQuakePosition(out Rectangle rect) {
         bool wayland = isWayland(this);
         Screen screen = getScreen();
 
@@ -1370,7 +1435,7 @@ private:
         if (!wayland) {
             if (gsSettings.getBoolean(SETTINGS_QUAKE_ACTIVE_MONITOR_KEY)) {
                 int x, y = 0;
-                GdkModifierType mask;
+                ModifierType mask;
                 Screen tempScreen;
                 screen.getDisplay().getPointer(tempScreen, x, y, mask);
                 if (tempScreen !is null) {
@@ -1500,14 +1565,27 @@ private:
     FileChooserDialog fcd;
 
     /**
+     * Creates a FileChooserDialog. The GtkD convenience ctor wraps the
+     * varargs gtk_file_chooser_dialog_new which giD does not bind, so the
+     * dialog is constructed raw and configured with property setters.
+     * Button/response mapping matches GtkD's defaults:
+     * first button = ResponseType.Ok, second = ResponseType.Cancel.
+     */
+    FileChooserDialog createFileChooserDialog(string title, FileChooserAction action, string acceptLabel) {
+        FileChooserDialog dialog = new FileChooserDialog(
+            cast(void*) g_object_new(FileChooserDialog._getGType(), cast(const(char)*) null), No.Take);
+        dialog.setTitle(title);
+        dialog.setAction(action);
+        dialog.addButton(acceptLabel, ResponseType.Ok);
+        dialog.addButton(_("Cancel"), ResponseType.Cancel);
+        return dialog;
+    }
+
+    /**
      * Loads session from a file, prompt user to select file
      */
     void loadSession() {
-        fcd = new FileChooserDialog(
-          _("Load Session"),
-          this,
-          FileChooserAction.OPEN,
-          [_("Open"), _("Cancel")]);
+        fcd = createFileChooserDialog(_("Load Session"), FileChooserAction.Open, _("Open"));
         if (DialogPath.LOAD_SESSION in dialogPaths) {
             fcd.setCurrentFolder(dialogPaths[DialogPath.LOAD_SESSION]);
         }
@@ -1516,10 +1594,10 @@ private:
 
         addFilters(fcd);
         fcd.setSelectMultiple(true);
-        fcd.addOnResponse(delegate(int response, Dialog) {
-            if (response == ResponseType.OK) {
+        fcd.connectResponse(delegate(int response, Dialog d) {
+            if (response == ResponseType.Ok) {
                 try {
-                    string[] filenames = fcd.getFilenames().toArray!string();
+                    string[] filenames = fcd.getFilenames();
                     foreach(filename; filenames) {
                         loadSession(filename);
                         addRecentSessionFile(filename);
@@ -1536,7 +1614,7 @@ private:
             fcd.hide();
             fcd.destroy();
         });
-        fcd.addOnClose(delegate(Dialog) {
+        fcd.connectClose(delegate(Dialog d) {
             fcd.destroy();
             fcd = null;
         });
@@ -1552,18 +1630,14 @@ private:
     void saveSession(bool showSaveAsDialog = true) {
         Session session = getCurrentSession();
         if (session !is null && (session.filename.length <= 0 || showSaveAsDialog)) {
-            fcd = new FileChooserDialog(
-              _("Save Session"),
-              this,
-              FileChooserAction.SAVE,
-              [_("Save"), _("Cancel")]);
+            fcd = createFileChooserDialog(_("Save Session"), FileChooserAction.Save, _("Save"));
             fcd.setModal(true);
             fcd.setTransientFor(this);
 
             addFilters(fcd);
 
             fcd.setDoOverwriteConfirmation(true);
-            fcd.setDefaultResponse(ResponseType.OK);
+            fcd.setDefaultResponse(ResponseType.Ok);
             if (session.filename.length > 0) {
                 fcd.setCurrentFolder(dirName(session.filename));
                 fcd.setCurrentName(session.filename.length > 0 ? baseName(session.filename) : session.displayName ~ ".json");
@@ -1571,8 +1645,8 @@ private:
                 fcd.setCurrentFolder(dialogPaths[DialogPath.SAVE_SESSION]);
             }
 
-            fcd.addOnResponse(delegate(int response, Dialog) {
-                if (response == ResponseType.OK) {
+            fcd.connectResponse(delegate(int response, Dialog d) {
+                if (response == ResponseType.Ok) {
                     try {
                         string filename = fcd.getFilename();
                         if (!filename.endsWith(".json")) {
@@ -1594,7 +1668,7 @@ private:
                 fcd.hide();
                 fcd.destroy();
             });
-            fcd.addOnClose(delegate(Dialog) {
+            fcd.connectClose(delegate(Dialog d) {
                 fcd.destroy();
                 fcd = null;
             });
@@ -1662,7 +1736,7 @@ private:
 
     void removeTimeout() {
         if (timeoutID > 0) {
-            g_source_remove(timeoutID);
+            Source.remove(timeoutID);
             timeoutID = 0;
         }
     }
@@ -1689,14 +1763,14 @@ public:
         this.useTabs = useTabs;
         tilix.addAppWindow(this);
         gsSettings = new GSettings(SETTINGS_ID);
-        gsSettings.addOnChanged(delegate(string key, GSettings) {
+        gsSettings.connectChanged(null, delegate(string key, GSettings settings) {
             applyPreference(key);
         });
         setTitle(_("ttyx_"));
         setIconName("io.github.gwelr.ttyx");
         setWindowStyle();
         loadRecentSessionFileList();
-        gsSettings.addOnChanged(delegate(string key, GSettings) {
+        gsSettings.connectChanged(null, delegate(string key, GSettings settings) {
             if (key == SETTINGS_RECENT_SESSION_FILES_KEY) {
                 loadRecentSessionFileList();
             } else if (key == SETTINGS_APP_TITLE_KEY) {
@@ -1711,7 +1785,7 @@ public:
             _quake = true;
             setDecorated(false);
             // Todo: Should this be NORTH instead?
-            setGravity(GdkGravity.STATIC);
+            setGravity(Gravity.Static);
             setSkipTaskbarHint(true);
             setSkipPagerHint(true);
             applyPreference(SETTINGS_QUAKE_HEIGHT_PERCENT_KEY);
@@ -1733,41 +1807,38 @@ public:
 
         createUI();
 
-        addOnDelete(&onWindowClosed);
-        addOnDestroy(&onWindowDestroyed);
-        addOnRealize(&onWindowRealized);
+        connectDeleteEvent(&onWindowClosed);
+        connectDestroy(&onWindowDestroyed);
+        connectRealize(&onWindowRealized);
         /*
-        addOnMap(delegate(Widget) {
+        connectMap(delegate(Widget widget) {
             if (isQuake()) {
                 applyPreference(SETTINGS_QUAKE_DISABLE_ANIMATION_KEY);
             }
-        }, ConnectFlags.AFTER);
+        }, Yes.After);
         */
 
-        addOnShow(&onWindowShow, ConnectFlags.AFTER);
-        addOnSizeAllocate(delegate(GdkRectangle* rect, Widget) {
+        connectShow(&onWindowShow, Yes.After);
+        connectSizeAllocate(delegate(Allocation rect, Widget widget) {
             if (lastWidth != rect.width || lastHeight != rect.height) {
                 //invalidate rendered background
-                if (isBGImage !is null) {
-                    isBGImage.destroy();
-                    isBGImage = null;
-                }
+                // (giD cairo surfaces are GC managed, no explicit destroy)
+                isBGImage = null;
                 lastWidth = rect.width;
                 lastHeight = rect.height;
             }
-        }, ConnectFlags.AFTER);
-        addOnCompositedChanged(&onCompositedChanged);
-        addOnFocusOut(delegate(Event e, Widget widget) {
+        }, Yes.After);
+        connectCompositedChanged(&onCompositedChanged);
+        connectGdkEvent!EventFocus(this, "focus-out-event", delegate(EventFocus e, Widget widget) {
             if (isQuake && gsSettings.getBoolean(SETTINGS_QUAKE_HIDE_LOSE_FOCUS_KEY)) {
                 Window window = tilix.getActiveWindow();
                 if (window !is null) {
-                    if (window.getWindowStruct() == this.getWindowStruct()) {
-                        ListG list = window.listToplevels();
-                        Window[] windows = list.toArray!(Window)();
-                        tracef("Top level windows = %d", windows.length);
-                        foreach(Window child; windows) {
+                    if (window._cPtr is this._cPtr) {
+                        Widget[] toplevels = Window.listToplevels();
+                        tracef("Top level windows = %d", toplevels.length);
+                        foreach(Widget child; toplevels) {
                             Dialog dialog = cast(Dialog)child;
-                            if (dialog !is null && dialog.getTransientFor() !is null && dialog.getTransientFor().getWindowStruct() == this.getWindowStruct()) return false;
+                            if (dialog !is null && dialog.getTransientFor() !is null && dialog.getTransientFor()._cPtr is this._cPtr) return false;
                         }
                     }
                 }
@@ -1783,8 +1854,8 @@ public:
                 });
             }
             return false;
-        }, ConnectFlags.AFTER);
-        addOnFocusIn(delegate(Event e, Widget widget) {
+        }, Yes.After);
+        connectGdkEvent!EventFocus(this, "focus-in-event", delegate(EventFocus e, Widget widget) {
             // if we're restoring focus to quake window, we want to keep it open
             removeTimeout();
 
@@ -1794,13 +1865,13 @@ public:
             }
             return false;
         });
-        addOnWindowState(delegate(GdkEventWindowState* state, Widget) {
+        connectGdkEvent!EventWindowState(this, "window-state-event", delegate(EventWindowState state, Widget widget) {
             trace("Window state changed");
-            if ((state.newWindowState & GdkWindowState.FULLSCREEN) == GdkWindowState.FULLSCREEN) {
+            if ((state.newWindowState & WindowState.Fullscreen) == WindowState.Fullscreen) {
                 trace("Window state is fullscreen");
             }
             if (getWindow() !is null && !isQuake() && gsSettings.getBoolean(SETTINGS_WINDOW_SAVE_STATE_KEY)) {
-                gsSettings.setInt(SETTINGS_WINDOW_STATE_KEY, getWindow().getState());
+                gsSettings.setInt(SETTINGS_WINDOW_STATE_KEY, cast(int) getWindow().getState());
             }
             return false;
         });
@@ -1964,7 +2035,7 @@ public:
                 sp.destroy();
             }
             sp.showAll();
-            if (sp.run() == ResponseType.OK) {
+            if (sp.run() == ResponseType.Ok) {
                 createSession(sp.name, sp.profileUUID, workingDir);
             }
         } else {
@@ -2002,7 +2073,8 @@ public:
     void updateBackgroundImage() {
         if (isBGImage !is null) {
             trace("Destroying cached background image");
-            isBGImage.destroy();
+            // giD cairo surfaces are GC managed, dropping the reference
+            // is all that is needed
             isBGImage = null;
         }
         queueDraw();
@@ -2015,17 +2087,14 @@ public:
      * The image surface is cached between invocations to improve draw
      * performance as per #340.
      */
-    ImageSurface getBackgroundImage(Widget widget) {
+    Surface getBackgroundImage(Widget widget) {
         if (isBGImage !is null) {
             return isBGImage;
         }
 
-        ImageSurface surface = tilix.getBackgroundImage();
+        Surface surface = tilix.getBackgroundImage();
         if (surface is null) {
-            if (isBGImage !is null) {
-                isBGImage.destroy();
-                isBGImage = null;
-            }
+            isBGImage = null;
             return isBGImage;
         }
 
@@ -2046,7 +2115,7 @@ public:
                 break;
         }
         int scale = gsSettings.getEnum(SETTINGS_BACKGROUND_IMAGE_SCALE_KEY);
-        isBGImage = renderImage(surface, widget.getAllocatedWidth(), widget.getAllocatedHeight(), mode, true, cast(cairo_filter_t) scale);
+        isBGImage = renderImage(surface, widget.getAllocatedWidth(), widget.getAllocatedHeight(), mode, true, cast(Filter) scale);
         return isBGImage;
     }
 
@@ -2065,10 +2134,13 @@ public:
 
     /**
      * Override hide to handle hiding quake window when full screened
+     *
+     * giD's Widget.hide is nothrow, so the override must be as well;
+     * the body reads _quake directly instead of calling isQuake().
      */
-    override void hide() {
-        if (isQuake()) {
-            if (getWindow() !is null && ((getWindow().getState() & GdkWindowState.FULLSCREEN) == GdkWindowState.FULLSCREEN)) {
+    override void hide() nothrow {
+        if (_quake) {
+            if (getWindow() !is null && ((getWindow().getState() & WindowState.Fullscreen) == WindowState.Fullscreen)) {
                 unfullscreen();
                 wasFullscreen = true;
             } else {
@@ -2081,9 +2153,9 @@ public:
     /**
      * If quake window was hidden when fullscreen, restore fullscreen
      */
-    override void present() {
+    override void present() nothrow {
         super.present();
-        if (isQuake()) {
+        if (_quake) {
             if (getWindow() !is null && wasFullscreen) {
                 wasFullscreen = false;
                 fullscreen();
@@ -2119,7 +2191,7 @@ private:
 public:
 
 	this(PositionType position, string text, Session session) {
-		super( (position==PositionType.LEFT || PositionType.RIGHT)?Orientation.VERTICAL:Orientation.HORIZONTAL , 5);
+		super( (position==PositionType.Left || PositionType.Right)?Orientation.Vertical:Orientation.Horizontal , 5);
 
 		this.session = session;
 
@@ -2133,7 +2205,7 @@ public:
         evNotifications.getStyleContext().addClass("ttyx-notification-count");
 
         afNotifications = new AspectFrame(null, 0.5, 0.5, 1.0, false);
-        afNotifications.setShadowType(ShadowType.NONE);
+        afNotifications.setShadowType(ShadowType.None);
         afNotifications.add(evNotifications);
 
         add(afNotifications);
@@ -2141,7 +2213,7 @@ public:
         stTitle = new Stack();
 
 		lblText = new Label(text);
-        lblText.setEllipsize(PangoEllipsizeMode.START);
+        lblText.setEllipsize(EllipsizeMode.Start);
 		lblText.setWidthChars(10);
         updatePositionType(position);
 
@@ -2149,8 +2221,8 @@ public:
         // double clicking the EventBox will hide the EventBox and show the lblEditBox
         lblBox = new EventBox();
         lblBox.add(lblText);
-        lblBox.addOnButtonPress(delegate(Event event, Widget w) {
-            if (event.getEventType() == EventType.DOUBLE_BUTTON_PRESS && event.button.button == MouseButton.PRIMARY) {
+        connectGdkEvent!EventButton(lblBox, "button-press-event", delegate(EventButton event, Widget w) {
+            if (event.type == EventType.DoubleButtonPress && event.button == MouseButton.PRIMARY) {
                 lblEditBox.setText(session.name());
                 stTitle.setVisibleChildName(PAGE_EDIT);
                 lblEditBox.grabFocus();
@@ -2163,32 +2235,32 @@ public:
         // when done editing the Entry, hide the Entry and show the lblBox again
         lblEditBox = new Entry();
         lblEditBox.setHexpand(true);
-        lblEditBox.addOnFocusOut(delegate(Event event, Widget w) {
+        connectGdkEvent!EventFocus(lblEditBox, "focus-out-event", delegate(EventFocus event, Widget w) {
             string text = lblEditBox.getText().strip();
             if (text.length == 0)
-                return GDK_EVENT_PROPAGATE;
+                return false; // GDK_EVENT_PROPAGATE
 
             session.name(text);
             stTitle.setVisibleChildName(PAGE_LABEL);
-            return GDK_EVENT_PROPAGATE;
+            return false; // GDK_EVENT_PROPAGATE
         });
-        lblEditBox.addOnKeyPress(delegate (Event event, Widget widget) {
-            uint keyval;
-            if (event.getKeyval(keyval)) {
-                switch (keyval) {
-                    case GdkKeysyms.GDK_Escape:
-                        stTitle.setVisibleChildName(PAGE_LABEL);
-                        return true;
-                    case GdkKeysyms.GDK_Return:
-                        session.name(text);
-                        stTitle.setVisibleChildName(PAGE_LABEL);
-                        return true;
-                    default:
-                }
+        connectGdkEvent!EventKey(lblEditBox, "key-press-event", delegate (EventKey event, Widget widget) {
+            switch (event.keyval) {
+                case KEY_Escape:
+                    stTitle.setVisibleChildName(PAGE_LABEL);
+                    return true;
+                case KEY_Return:
+                    // Preserved GtkD quirk: this commits the label's current
+                    // text property; the entry text is committed by the
+                    // focus-out handler when the stack page switches.
+                    session.name(text);
+                    stTitle.setVisibleChildName(PAGE_LABEL);
+                    return true;
+                default:
             }
             return false;
         });
-        if (Version.checkVersion(3, 16, 0).length == 0) {
+        if (checkVersion(3, 16, 0).length == 0) {
             stTitle.addNamed(createTitleEditHelper(lblEditBox, TitleEditScope.SESSION), PAGE_EDIT);
         } else {
             stTitle.addNamed(lblEditBox, PAGE_EDIT);
@@ -2196,19 +2268,19 @@ public:
 
         add(stTitle);
 
-        imgNewOutput = new Image("view-list-symbolic", IconSize.MENU);
+        imgNewOutput = Image.newFromIconName("view-list-symbolic", IconSize.Menu);
         imgNewOutput.setNoShowAll(true);
         imgNewOutput.setTooltipText(_("New output displayed"));
 
         add(imgNewOutput);
 
-		button = new Button("window-close-symbolic", IconSize.MENU);
+		button = Button.newFromIconName("window-close-symbolic", IconSize.Menu);
         button.getStyleContext().addClass("ttyx-small-button");
-		button.setRelief(ReliefStyle.NONE);
+		button.setRelief(ReliefStyle.None);
 		button.setFocusOnClick(false);
         button.setTooltipText(_("Close session"));
 
-		button.addOnClicked(&closeClicked);
+		button.connectClicked(&closeClicked);
 
         add(button);
 
@@ -2254,13 +2326,13 @@ public:
     }
 
     void updatePositionType(PositionType position) {
-        if (position == PositionType.LEFT || position == PositionType.RIGHT) {
-            setOrientation(Orientation.VERTICAL);
-            lblText.setAngle(position==PositionType.LEFT?90:270);
+        if (position == PositionType.Left || position == PositionType.Right) {
+            setOrientation(Orientation.Vertical);
+            lblText.setAngle(position==PositionType.Left?90:270);
             lblText.setHexpand(false);
             lblText.setVexpand(true);
         } else {
-            setOrientation(Orientation.HORIZONTAL);
+            setOrientation(Orientation.Horizontal);
             lblText.setAngle(0);
             lblText.setHexpand(true);
             lblText.setVexpand(false);

@@ -2,22 +2,54 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
  * distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+
+/*
+ * giD port of source/gx/ttyx/bookmark/bmchooser.d. GtkD -> giD:
+ *  - Dialog(title, parent, flags, buttons[], responses[]) wraps the varargs
+ *    gtk_dialog_new_with_buttons, which giD does not bind, and use-header-bar
+ *    is construct-only: constructed via raw
+ *    g_object_new(Dialog._getGType(), "use-header-bar", 1, null) passed to
+ *    super(ptr, No.Take), then setTitle/setModal/setTransientFor/addButton
+ *    (the advpaste.d / closedialog.d pattern). GtkDialogFlags.MODAL ->
+ *    setModal(true).
+ *  - addOnKeyPress(Event, Widget) + event.getKeyval(out kv) ->
+ *    connectGdkEvent!EventKey(this, "key-press-event", bool delegate(EventKey)) with direct .keyval field
+ *    access; keysyms are module-level gdk.types.KEY_* constants
+ *    (GdkKeysyms.GDK_Escape -> KEY_Escape).
+ *  - addOnCursorChanged/addOnRowActivated/addOnSearchChanged ->
+ *    connectCursorChanged/connectRowActivated/connectSearchChanged with
+ *    zero-parameter delegate literals (giD accepts arity-reduced callbacks;
+ *    avoids the name-every-param pitfall).
+ *  - new ScrolledWindow(tv) -> new ScrolledWindow() + add(tv);
+ *    new CheckButton(label) -> CheckButton.newWithLabel(label).
+ *  - GSettingsBindFlags.DEFAULT -> gio.types.SettingsBindFlags.Default.
+ *  - `response = ResponseType.X` (GtkD property-call sugar) -> response(X).
+ *  - Enums PascalCase in gtk.types: SelectionMode.Browse, ShadowType.EtchedIn,
+ *    PolicyType.Never/Automatic, Orientation.Vertical, ResponseType.Ok/Cancel.
+ * Behavior is unchanged.
+ */
 module gx.ttyx.bookmark.bmchooser;
 
-import gdk.Event;
-import gdk.Keysyms;
+import gid.gid : No;
 
-import gio.Settings: GSettings = Settings;
+import gdk.event_key : EventKey;
+import gdk.types : KEY_Escape, KEY_Return;
 
-import gtk.Box;
-import gtk.CheckButton;
-import gtk.Dialog;
-import gtk.ScrolledWindow;
-import gtk.SearchEntry;
-import gtk.Widget;
-import gtk.Window;
+import gio.settings : GSettings = Settings;
+import gio.types : SettingsBindFlags;
+
+import gobject.c.functions : g_object_new;
+
+import gtk.box : Box;
+import gtk.check_button : CheckButton;
+import gtk.dialog : Dialog;
+import gtk.scrolled_window : ScrolledWindow;
+import gtk.search_entry : SearchEntry;
+import gtk.types : Orientation, PolicyType, ResponseType, SelectionMode, ShadowType;
+import gtk.window : Window;
 
 import gx.gtk.util;
+import gx.gtk.events;
 
 import gx.i18n.l10n;
 
@@ -46,38 +78,39 @@ private:
         tv = new BMTreeView(true, mode == BMSelectionMode.FOLDER);
         tv.setActivateOnSingleClick(false);
         tv.setHeadersVisible(false);
-        tv.getSelection().setMode(SelectionMode.BROWSE);
-        tv.addOnCursorChanged(delegate(TreeView) {
+        tv.getSelection().setMode(SelectionMode.Browse);
+        tv.connectCursorChanged(() {
             updateUI();
         });
-        tv.addOnRowActivated(delegate(TreePath, TreeViewColumn, TreeView) {
-            response(ResponseType.OK);
+        tv.connectRowActivated(() {
+            response(ResponseType.Ok);
         });
-        tv.addOnKeyPress(&checkKeyPress);
+        connectGdkEvent!EventKey(tv, "key-press-event", &checkKeyPress);
 
-        ScrolledWindow sw = new ScrolledWindow(tv);
-        sw.setShadowType(ShadowType.ETCHED_IN);
-        sw.setPolicy(PolicyType.NEVER, PolicyType.AUTOMATIC);
+        ScrolledWindow sw = new ScrolledWindow();
+        sw.add(tv);
+        sw.setShadowType(ShadowType.EtchedIn);
+        sw.setPolicy(PolicyType.Never, PolicyType.Automatic);
         sw.setHexpand(true);
         sw.setVexpand(true);
         sw.setSizeRequest(-1, 200);
 
         SearchEntry se = new SearchEntry();
-        se.addOnSearchChanged(delegate(SearchEntry) {
+        se.connectSearchChanged(() {
             tv.filterText = se.getText();
             updateUI();
         });
-        se.addOnKeyPress(&checkKeyPress);
+        connectGdkEvent!EventKey(se, "key-press-event", &checkKeyPress);
 
-        Box box = new Box(Orientation.VERTICAL, 6);
+        Box box = new Box(Orientation.Vertical, 6);
         setAllMargins(box, 18);
         box.add(se);
         box.add(sw);
 
         if (mode != BMSelectionMode.FOLDER) {
             gsSettings = new GSettings(SETTINGS_ID);
-            CheckButton cbIncludeEnter = new CheckButton(_("Include return character with bookmark"));
-            gsSettings.bind(SETTINGS_BOOKMARK_INCLUDE_RETURN_KEY, cbIncludeEnter, "active", GSettingsBindFlags.DEFAULT);
+            CheckButton cbIncludeEnter = CheckButton.newWithLabel(_("Include return character with bookmark"));
+            gsSettings.bind(SETTINGS_BOOKMARK_INCLUDE_RETURN_KEY, cbIncludeEnter, "active", SettingsBindFlags.Default);
             box.add(cbIncludeEnter);
         }
 
@@ -85,7 +118,7 @@ private:
     }
 
     void updateUI() {
-        setResponseSensitive(ResponseType.OK, isSelectEnabled());
+        setResponseSensitive(ResponseType.Ok, isSelectEnabled());
     }
 
     bool isSelectEnabled() {
@@ -104,18 +137,15 @@ private:
         return enabled;
     }
 
-    bool checkKeyPress(Event event, Widget w) {
-        uint keyval;
-        if (event.getKeyval(keyval)) {
-            if (keyval == GdkKeysyms.GDK_Escape) {
-                response = ResponseType.CANCEL;
+    bool checkKeyPress(EventKey event) {
+        if (event.keyval == KEY_Escape) {
+            response(ResponseType.Cancel);
+            return true;
+        }
+        if (event.keyval == KEY_Return) {
+            if (isSelectEnabled()) {
+                response(ResponseType.Ok);
                 return true;
-            }
-            if (keyval == GdkKeysyms.GDK_Return) {
-                if (isSelectEnabled()) {
-                    response = ResponseType.OK;
-                    return true;
-                }
             }
         }
         return false;
@@ -123,9 +153,17 @@ private:
 
 public:
     this(Window parent, BMSelectionMode mode) {
+        // gtk_dialog_new_with_buttons is varargs (not bound by giD) and
+        // use-header-bar is construct-only, so construct the underlying
+        // GtkDialog directly with the property set (see advpaste.d).
+        super(cast(void*) g_object_new(Dialog._getGType(), cast(const(char)*) "use-header-bar", 1, cast(const(char)*) null), No.Take);
         string title = mode == BMSelectionMode.FOLDER? _("Select Folder"):_("Select Bookmark");
-        super(title, parent, GtkDialogFlags.MODAL + GtkDialogFlags.USE_HEADER_BAR, [_("OK"), _("Cancel")], [GtkResponseType.OK, GtkResponseType.CANCEL]);
-        setDefaultResponse(GtkResponseType.OK);
+        setTitle(title);
+        setModal(true);
+        setTransientFor(parent);
+        addButton(_("OK"), ResponseType.Ok);
+        addButton(_("Cancel"), ResponseType.Cancel);
+        setDefaultResponse(ResponseType.Ok);
         this.mode = mode;
         createUI();
         updateUI();
@@ -135,4 +173,3 @@ public:
         return tv.getSelectedBookmark();
     }
 }
-

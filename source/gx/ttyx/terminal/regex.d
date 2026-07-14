@@ -6,6 +6,32 @@
  */
 
 /*
+ * giD port of source/gx/ttyx/terminal/regex.d.
+ *
+ * Differences from the GtkD original:
+ *  - Imports: `glib.MatchInfo` → `glib.match_info`, `glib.Regex` →
+ *    `glib.regex`, `vte.Regex` → `vte.regex` (snake_case modules).
+ *  - The low-level `gtkc.glibtypes` enums are replaced by the giD aliases
+ *    `glib.types.RegexCompileFlags` / `RegexMatchFlags` with PascalCase
+ *    members (`Caseless`, `Multiline`, `Optimize`, `Anchored`, `Default`).
+ *  - GtkD's `VRegex.newMatch(pattern, -1, flags)` (vte_regex_new_for_match)
+ *    is giD's static factory `VRegex.newForMatch(pattern, flags)` — the
+ *    length parameter is derived from the D string by the binding. On an
+ *    invalid pattern it THROWS `glib.error.ErrorWrap` instead of returning
+ *    null (GtkD threw GException here too, so callers are unchanged).
+ *  - `new GRegex(...)` throws `glib.regex.RegexException` (an `ErrorWrap`
+ *    subclass) on an invalid pattern, where GtkD threw `GException`.
+ *  - Upstream bug fixed in `compileGRegex`: the original computed
+ *    `GRegexCompileFlags.OPTIMIZE | regex.caseless ? CASELESS : 0` — `|`
+ *    binds tighter than `?:`, so the flags were always `CASELESS|MULTILINE`
+ *    (caseless even when not requested, OPTIMIZE never applied). The intent
+ *    is unambiguous from the parallel `compileVRegex`; the port applies
+ *    `Optimize | Multiline` plus `Caseless` only when requested. Callers
+ *    must know: triggers compiled with caseless=false are now genuinely
+ *    case-sensitive.
+ */
+
+/*
  * Mini style-guide:
  *
  * #define'd fragments should preferably have an outermost group, for the
@@ -41,14 +67,13 @@ import std.conv;
 import std.string;
 import std.sumtype;
 
-import glib.MatchInfo;
-import glib.Regex : GRegex = Regex;
-
-import gtkc.glibtypes;
+import glib.match_info : MatchInfo;
+import glib.regex : GRegex = Regex;
+import glib.types : RegexCompileFlags, RegexMatchFlags;
 
 import gx.gtk.vte;
 
-import vte.Regex: VRegex = Regex;
+import vte.regex : VRegex = Regex;
 
 import gx.ttyx.constants;
 
@@ -399,9 +424,12 @@ immutable VRegex[URL_REGEX_PATTERNS.length] compiledVRegex;
 
 GRegex compileGRegex(TerminalRegex regex) {
     if (regex.pattern.length == 0) return null;
-    GRegexCompileFlags flags = GRegexCompileFlags.OPTIMIZE | regex.caseless ? GRegexCompileFlags.CASELESS : cast(GRegexCompileFlags) 0;
-    flags = flags | GRegexCompileFlags.MULTILINE;
-    return new GRegex(regex.pattern, flags, cast(GRegexMatchFlags) 0);
+    // Note: the GtkD original had `OPTIMIZE | regex.caseless ? CASELESS : 0`
+    // — an operator-precedence bug that made every compile CASELESS and none
+    // OPTIMIZE. Fixed here to match the obvious intent (see compileVRegex).
+    RegexCompileFlags flags = cast(RegexCompileFlags)(RegexCompileFlags.Optimize | (regex.caseless ? RegexCompileFlags.Caseless : RegexCompileFlags.Default));
+    flags = cast(RegexCompileFlags)(flags | RegexCompileFlags.Multiline);
+    return new GRegex(regex.pattern, flags, RegexMatchFlags.Default);
 }
 
 VRegex compileVRegex(TerminalRegex regex) {
@@ -410,7 +438,7 @@ VRegex compileVRegex(TerminalRegex regex) {
     if (regex.caseless) {
         flags |= PCRE2Flags.CASELESS;
     }
-    return VRegex.newMatch(regex.pattern, -1, flags);
+    return VRegex.newForMatch(regex.pattern, flags);
 }
 
 shared static this() {
@@ -445,7 +473,7 @@ unittest {
     assertMatchAnchored (HOSTNAME1, "a_b",               "a");    /* TODO: can/should we totally abort here? */
     assertMatchAnchored (HOSTNAME1, "déjà-vu.com",       ENTIRE);
     assertMatchAnchored (HOSTNAME1, "➡.ws",              ENTIRE);
-    assertMatchAnchored (HOSTNAME1, "cömbining-áccents", ENTIRE);
+    assertMatchAnchored (HOSTNAME1, "cömbining-áccents", ENTIRE);
     assertMatchAnchored (HOSTNAME1, "12",                null);
     assertMatchAnchored (HOSTNAME1, "12.34",             null);
     assertMatchAnchored (HOSTNAME1, "12.ab",             ENTIRE);
@@ -591,7 +619,7 @@ unittest {
 
     assertMatch (REGEX_URL_AS_IS, "HtTp://déjà-vu.com:10000/déjà/vu", ENTIRE);
     assertMatch (REGEX_URL_AS_IS, "HTTP://joe:sEcReT@➡.ws:1080",      ENTIRE);
-    assertMatch (REGEX_URL_AS_IS, "https://cömbining-áccents",        ENTIRE);
+    assertMatch (REGEX_URL_AS_IS, "https://cömbining-áccents",        ENTIRE);
 
     assertMatch (REGEX_URL_AS_IS, "http://111.222.33.44",                ENTIRE);
     assertMatch (REGEX_URL_AS_IS, "http://111.222.33.44/",               ENTIRE);
@@ -704,7 +732,7 @@ private:
     }
 
     void assertMatchAnchored(string pattern, string search, string expected) {
-        string value = getMatch(pattern, search, GRegexCompileFlags.ANCHORED, cast(GRegexMatchFlags)0);
+        string value = getMatch(pattern, search, RegexCompileFlags.Anchored, RegexMatchFlags.Default);
         if (expected == ENTIRE) {
             assert(value == search);
         } else {
@@ -713,10 +741,10 @@ private:
     }
 
     string getMatch(string pattern, string search) {
-        return getMatch(pattern, search, cast(GRegexCompileFlags)0, cast(GRegexMatchFlags)0);
+        return getMatch(pattern, search, RegexCompileFlags.Default, RegexMatchFlags.Default);
     }
 
-    string getMatch(string pattern, string search, GRegexCompileFlags compileFlags, GRegexMatchFlags matchFlags) {
+    string getMatch(string pattern, string search, RegexCompileFlags compileFlags, RegexMatchFlags matchFlags) {
         GRegex regex = new GRegex(pattern, compileFlags, matchFlags);
         MatchInfo match;
         regex.match(search, matchFlags, match);

@@ -2,6 +2,57 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
  * distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+
+/*
+ * giD port of source/gx/ttyx/application.d. Differences from the GtkD original:
+ *  - Snake_case giD module imports; GtkD interface types map to giD classes
+ *    (gio.ActionGroupIF -> gio.action_group.ActionGroup). Unused legacy imports
+ *    (gio.Menu, gio.MenuModel, gtk.Main, gtk.Widget list helpers) dropped.
+ *  - Signals: addOnActivate/Startup/Shutdown/CommandLine ->
+ *    connectActivate/Startup/Shutdown/CommandLine; the command-line handler
+ *    loses GtkD's Scoped! wrapper and is a plain
+ *    int(ApplicationCommandLine, GioApplication). Every delegate-literal
+ *    parameter is named (giD connect* template requirement).
+ *  - Variant.getString() takes no out-length param; executeCommand's tuple
+ *    variant is built with GVariant.newTuple (GtkD's new Variant(Variant[])).
+ *  - gtkc.gtk raw gtk_application_set_accels_for_action hack for disabled
+ *    shortcuts is gone: giD's setAccelsForAction marshals an empty string[] as
+ *    a NULL-terminated empty C array, so super.setAccelsForAction(name, [])
+ *    removes the accelerator (super., not this., to bypass the paste-accel
+ *    override exactly like the raw call did).
+ *  - setAccelsForAction override must be `nothrow` to match giD's generated
+ *    method; non-nothrow helper calls are wrapped in try/catch.
+ *  - gtk.Settings property Value dance -> typed giD properties
+ *    (gtkApplicationPreferDarkTheme/gtkMenuBarAccel/gtkEnableAccels);
+ *    defaultMenuAccel is now a string + bool flag instead of a gobject.Value.
+ *    resetProperty is bound in giD, so the 3.20 reset path carries over.
+ *  - Version.checkVersion -> gtk.global.checkVersion (returns null, not "",
+ *    when compatible — .length == 0 still works).
+ *  - getWindows() returns gtk.window.Window[] directly (no ListG.toArray).
+ *  - Pixbuf ctors -> Pixbuf.newFromFile/newFromFileAtScale (throw ErrorWrap);
+ *    GException -> glib.error.ErrorWrap; explicit .destroy() on Pixbuf/
+ *    ImageSurface dropped (giD objects are GC-managed); cairo ImageSurface ->
+ *    cairo.surface.Surface (giD binds cairo procedurally — matches the ported
+ *    gx.gtk.cairo renderImage signatures, so getBackgroundImage() now returns
+ *    Surface).
+ *  - GSettings.addOnChanged(dg) -> connectChanged(null, dg) (detail first,
+ *    null = all keys); Settings.getDefault.addOnNotify(dg, "gtk-theme-name",
+ *    AFTER) -> connectNotify("gtk-theme-name", dg, Yes.After) (detail first).
+ *  - loadProfileShortcuts: GtkD's explicit gsProfile.destroy() dropped (no
+ *    such unref helper in giD; wrapper is GC-managed).
+ *  - warnVTEConfigIssue/MessageDialog: no varargs ctor in giD — raw-less
+ *    builder().build() + property setters + addButton (gx.gtk.dialog pattern);
+ *    getMessageArea() returns Widget, cast to Box; new Image(name, size) ->
+ *    Image.newFromIconName; new CheckButton(label) -> CheckButton.newWithLabel.
+ *  - addAccelerator(accel, action, param) is bound (deprecated in GTK 3.14+)
+ *    and used as-is for profile shortcuts, matching GtkD behavior.
+ *  - glib.Util.getUserConfigDir -> glib.global.getUserConfigDir; glib.Str gone.
+ *  - Enums: PascalCase members from gio.types/glib.types/gtk.types
+ *    (ApplicationFlags.HandlesCommandLine, OptionFlags.None, OptionArg.String,
+ *    ResponseType.Cancel/DeleteEvent, MessageType.Warning, IconSize.Dialog);
+ *    OR-ing ApplicationFlags needs a cast back to the enum type.
+ *  - migrateConfigBetween/migrateTreeRecursive and all unit tests unchanged.
+ */
 module gx.ttyx.application;
 
 import std.algorithm;
@@ -10,57 +61,50 @@ import std.experimental.logger;
 import std.file;
 import std.format;
 import std.path;
-
-import glib.Util;
 import std.process;
 import std.stdio;
-import std.variant;
+import std.typecons : No, Yes;
 
 import core.sys.linux.sys.prctl : prctl, PR_SET_DUMPABLE;
 
-import cairo.ImageSurface;
+import cairo.surface : Surface;
 
-import gdk.Screen;
+import gdk.screen : Screen;
 
-import gdkpixbuf.Pixbuf;
+import gdkpixbuf.pixbuf : Pixbuf;
 
-import gio.ActionGroupIF;
-import gio.ActionMapIF;
-import gio.Application : GApplication = Application;
-import gio.ApplicationCommandLine;
-import gio.Menu;
-import gio.MenuModel;
-import gio.Settings : GSettings = Settings;
-import gio.SimpleAction;
+import gio.action_group : ActionGroup;
+import gio.application : GApplication = Application;
+import gio.application_command_line : ApplicationCommandLine;
+import gio.settings : GSettings = Settings;
+import gio.simple_action : SimpleAction;
+import gio.types : ApplicationFlags;
 
-import glib.GException;
-import glib.ListG;
-import glib.Str;
-import glib.Variant : GVariant = Variant;
-import glib.VariantDict : GVariantDict = VariantDict;
-import glib.VariantType : GVariantType = VariantType;
+import glib.error : ErrorWrap;
+import glib.global : getUserConfigDir;
+import glib.types : OptionArg, OptionFlags;
+import glib.variant : GVariant = Variant;
+import glib.variant_type : GVariantType = VariantType;
 
-import gobject.ObjectG;
-import gobject.ParamSpec;
-import gobject.Value;
+import gobject.object : ObjectWrap;
+import gobject.param_spec : ParamSpec;
 
-import gtkc.gtk;
-
-import gtk.AboutDialog;
-import gtk.Application;
-import gtk.CheckButton;
-import gtk.CssProvider;
-import gtk.Dialog;
-import gtk.Image;
-import gtk.Label;
-import gtk.LinkButton;
-import gtk.Main;
-import gtk.MessageDialog;
-import gtk.Settings;
-import gtk.StyleContext;
-import gtk.Version;
-import gtk.Widget;
-import gtk.Window;
+import gtk.about_dialog : AboutDialog;
+import gtk.application : Application;
+import gtk.box : Box;
+import gtk.check_button : CheckButton;
+import gtk.css_provider : CssProvider;
+import gtk.dialog : Dialog;
+import gtk.global : checkVersion;
+import gtk.image : Image;
+import gtk.label : Label;
+import gtk.link_button : LinkButton;
+import gtk.message_dialog : MessageDialog;
+import gtk.settings : Settings;
+import gtk.style_context : StyleContext;
+import gtk.types : IconSize, MessageType, ResponseType;
+import gtk.widget : Widget;
+import gtk.window : Window;
 
 import gx.gtk.actions;
 import gx.gtk.cairo;
@@ -112,7 +156,10 @@ private:
     GSettings gsGeneral;
     GSettings gsProxy;
 
-    Value defaultMenuAccel;
+    // GtkD stored the captured default as a gobject.Value; with giD's typed
+    // gtkMenuBarAccel property a plain string (plus captured flag) suffices.
+    string defaultMenuAccel;
+    bool defaultMenuAccelCaptured = false;
 
     CommandParameters cp;
 
@@ -120,7 +167,7 @@ private:
     PreferenceDialog preferenceDialog;
 
     //Background Image for terminals, store it here as singleton instance
-    ImageSurface isFullBGImage;
+    Surface isFullBGImage;
 
     bool warnedVTEConfigIssue = false;
 
@@ -164,7 +211,7 @@ private:
     }
 
     /**
-     * Registers the primary menu actions. 
+     * Registers the primary menu actions.
      *
 	 * This code adapted from grestful (https://github.com/Gert-dev/grestful)
      */
@@ -173,9 +220,8 @@ private:
          * Action used to support notifications, when a notification it has this action associated with it
          * along with the sessionUUID
          */
-        registerAction(this, ACTION_PREFIX_APP, ACTION_ACTIVATE_SESSION, null, delegate(GVariant value, SimpleAction) {
-            size_t l;
-            string sessionUUID = value.getString(l);
+        registerAction(this, ACTION_PREFIX_APP, ACTION_ACTIVATE_SESSION, null, delegate(GVariant value, SimpleAction sa) {
+            string sessionUUID = value.getString();
             tracef("activate-session triggered for session %s", sessionUUID);
             foreach (window; appWindows) {
                 if (window.activateSession(sessionUUID)) {
@@ -189,9 +235,8 @@ private:
          * Action used to support notifications, when a notification it has this action associated with it
          * along with the terminalUUID
          */
-        registerAction(this, ACTION_PREFIX_APP, ACTION_ACTIVATE_TERMINAL, null, delegate(GVariant value, SimpleAction) {
-            size_t l;
-            string terminalUUID = value.getString(l);
+        registerAction(this, ACTION_PREFIX_APP, ACTION_ACTIVATE_TERMINAL, null, delegate(GVariant value, SimpleAction sa) {
+            string terminalUUID = value.getString();
             tracef("activate-terminal triggered for terminal %s", terminalUUID);
             foreach (window; appWindows) {
                 if (window.activateTerminal(terminalUUID)) {
@@ -201,15 +246,15 @@ private:
             }
         }, new GVariantType("s"));
 
-        registerActionWithSettings(this, ACTION_PREFIX_APP, ACTION_NEW_SESSION, gsShortcuts, delegate(GVariant, SimpleAction) { onCreateNewSession(); });
+        registerActionWithSettings(this, ACTION_PREFIX_APP, ACTION_NEW_SESSION, gsShortcuts, delegate(GVariant value, SimpleAction sa) { onCreateNewSession(); });
 
-        registerActionWithSettings(this, ACTION_PREFIX_APP, ACTION_NEW_WINDOW, gsShortcuts, delegate(GVariant, SimpleAction) { onCreateNewWindow(); });
+        registerActionWithSettings(this, ACTION_PREFIX_APP, ACTION_NEW_WINDOW, gsShortcuts, delegate(GVariant value, SimpleAction sa) { onCreateNewWindow(); });
 
-        registerActionWithSettings(this, ACTION_PREFIX_APP, ACTION_PREFERENCES, gsShortcuts, delegate(GVariant, SimpleAction) { onShowPreferences(); });
+        registerActionWithSettings(this, ACTION_PREFIX_APP, ACTION_PREFERENCES, gsShortcuts, delegate(GVariant value, SimpleAction sa) { onShowPreferences(); });
 
-        if (Version.checkVersion(3, 19, 0).length == 0) {
-            registerActionWithSettings(this, ACTION_PREFIX_APP, ACTION_SHORTCUTS, gsShortcuts, delegate(GVariant, SimpleAction) {
-                import gtk.ShortcutsWindow: ShortcutsWindow;
+        if (checkVersion(3, 19, 0).length == 0) {
+            registerActionWithSettings(this, ACTION_PREFIX_APP, ACTION_SHORTCUTS, gsShortcuts, delegate(GVariant value, SimpleAction sa) {
+                import gtk.shortcuts_window : ShortcutsWindow;
 
                 ShortcutsWindow window = getShortcutWindow();
                 if (window is null) return;
@@ -219,9 +264,9 @@ private:
             });
         }
 
-        registerAction(this, ACTION_PREFIX_APP, ACTION_ABOUT, null, delegate(GVariant, SimpleAction) { onShowAboutDialog(); });
+        registerAction(this, ACTION_PREFIX_APP, ACTION_ABOUT, null, delegate(GVariant value, SimpleAction sa) { onShowAboutDialog(); });
 
-        registerAction(this, ACTION_PREFIX_APP, ACTION_QUIT, null, delegate(GVariant, SimpleAction) { quitTilix(); });
+        registerAction(this, ACTION_PREFIX_APP, ACTION_QUIT, null, delegate(GVariant value, SimpleAction sa) { quitTilix(); });
     }
 
     void onCreateNewSession() {
@@ -285,11 +330,11 @@ private:
             }
             addCreditSection(_("Credits"), localizedCredits);
 
-            addOnResponse(delegate(int responseId, Dialog sender) {
-                if (responseId == ResponseType.CANCEL || responseId == ResponseType.DELETE_EVENT)
+            connectResponse(delegate(int responseId, Dialog sender) {
+                if (responseId == ResponseType.Cancel || responseId == ResponseType.DeleteEvent)
                     sender.hideOnDelete(); // Needed to make the window closable (and hide instead of be deleted).
             });
-            addOnClose(delegate(Dialog dlg) {
+            connectClose(delegate(Dialog dlg) {
                 dlg.destroy();
             });
             present();
@@ -334,10 +379,8 @@ private:
 
     void loadBackgroundImage() {
         string filename = gsGeneral.getString(SETTINGS_BACKGROUND_IMAGE_KEY);
-        if (isFullBGImage !is null) {
-            isFullBGImage.destroy();
-            isFullBGImage = null;
-        }
+        // giD cairo surfaces are GC-managed, no explicit destroy
+        isFullBGImage = null;
         Pixbuf image;
         try {
             if (exists(filename)) {
@@ -345,24 +388,22 @@ private:
                 Pixbuf.getFileInfo(filename, width, height);
                 if (width > MAX_BG_WIDTH || height > MAX_BG_HEIGHT) {
                     trace("Background image is too large, scaling");
-                    image = new Pixbuf(filename, MAX_BG_WIDTH, MAX_BG_HEIGHT, true);
+                    image = Pixbuf.newFromFileAtScale(filename, MAX_BG_WIDTH, MAX_BG_HEIGHT, true);
                 } else {
-                    image = new Pixbuf(filename);
+                    image = Pixbuf.newFromFile(filename);
                 }
                 isFullBGImage = renderImage(image, true);
-                image.destroy();
             }
-        } catch (GException ge) {
+        } catch (ErrorWrap ge) {
             errorf("Could not load image '%s'", filename);
         }
     }
 
-    int onCommandLine(Scoped!ApplicationCommandLine acl, GApplication) {
+    int onCommandLine(ApplicationCommandLine acl, GApplication app) {
         trace("App processing command line");
         scope (exit) {
             cp.clear();
             acl.setExitStatus(cp.exitCode);
-//            acl.destroy();
         }
         cp = CommandParameters(acl);
         if (cp.exit) {
@@ -401,7 +442,7 @@ private:
             } else if (cp.quake) {
                 AppWindow qw = getQuakeWindow();
                 if (qw !is null) {
-                    if (qw.isVisible) {
+                    if (qw.isVisible()) {
                         qw.hide();
                     } else {
                         activateWindow(qw);
@@ -470,7 +511,7 @@ private:
         cp.clear();
     }
 
-    void handleThemeChange(ParamSpec, ObjectG) {
+    void handleThemeChange(ParamSpec pspec, ObjectWrap obj) {
         string theme = getGtkTheme();
         trace("Theme changed to " ~ theme);
         if (themeCssProvider !is null) {
@@ -486,18 +527,18 @@ private:
         onThemeChange.emit();
     }
 
-    void onAppStartup(GApplication) {
+    void onAppStartup(GApplication app) {
         trace("Startup App Signal");
-        Settings.getDefault.addOnNotify(&handleThemeChange, "gtk-theme-name", ConnectFlags.AFTER);
+        Settings.getDefault.connectNotify("gtk-theme-name", &handleThemeChange, Yes.After);
         loadResources();
         gsDesktop = new GSettings(SETTINGS_DESKTOP_ID);
-        gsDesktop.addOnChanged(delegate(string key, Settings) {
+        gsDesktop.connectChanged(null, delegate(string key, GSettings settings) {
             if (key == SETTINGS_COLOR_SCHEME_KEY) {
                 applyPreference(SETTINGS_THEME_VARIANT_KEY);
             }
         });
         gsShortcuts = new GSettings(SETTINGS_KEY_BINDINGS_ID);
-        gsShortcuts.addOnChanged(delegate(string key, Settings) {
+        gsShortcuts.connectChanged(null, delegate(string key, GSettings settings) {
             string actionName = keyToDetailedActionName(key);
             //trace("Updating shortcut '" ~ actionName ~ "' to '" ~ gsShortcuts.getString(key) ~ "'");
             setShortcut(actionName, gsShortcuts.getString(key));
@@ -506,7 +547,7 @@ private:
         // Set this once globally because it affects more then current window (i.e. shortcuts)
         useTabs = gsGeneral.getBoolean(SETTINGS_USE_TABS_KEY);
         _processMonitor = gsGeneral.getBoolean(SETTINGS_PROCESS_MONITOR);
-        gsGeneral.addOnChanged(delegate(string key, Settings) {
+        gsGeneral.connectChanged(null, delegate(string key, GSettings settings) {
             applyPreference(key);
         });
 
@@ -521,9 +562,11 @@ private:
 
     void setShortcut(string actionName, string shortcut) {
         if (shortcut == SHORTCUT_DISABLED) {
-            char** tmp = (new char*[1]).ptr;
-            tmp[0] = cast(char*) '\0';
-            gtk_application_set_accels_for_action(gtkApplication, Str.toStringz(actionName), tmp);
+            // giD marshals an empty accels array as a NULL-terminated empty C
+            // array, so no raw gtk_application_set_accels_for_action hack is
+            // needed. Call super. to bypass the paste-accel override, exactly
+            // like the GtkD original's raw C call did.
+            super.setAccelsForAction(actionName, []);
             trace("Removing accelerator");
         } else {
             setAccelsForAction(actionName, [shortcut]);
@@ -538,18 +581,14 @@ private:
         string[] uuids = prfMgr.getProfileUUIDs();
         foreach(uuid; uuids) {
             GSettings gsProfile = prfMgr.getProfileSettings(uuid);
-            try {
-                string key = gsProfile.getString(SETTINGS_PROFILE_SHORTCUT_KEY);
-                if (key != SHORTCUT_DISABLED) {
-                    addAccelerator(key, getActionDetailedName(ACTION_PREFIX_TERMINAL,ACTION_PROFILE_SELECT), new GVariant(uuid));
-                }
-            } finally {
-                gsProfile.destroy();
+            string key = gsProfile.getString(SETTINGS_PROFILE_SHORTCUT_KEY);
+            if (key != SHORTCUT_DISABLED) {
+                addAccelerator(key, getActionDetailedName(ACTION_PREFIX_TERMINAL, ACTION_PROFILE_SELECT), new GVariant(uuid));
             }
         }
     }
 
-    void onAppShutdown(GApplication) {
+    void onAppShutdown(GApplication app) {
         trace("Quit App Signal");
         if (bmMgr.hasChanged()) {
             bmMgr.save();
@@ -563,8 +602,8 @@ private:
      * testable free function migrateConfigBetween.
      */
     void migrateConfigFromTilix() {
-        string oldConfig = buildPath(Util.getUserConfigDir(), "tilix");
-        string newConfig = buildPath(Util.getUserConfigDir(), APPLICATION_CONFIG_FOLDER);
+        string oldConfig = buildPath(getUserConfigDir(), "tilix");
+        string newConfig = buildPath(getUserConfigDir(), APPLICATION_CONFIG_FOLDER);
         migrateConfigBetween(oldConfig, newConfig);
     }
 
@@ -592,34 +631,31 @@ private:
                 }
 
                 if (reset) {
-                    /*
-                    * Resetting the theme variant to "Default" depends on new
-                    * gtk_settings_reset_property API in Gnome 3.20. Once
-                    * GtkD is updated to include this it will be added here.
-                    */
-                    if (Version.checkVersion(3, 19, 0).length == 0) {
+                    // gtk_settings_reset_property is bound in giD (GtkD lacked
+                    // it, hence the original's version-gated comment)
+                    if (checkVersion(3, 19, 0).length == 0) {
                         Settings.getDefault.resetProperty(GTK_APP_PREFER_DARK_THEME);
                     }
                 } else {
-                    Settings.getDefault().setProperty(GTK_APP_PREFER_DARK_THEME, darkMode);
+                    Settings.getDefault().gtkApplicationPreferDarkTheme = darkMode;
                 }
                 onThemeChange.emit();
                 clearBookmarkIconCache();
                 break;
             case SETTINGS_MENU_ACCELERATOR_KEY:
-                if (defaultMenuAccel is null) {
-                    defaultMenuAccel = new Value("F10");
-                    Settings.getDefault().getProperty(GTK_MENU_BAR_ACCEL, defaultMenuAccel);
-                    trace("Default menu accelerator is " ~ defaultMenuAccel.getString());
+                if (!defaultMenuAccelCaptured) {
+                    defaultMenuAccel = Settings.getDefault().gtkMenuBarAccel;
+                    defaultMenuAccelCaptured = true;
+                    trace("Default menu accelerator is " ~ defaultMenuAccel);
                 }
                 if (!gsGeneral.getBoolean(SETTINGS_MENU_ACCELERATOR_KEY)) {
-                    Settings.getDefault().setProperty(GTK_MENU_BAR_ACCEL, new Value(""));
+                    Settings.getDefault().gtkMenuBarAccel = "";
                 } else {
-                    Settings.getDefault().setProperty(GTK_MENU_BAR_ACCEL, defaultMenuAccel);
+                    Settings.getDefault().gtkMenuBarAccel = defaultMenuAccel;
                 }
                 break;
             case SETTINGS_ACCELERATORS_ENABLED:
-                Settings.getDefault().setProperty(GTK_ENABLE_ACCELS, gsGeneral.getBoolean(SETTINGS_ACCELERATORS_ENABLED));
+                Settings.getDefault().gtkEnableAccels = gsGeneral.getBoolean(SETTINGS_ACCELERATORS_ENABLED);
                 break;
             case SETTINGS_BACKGROUND_IMAGE_KEY, SETTINGS_BACKGROUND_IMAGE_MODE_KEY, SETTINGS_BACKGROUND_IMAGE_SCALE_KEY:
                 if (key == SETTINGS_BACKGROUND_IMAGE_KEY) {
@@ -648,7 +684,7 @@ private:
         Widget widget = findWidgetForUUID(terminalUUID);
         Widget result = widget;
         while (widget !is null) {
-            ActionGroupIF group = widget.getActionGroup(prefix);
+            ActionGroup group = widget.getActionGroup(prefix);
             if (group !is null && group.hasAction(actionName)) {
                 tracef("Activating action for prefix=%s and action=%s", prefix, actionName);
                 group.activateAction(actionName, null);
@@ -673,9 +709,7 @@ private:
         AppWindow appWindow = cast(AppWindow)getActiveWindow();
         if (appWindow !is null) return appWindow;
 
-        ListG list = getWindows();
-        if (list is null) return null;
-        Window[] windows = list.toArray!(Window)();
+        Window[] windows = getWindows();
         foreach(window; windows) {
             appWindow = cast(AppWindow) window;
             if (appWindow !is null) return appWindow;
@@ -684,9 +718,7 @@ private:
     }
 
     AppWindow getQuakeWindow() {
-        ListG list = getWindows();
-        if (list is null) return null;
-        Window[] windows = list.toArray!(Window)();
+        Window[] windows = getWindows();
         foreach(window; windows) {
             AppWindow appWindow = cast(AppWindow) window;
             if (appWindow !is null && appWindow.isQuake()) return appWindow;
@@ -698,41 +730,40 @@ private:
      * Add main options supported by application
      */
     void addOptions() {
-        addMainOption(CMD_WORKING_DIRECTORY, 'w', GOptionFlags.NONE, GOptionArg.STRING, _("Set the working directory of the terminal"), _("DIRECTORY"));
-        addMainOption(CMD_PROFILE, 'p', GOptionFlags.NONE, GOptionArg.STRING, _("Set the starting profile"), _("PROFILE_NAME"));
-        addMainOption(CMD_TITLE, 't', GOptionFlags.NONE, GOptionArg.STRING, _("Set the title of the new terminal"), _("TITLE"));
-        addMainOption(CMD_SESSION, 's', GOptionFlags.NONE, GOptionArg.STRING_ARRAY, _("Open the specified session"), _("SESSION_NAME"));
-        if (Version.checkVersion(3, 16, 0).length ==0) {
-            addMainOption(CMD_ACTION, 'a', GOptionFlags.NONE, GOptionArg.STRING, _("Send an action to current ttyx_ instance"), _("ACTION_NAME"));
+        addMainOption(CMD_WORKING_DIRECTORY, 'w', OptionFlags.None, OptionArg.String, _("Set the working directory of the terminal"), _("DIRECTORY"));
+        addMainOption(CMD_PROFILE, 'p', OptionFlags.None, OptionArg.String, _("Set the starting profile"), _("PROFILE_NAME"));
+        addMainOption(CMD_TITLE, 't', OptionFlags.None, OptionArg.String, _("Set the title of the new terminal"), _("TITLE"));
+        addMainOption(CMD_SESSION, 's', OptionFlags.None, OptionArg.StringArray, _("Open the specified session"), _("SESSION_NAME"));
+        if (checkVersion(3, 16, 0).length == 0) {
+            addMainOption(CMD_ACTION, 'a', OptionFlags.None, OptionArg.String, _("Send an action to current ttyx_ instance"), _("ACTION_NAME"));
         }
-        addMainOption(CMD_COMMAND, 'e', GOptionFlags.NONE, GOptionArg.STRING, _("Execute the parameter as a command"), _("COMMAND"));
-        addMainOption(CMD_MAXIMIZE, '\0', GOptionFlags.NONE, GOptionArg.NONE, _("Maximize the terminal window"), null);
-        addMainOption(CMD_MINIMIZE, '\0', GOptionFlags.NONE, GOptionArg.NONE, _("Minimize the terminal window"), null);
-        addMainOption(CMD_WINDOW_STYLE, '\0', GOptionFlags.NONE, GOptionArg.STRING, _("Override the preferred window style to use, one of: normal,disable-csd,disable-csd-hide-toolbar,borderless"), _("WINDOW_STYLE"));
-        addMainOption(CMD_FULL_SCREEN, '\0', GOptionFlags.NONE, GOptionArg.NONE, _("Full-screen the terminal window"), null);
-        addMainOption(CMD_FOCUS_WINDOW, '\0', GOptionFlags.NONE, GOptionArg.NONE, _("Focus the existing window"), null);
-        addMainOption(CMD_NEW_PROCESS, '\0', GOptionFlags.NONE, GOptionArg.NONE, _("Start additional instance as new process (Not Recommended)"), null);
-        addMainOption(CMD_GEOMETRY, '\0', GOptionFlags.NONE, GOptionArg.STRING, _("Set the window size; for example: 80x24, or 80x24+200+200 (COLSxROWS+X+Y)"), _("GEOMETRY"));
-        addMainOption(CMD_QUAKE, 'q', GOptionFlags.NONE, GOptionArg.NONE, _("Opens a window in quake mode or toggles existing quake mode window visibility"), null);
-        addMainOption(CMD_VERSION, 'v', GOptionFlags.NONE, GOptionArg.NONE, _("Show ttyx_ and dependent component versions"), null);
-        addMainOption(CMD_PREFERENCES, '\0', GOptionFlags.NONE, GOptionArg.NONE, _("Show the ttyx_ preferences dialog directly"), null);
-        addMainOption(CMD_GROUP, 'g', GOptionFlags.NONE, GOptionArg.STRING, _("Group ttyx_ instances into different processes (Experimental, not recommended)"), _("GROUP_NAME"));
+        addMainOption(CMD_COMMAND, 'e', OptionFlags.None, OptionArg.String, _("Execute the parameter as a command"), _("COMMAND"));
+        addMainOption(CMD_MAXIMIZE, '\0', OptionFlags.None, OptionArg.None, _("Maximize the terminal window"), null);
+        addMainOption(CMD_MINIMIZE, '\0', OptionFlags.None, OptionArg.None, _("Minimize the terminal window"), null);
+        addMainOption(CMD_WINDOW_STYLE, '\0', OptionFlags.None, OptionArg.String, _("Override the preferred window style to use, one of: normal,disable-csd,disable-csd-hide-toolbar,borderless"), _("WINDOW_STYLE"));
+        addMainOption(CMD_FULL_SCREEN, '\0', OptionFlags.None, OptionArg.None, _("Full-screen the terminal window"), null);
+        addMainOption(CMD_FOCUS_WINDOW, '\0', OptionFlags.None, OptionArg.None, _("Focus the existing window"), null);
+        addMainOption(CMD_NEW_PROCESS, '\0', OptionFlags.None, OptionArg.None, _("Start additional instance as new process (Not Recommended)"), null);
+        addMainOption(CMD_GEOMETRY, '\0', OptionFlags.None, OptionArg.String, _("Set the window size; for example: 80x24, or 80x24+200+200 (COLSxROWS+X+Y)"), _("GEOMETRY"));
+        addMainOption(CMD_QUAKE, 'q', OptionFlags.None, OptionArg.None, _("Opens a window in quake mode or toggles existing quake mode window visibility"), null);
+        addMainOption(CMD_VERSION, 'v', OptionFlags.None, OptionArg.None, _("Show ttyx_ and dependent component versions"), null);
+        addMainOption(CMD_PREFERENCES, '\0', OptionFlags.None, OptionArg.None, _("Show the ttyx_ preferences dialog directly"), null);
+        addMainOption(CMD_GROUP, 'g', OptionFlags.None, OptionArg.String, _("Group ttyx_ instances into different processes (Experimental, not recommended)"), _("GROUP_NAME"));
 
         //Hidden options used to communicate with primary instance
-        addMainOption(CMD_TERMINAL_UUID, '\0', GOptionFlags.HIDDEN, GOptionArg.STRING, _("Hidden argument to pass terminal UUID"), _("TERMINAL_UUID"));
+        addMainOption(CMD_TERMINAL_UUID, '\0', OptionFlags.Hidden, OptionArg.String, _("Hidden argument to pass terminal UUID"), _("TERMINAL_UUID"));
     }
 
 public:
 
     this(bool newProcess, string group=null) {
-        ApplicationFlags flags = ApplicationFlags.HANDLES_COMMAND_LINE;
-        if (newProcess) flags |= ApplicationFlags.NON_UNIQUE;
-        //flags |= ApplicationFlags.CAN_OVERRIDE_APP_ID;
+        ApplicationFlags flags = ApplicationFlags.HandlesCommandLine;
+        if (newProcess) flags = cast(ApplicationFlags)(flags | ApplicationFlags.NonUnique);
         super(APPLICATION_ID, flags);
 
         if (group.length > 0) {
             string id = "io.github.gwelr.ttyx." ~ group;
-            if (idIsValid(id)) {
+            if (GApplication.idIsValid(id)) {
                 tracef("Setting app id to %s", id);
                 setApplicationId(id);
             } else {
@@ -742,10 +773,10 @@ public:
 
         addOptions();
 
-        this.addOnActivate(&onAppActivate);
-        this.addOnStartup(&onAppStartup);
-        this.addOnShutdown(&onAppShutdown);
-        this.addOnCommandLine(&onCommandLine);
+        this.connectActivate(&onAppActivate);
+        this.connectStartup(&onAppStartup);
+        this.connectShutdown(&onAppShutdown);
+        this.connectCommandLine(&onCommandLine);
         tilix = this;
     }
 
@@ -759,7 +790,7 @@ public:
      */
     void executeCommand(string command, string terminalID, string cmdLine) {
         GVariant[] param = [new GVariant(command), new GVariant(terminalID), new GVariant(cmdLine)];
-        activateAction(ACTION_COMMAND, new GVariant(param));
+        activateAction(ACTION_COMMAND, GVariant.newTuple(param));
     }
 
     bool isQuake() {
@@ -823,7 +854,7 @@ public:
         //Otherwise create it and save the ID
         trace("Creating preference window");
         // Disable GC during dialog construction to prevent the D garbage
-        // collector from finalizing temporary GtkD wrapper objects while
+        // collector from finalizing temporary wrapper objects while
         // GTK is still building the widget tree and CSS style cache.
         // On GLib 2.84+ (e.g. Flatpak GNOME 48 runtime), premature
         // finalization corrupts CSS node style cache ref counts, causing
@@ -831,7 +862,7 @@ public:
         GC.disable();
         scope(exit) GC.enable();
         preferenceDialog = new PreferenceDialog(getActiveAppWindow());
-        preferenceDialog.addOnDestroy(delegate(Widget) {
+        preferenceDialog.connectDestroy(delegate(Widget widget) {
             trace("Remove preference window reference");
             preferenceDialog = null;
         });
@@ -856,14 +887,20 @@ public:
     /**
      * Add additional accelerators to force paste actions to always go
      * through Tilix, see #666 fore more information.
+     *
+     * giD's generated setAccelsForAction is nothrow, so the override must be
+     * nothrow too; the non-nothrow name helper is wrapped.
      */
-    override void setAccelsForAction(string detailedActionName, string[] accels) {
+    override void setAccelsForAction(string detailedActionName, string[] accels) nothrow {
         import gx.ttyx.terminal.actions;
 
-        if (detailedActionName == getActionDetailedName(gx.ttyx.terminal.actions.ACTION_PREFIX, gx.ttyx.terminal.actions.ACTION_PASTE)) {
-            accels ~= ["<Shift><Ctrl>Insert"];
-        } else if (detailedActionName == getActionDetailedName(gx.ttyx.terminal.actions.ACTION_PREFIX, gx.ttyx.terminal.actions.ACTION_PASTE_PRIMARY)) {
-            accels ~= ["<Shift>Insert"];
+        try {
+            if (detailedActionName == getActionDetailedName(gx.ttyx.terminal.actions.ACTION_PREFIX, gx.ttyx.terminal.actions.ACTION_PASTE)) {
+                accels ~= ["<Shift><Ctrl>Insert"];
+            } else if (detailedActionName == getActionDetailedName(gx.ttyx.terminal.actions.ACTION_PREFIX, gx.ttyx.terminal.actions.ACTION_PASTE_PRIMARY)) {
+                accels ~= ["<Shift>Insert"];
+            }
+        } catch (Exception) {
         }
         super.setAccelsForAction(detailedActionName, accels);
     }
@@ -889,7 +926,12 @@ public:
         return cp;
     }
 
-    ImageSurface getBackgroundImage() {
+    /**
+     * Note: was GtkD cairo.ImageSurface; giD binds cairo procedurally so the
+     * cached background image is a cairo.surface.Surface (matches the ported
+     * gx.gtk.cairo renderImage). Callers snapshot semantics are unchanged.
+     */
+    Surface getBackgroundImage() {
         return isFullBGImage;
     }
 
@@ -914,25 +956,29 @@ public:
             warnedVTEConfigIssue = true;
             string msg = _("There appears to be an issue with the configuration of the terminal.\nThis issue is not serious, but correcting it will improve your experience.\nClick the link below for more information:");
             string title = "<span weight='bold' size='larger'>" ~ _("Configuration Issue Detected") ~ "</span>";
-            MessageDialog dlg = new MessageDialog(getActiveWindow(), DialogFlags.MODAL, MessageType.WARNING, ButtonsType.OK, null, null);
+            // no `with (dlg)` here: giD's Window.title property would shadow
+            // the local title variable inside the with-block
+            MessageDialog dlg = MessageDialog.builder().build();
             scope (exit) {
                 dlg.destroy();
             }
-            with (dlg) {
-                setTransientFor(getActiveWindow());
-                setMarkup(title);
-                getMessageArea().setMarginLeft(0);
-                getMessageArea().setMarginRight(0);
-                getMessageArea().add(new Label(msg));
-                getMessageArea().add(new LinkButton("https://gnunn1.github.io/tilix-web/manual/vteconfig/"));
-                CheckButton cb = new CheckButton(_("Do not show this message again"));
-                getMessageArea().add(cb);
-                setImage(new Image("dialog-warning", IconSize.DIALOG));
-                showAll();
-                run();
-                if (cb.getActive()) {
-                    gsGeneral.setBoolean(SETTINGS_WARN_VTE_CONFIG_ISSUE_KEY, false);
-                }
+            dlg.messageType = MessageType.Warning;
+            dlg.addButton(_("_OK"), ResponseType.Ok);
+            dlg.setModal(true);
+            dlg.setTransientFor(getActiveWindow());
+            dlg.setMarkup(title);
+            Box messageArea = cast(Box) dlg.getMessageArea();
+            messageArea.setMarginLeft(0);
+            messageArea.setMarginRight(0);
+            messageArea.add(new Label(msg));
+            messageArea.add(new LinkButton("https://gnunn1.github.io/tilix-web/manual/vteconfig/"));
+            CheckButton cb = CheckButton.newWithLabel(_("Do not show this message again"));
+            messageArea.add(cb);
+            dlg.setImage(Image.newFromIconName("dialog-warning", IconSize.Dialog));
+            dlg.showAll();
+            dlg.run();
+            if (cb.getActive()) {
+                gsGeneral.setBoolean(SETTINGS_WARN_VTE_CONFIG_ISSUE_KEY, false);
             }
         }
     }

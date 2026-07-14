@@ -2,17 +2,34 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
  * distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+
+/*
+ * giD port of source/gx/gtk/vte.d.
+ *
+ * Version + keystroke helpers translate cleanly. Feature detection needed a
+ * partial reimplementation:
+ *  - The Tilix-patched signals (notification-received / terminal-screen-changed)
+ *    are still detected at runtime via gobject.global.signalLookup against the
+ *    VTE Terminal GType — this works under giD too.
+ *  - DISABLE_BACKGROUND_DRAW was detected in GtkD by inspecting linker load
+ *    failures for the patched `vte_terminal_get_disable_bg_draw` symbol. giD
+ *    binds only standard VTE (that symbol isn't in VTE's GIR), so the port
+ *    probes the already-loaded libvte with dlsym(RTLD_DEFAULT) — the same
+ *    mechanism exvte.d uses to bind the getter/setter. On standard VTE the
+ *    probe returns null and isVTEBackgroundDrawEnabled() falls back to the
+ *    VTE version check.
+ */
 module gx.gtk.vte;
 
-import std.experimental.logger;
 import std.format;
 
-import gdk.Keysyms;
+import gdk.types : ModifierType, KEY_Page_Up, KEY_Page_Down, KEY_Home, KEY_End, KEY_Up, KEY_Down;
 
-import gobject.Signals: Signals;
+import gobject.global : signalLookup;
+import gobject.types : GType;
 
-import vte.Terminal;
-import vte.Version;
+import vte.terminal : Terminal;
+import vte.global : getMajorVersion, getMinorVersion;
 
 // Constants used to version VTE features
 int[2] VTE_VERSION_MINIMAL = [0, 46];
@@ -56,17 +73,17 @@ enum PCRE2Flags : uint {
  * Determines if the key value and modifier represent a hard coded key sequence
  * that VTE handles internally.
  */
-bool isVTEHandledKeystroke(uint keyval, GdkModifierType modifier) {
-    if ((keyval == GdkKeysyms.GDK_Page_Up ||
-        keyval == GdkKeysyms.GDK_Page_Down ||
-        keyval == GdkKeysyms.GDK_Home ||
-        keyval == GdkKeysyms.GDK_End) && (GdkModifierType.SHIFT_MASK & modifier)) {
+bool isVTEHandledKeystroke(uint keyval, ModifierType modifier) {
+    if ((keyval == KEY_Page_Up ||
+        keyval == KEY_Page_Down ||
+        keyval == KEY_Home ||
+        keyval == KEY_End) && (ModifierType.ShiftMask & modifier)) {
             return true;
         }
-    if ((keyval == GdkKeysyms.GDK_Up ||
-        keyval == GdkKeysyms.GDK_Down) &&
-        (GdkModifierType.SHIFT_MASK & modifier) &&
-        (GdkModifierType.CONTROL_MASK & modifier)) {
+    if ((keyval == KEY_Up ||
+        keyval == KEY_Down) &&
+        (ModifierType.ShiftMask & modifier) &&
+        (ModifierType.ControlMask & modifier)) {
             return true;
         }
     return false;
@@ -96,8 +113,6 @@ enum TerminalFeature {
     DISABLE_BACKGROUND_DRAW
 }
 
-private static bool g_vteTerminalLoaded = false;
-
 /**
  * Determine which terminal features are supported.
  */
@@ -105,35 +120,25 @@ bool checkVTEFeature(TerminalFeature feature) {
     // Initialized features if not done yet, can't do it statically
     // due to need for GTK to load first
     if (!featuresInitialized) {
-        import vte.c.functions;
-
-        // Force terminal to be loaded if not done already
-        if (!g_vteTerminalLoaded) {
-            g_vteTerminalLoaded = true;
-            auto terminal = vte_terminal_new ();
-        }
+        // Registering the VTE Terminal GType makes its (possibly patched)
+        // signals discoverable via signalLookup.
+        GType terminalType = Terminal._getGType();
 
         // Check if patched events are available
         string[] events = ["notification-received", "terminal-screen-changed"];
-        foreach(i, event; events) {
-            bool supported = (Signals.lookup(event, Terminal.getType()) != 0);
+        foreach (i, event; events) {
+            bool supported = (signalLookup(event, terminalType) != 0);
             terminalFeatures[cast(TerminalFeature) i] = supported;
         }
 
-        // Check if disable background draw is available
-        terminalFeatures[TerminalFeature.DISABLE_BACKGROUND_DRAW] = true;
+        // The patched disable-background-draw symbol is not bound by giD
+        // (standard-VTE GIR); probe the loaded libvte for it at runtime,
+        // matching GtkD's linker-introspection behavior (see module header).
+        import core.sys.linux.dlfcn : RTLD_DEFAULT;
+        import core.sys.posix.dlfcn : dlsym;
+        terminalFeatures[TerminalFeature.DISABLE_BACKGROUND_DRAW] =
+            dlsym(RTLD_DEFAULT, "vte_terminal_get_disable_bg_draw") !is null;
 
-        import gtkc.Loader: Linker;
-        import gtkc.paths: LIBRARY;
-        string[] failures = Linker.getLoadFailures(LIBRARY_VTE);
-
-        foreach(failure; failures) {
-            if (failure == "vte_terminal_get_disable_bg_draw") {
-                trace("Background draw disabled");
-                terminalFeatures[TerminalFeature.DISABLE_BACKGROUND_DRAW] = false;
-            }
-            tracef("VTE function %s could not be linked", failure);
-        }
         featuresInitialized = true;
     }
     if (feature in terminalFeatures) {
@@ -158,10 +163,10 @@ bool[TerminalFeature] terminalFeatures;
 static this() {
     // Get version numbers
     try {
-        vteMajorVersion = Version.getMajorVersion();
-        vteMinorVersion = Version.getMinorVersion();
+        vteMajorVersion = getMajorVersion();
+        vteMinorVersion = getMinorVersion();
     }
-    catch (Error e) {
+    catch (Error) {
         //Ignore, means VTE doesn't support version API, default to 46
     }
 }
@@ -181,7 +186,7 @@ unittest {
     assert(!checkVTEVersionNumber(1, 1));
     assert(checkVTEVersionNumber(0, 9));
 
-    vteMajorVersion = Version.getMajorVersion();
-    vteMinorVersion = Version.getMinorVersion();
+    vteMajorVersion = getMajorVersion();
+    vteMinorVersion = getMinorVersion();
     assert(checkVTEVersion(VTE_VERSION_MINIMAL));
 }

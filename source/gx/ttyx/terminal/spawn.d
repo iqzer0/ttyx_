@@ -2,6 +2,11 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
  * distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+/*
+ * giD port of source/gx/ttyx/terminal/spawn.d. Mechanical: gio.Settings ->
+ * gio.settings; everything else (flatpak helper, proxy URL builder, GSettings
+ * proxy reads) is API-compatible.
+ */
 module gx.ttyx.terminal.spawn;
 
 private:
@@ -14,7 +19,7 @@ import std.process : environment;
 import std.string : split, startsWith;
 import std.uri : encodeComponent;
 
-import gio.Settings : GSettings = Settings;
+import gio.settings : GSettings = Settings;
 
 import gx.ttyx.terminal.flatpak : captureHostToolboxCommand;
 import gx.ttyx.terminal.util : isFlatpak;

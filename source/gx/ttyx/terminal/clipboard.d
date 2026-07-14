@@ -2,6 +2,30 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
  * distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+
+/*
+ * giD port of source/gx/ttyx/terminal/clipboard.d. Differences from GtkD:
+ *   - `GdkAtom` (raw C alias from gdk.Atom) → the `gdk.atom.Atom` class; the
+ *     selection constants in gx.gtk.clipboard are already typed `Atom` and
+ *     `gtk.clipboard.Clipboard.get` takes one, so paste()/advancedPaste()
+ *     now take `Atom` instead of `GdkAtom` (callers pass the same constants).
+ *   - `gtkc.glib : g_source_remove` → `glib.source.Source.remove(tag)` wrapper.
+ *   - `Clipboard.setText(text, len)` → `setText(text)` (giD takes a D string,
+ *     no length parameter).
+ *   - `SimpleXML.markupEscapeText(cmd, len)` → `glib.global.markupEscapeText(cmd)`.
+ *   - UnsafePasteDialog: GtkD's MessageDialog(parent, flags, type, buttons,
+ *     msg, null) ctor wraps non-introspectable varargs C and is not bound by
+ *     giD. The subclass constructs the raw GObject with
+ *     g_object_new(MessageDialog._getGType(), null) passed to super(ptr,
+ *     No.Take) (the advpaste.d Dialog pattern); ButtonsType.None is the
+ *     property default, `messageType`/modality/transient-for are set after
+ *     construction. `new Image(name, size)` → `Image.newFromIconName`;
+ *     `new Button(label)` → `Button.newWithLabel`; `getMessageArea()` returns
+ *     a plain Widget in giD → cast to Box for the margin setters and add().
+ *   - Enums are PascalCase in <pkg>.types: ResponseType.Apply,
+ *     MessageType.Warning, IconSize.Dialog, Align.Start, ShadowType.EtchedIn,
+ *     PolicyType.Automatic, pango.types.EllipsizeMode.End.
+ */
 module gx.ttyx.terminal.clipboard;
 
 private:
@@ -11,21 +35,26 @@ import std.array : join;
 import std.experimental.logger;
 import std.string : chomp, indexOf, splitLines, stripRight;
 
-import gdk.Atom : GdkAtom;
+import gid.gid : No;
 
-import gtk.Button;
-import gtk.Clipboard : Clipboard;
-import gtk.Image;
-import gtk.Label;
-import gtk.MessageDialog;
-import gtk.ScrolledWindow;
-import gtk.Window;
+import gdk.atom : Atom;
 
-import glib.SimpleXML;
+import glib.global : markupEscapeText;
+import glib.source : Source;
 
-import gtkc.gtktypes : GtkAlign, DialogFlags, MessageType, ButtonsType, ResponseType, IconSize, ShadowType, PolicyType;
+import gobject.c.functions : g_object_new;
 
-import gtkc.glib : g_source_remove;
+import gtk.box : Box;
+import gtk.button : Button;
+import gtk.clipboard : Clipboard;
+import gtk.image : Image;
+import gtk.label : Label;
+import gtk.message_dialog : MessageDialog;
+import gtk.scrolled_window : ScrolledWindow;
+import gtk.types : Align, IconSize, MessageType, PolicyType, ResponseType, ShadowType;
+import gtk.window : Window;
+
+import pango.types : EllipsizeMode;
 
 import gx.gtk.clipboard : GDK_SELECTION_CLIPBOARD;
 import gx.gtk.threads : threadsAddTimeoutDelegate;
@@ -70,7 +99,7 @@ void scheduleAutoClear(string copiedText, uint timeoutSeconds) {
 /// Cancel any pending auto-clear timeout.
 void cancelAutoClear() {
     if (_autoClearTimeoutID > 0) {
-        g_source_remove(_autoClearTimeoutID);
+        Source.remove(_autoClearTimeoutID);
         _autoClearTimeoutID = 0;
     }
     _lastCopiedText = null;
@@ -225,7 +254,7 @@ public:
      * Show the advanced paste dialog for reviewing multi-line content
      * before pasting. Single-line pastes are forwarded to paste() directly.
      */
-    void advancedPaste(GdkAtom source) {
+    void advancedPaste(Atom source) {
         string pasteText = Clipboard.get(source).waitForText();
         if (pasteText.length == 0) return;
         pasteText = stripPasteEscapes(pasteText);
@@ -238,7 +267,7 @@ public:
             dialog.destroy();
         }
         dialog.showAll();
-        if (dialog.run() == ResponseType.APPLY) {
+        if (dialog.run() == ResponseType.Apply) {
             pasteText = dialog.text;
             vtePasteText(_ctx.contextVte(), pasteText[0 .. $]);
             if (_ctx.contextGsProfile().getBoolean(SETTINGS_PROFILE_SCROLL_ON_INPUT_KEY)) {
@@ -270,7 +299,7 @@ public:
                 }
                 string stripped = lines.join("\n");
                 if (stripped.length > 0) {
-                    cb.setText(stripped, cast(int) stripped.length);
+                    cb.setText(stripped);
                 }
             }
         }
@@ -302,7 +331,7 @@ public:
      * stripping, and leading comment character removal. Broadcasts to
      * synchronized terminals if sync input is active.
      */
-    void paste(GdkAtom source) {
+    void paste(Atom source) {
         string pasteText = Clipboard.get(source).waitForText();
         if (pasteText.length == 0) return;
         pasteText = stripPasteEscapes(pasteText);
@@ -324,7 +353,7 @@ public:
                 dialog.destroy();
             }
             dialog.showAll();
-            if (dialog.run() == ResponseType.APPLY) {
+            if (dialog.run() == ResponseType.Apply) {
                 pasteText = dialog.text;
                 vtePasteText(_ctx.contextVte(), pasteText);
                 if (_ctx.contextGsProfile().getBoolean(SETTINGS_PROFILE_SCROLL_ON_INPUT_KEY)) {
@@ -391,39 +420,43 @@ public:
  */
 class UnsafePasteDialog : MessageDialog {
 
-private:
-    import pango.PgLayout : PangoEllipsizeMode;
-
 public:
     this(Window parent, string cmd) {
-        super(parent, DialogFlags.MODAL, MessageType.WARNING, ButtonsType.NONE, null, null);
+        // GtkD's MessageDialog(parent, flags, type, buttons, msg, null) ctor
+        // wraps varargs C that giD does not bind; construct the raw GObject
+        // instead (ButtonsType.None is the property default) and set the
+        // rest post-construction.
+        super(cast(void*) g_object_new(MessageDialog._getGType(), cast(const(char)*) null), No.Take);
+        messageType = MessageType.Warning;
+        setModal(true);
         setTransientFor(parent);
-        getMessageArea().setMarginLeft(0);
-        getMessageArea().setMarginRight(0);
+        Box messageArea = cast(Box) getMessageArea();
+        messageArea.setMarginLeft(0);
+        messageArea.setMarginRight(0);
         string[3] msg = getUnsafePasteMessage();
         setMarkup("<span weight='bold' size='larger'>" ~ msg[0] ~ "</span>\n\n" ~ msg[1] ~ "\n" ~ msg[2] ~ "\n");
-        setImage(new Image("dialog-warning", IconSize.DIALOG));
+        setImage(Image.newFromIconName("dialog-warning", IconSize.Dialog));
 
-        Label lblCmd = new Label(SimpleXML.markupEscapeText(cmd, cmd.length));
+        Label lblCmd = new Label(markupEscapeText(cmd));
         lblCmd.setUseMarkup(true);
-        lblCmd.setHalign(GtkAlign.START);
-        lblCmd.setEllipsize(PangoEllipsizeMode.END);
+        lblCmd.setHalign(Align.Start);
+        lblCmd.setEllipsize(EllipsizeMode.End);
 
         if (count(cmd, "\n") > 6) {
             ScrolledWindow sw = new ScrolledWindow();
-            sw.setShadowType(ShadowType.ETCHED_IN);
-            sw.setPolicy(PolicyType.AUTOMATIC, PolicyType.AUTOMATIC);
+            sw.setShadowType(ShadowType.EtchedIn);
+            sw.setPolicy(PolicyType.Automatic, PolicyType.Automatic);
             sw.setHexpand(true);
             sw.setVexpand(true);
             sw.setSizeRequest(400, 140);
             sw.add(lblCmd);
-            getMessageArea().add(sw);
+            messageArea.add(sw);
         } else {
-            getMessageArea().add(lblCmd);
+            messageArea.add(lblCmd);
         }
 
-        Button btnCancel = new Button(_("Don't Paste"));
-        Button btnIgnore = new Button(_("Paste Anyway"));
+        Button btnCancel = Button.newWithLabel(_("Don't Paste"));
+        Button btnIgnore = Button.newWithLabel(_("Paste Anyway"));
         btnIgnore.getStyleContext().addClass("destructive-action");
         addActionWidget(btnCancel, 1);
         addActionWidget(btnIgnore, 0);

@@ -1,43 +1,74 @@
-﻿/*
+/*
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
  * distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/*
+ * giD port of source/gx/ttyx/terminal/search.d. Differences from GtkD:
+ *   - Icon widgets/buttons: `new Image(name, IconSize.MENU)` /
+ *     `new Button(name, IconSize.MENU)` → static factories
+ *     `Image.newFromIconName` / `Button.newFromIconName` with
+ *     `gtk.types.IconSize.Menu`.
+ *   - `new Popover(relativeTo, model)` → `Popover.newFromModel(relativeTo, model)`.
+ *   - `new Frame(child, null)` → `new Frame()` + `add(child)` (giD only binds
+ *     the label ctor).
+ *   - `Version.checkVersion(3,20,0)` → free function `gtk.global.checkVersion`
+ *     (same null-on-compatible contract).
+ *   - Key release: `addOnKeyRelease(Event, Widget)` + `event.getKeyval(out kv)`
+ *     → `connectGdkEvent!EventKey(this, "key-release-event", bool delegate(EventKey))` with direct
+ *     `.keyval`/`.state` field access; keysyms are `gdk.types.KEY_*`,
+ *     modifiers `gdk.types.ModifierType.ShiftMask`.
+ *   - `sagSearch.lookup(name)` → `lookupAction(name)` (ActionMap mixin; the
+ *     GtkD-style `lookup` still exists but is deprecated).
+ *   - `GSettings.addOnChanged(cb)` → `connectChanged(null, cb)` — the first
+ *     parameter is the optional signal detail (a settings key); null keeps
+ *     the GtkD match-all behavior.
+ *   - `VRegex.newSearch(pattern, -1, flags)` → static
+ *     `VRegex.newForSearch(pattern, flags)`; throws `glib.error.ErrorWrap`
+ *     on an invalid pattern (GtkD threw GException — caller logic unchanged).
+ *   - Upstream bug fixed: the original connected `addOnFocusIn` TWICE and
+ *     emitted `onSearchEntryFocusOut` from the second focus-IN handler, so
+ *     focus-out fired on focus-in and never on focus-out. The port connects
+ *     `connectFocusOutEvent` for the focus-out emission (terminal.d connects
+ *     both events symmetrically, so this is the evident intent).
  */
 module gx.ttyx.terminal.search;
 
 import std.experimental.logger;
 import std.format;
 
-import gdk.Event;
-import gdk.Keysyms;
+import gdk.event_focus : EventFocus;
+import gdk.event_key : EventKey;
+import gdk.types : KEY_Escape, KEY_Return, ModifierType;
 
-import gio.ActionGroupIF;
-import gio.Menu;
-import gio.Settings : GSettings = Settings;
-import gio.SimpleAction;
-import gio.SimpleActionGroup;
+import gio.action_group : ActionGroup;
+import gio.menu : Menu;
+import gio.settings : GSettings = Settings;
+import gio.simple_action : SimpleAction;
+import gio.simple_action_group : SimpleActionGroup;
 
-import glib.GException;
-import glib.Regex: GRegex = Regex;
-import glib.Variant : GVariant = Variant;
+import glib.error : ErrorWrap;
+import glib.regex : GRegex = Regex;
+import glib.variant : GVariant = Variant;
 
-import gtk.Box;
-import gtk.Button;
-import gtk.CheckButton;
-import gtk.Frame;
-import gtk.Image;
-import gtk.MenuButton;
-import gtk.Popover;
-import gtk.Revealer;
-import gtk.SearchEntry;
-import gtk.ToggleButton;
-import gtk.Widget;
-import gtk.Version;
+import gtk.box : Box;
+import gtk.button : Button;
+import gtk.frame : Frame;
+import gtk.global : checkVersion;
+import gtk.image : Image;
+import gtk.menu_button : MenuButton;
+import gtk.popover : Popover;
+import gtk.revealer : Revealer;
+import gtk.search_entry : SearchEntry;
+import gtk.types : Align, IconSize, Orientation, ReliefStyle, ShadowType;
+import gtk.widget : Widget;
 
-import vte.Regex: VRegex = Regex;
-import vte.Terminal : VTE = Terminal;
+import vte.regex : VRegex = Regex;
+import vte.terminal : VTE = Terminal;
 
 import gx.gtk.actions;
 import gx.gtk.vte;
+import gx.gtk.events;
 import gx.i18n.l10n;
 
 import gx.ttyx.common;
@@ -61,7 +92,7 @@ private:
     GSettings gsSettings;
 
     VTE vte;
-    ActionGroupIF terminalActions;
+    ActionGroup terminalActions;
     SimpleActionGroup sagSearch;
 
     SearchEntry seSearch;
@@ -79,46 +110,43 @@ private:
 
         setHexpand(true);
         setVexpand(false);
-        setHalign(GtkAlign.FILL);
-        setValign(GtkAlign.START);
+        setHalign(Align.Fill);
+        setValign(Align.Start);
 
-        Box bSearch = new Box(Orientation.HORIZONTAL, 6);
-        bSearch.setHalign(GtkAlign.CENTER);
+        Box bSearch = new Box(Orientation.Horizontal, 6);
+        bSearch.setHalign(Align.Center);
         bSearch.setMarginLeft(4);
         bSearch.setMarginRight(4);
         bSearch.setMarginTop(4);
         bSearch.setMarginBottom(4);
         bSearch.setHexpand(true);
 
-        Box bEntry = new Box(Orientation.HORIZONTAL, 0);
+        Box bEntry = new Box(Orientation.Horizontal, 0);
         bEntry.getStyleContext().addClass("linked");
 
         seSearch = new SearchEntry();
         seSearch.setWidthChars(1);
         seSearch.setMaxWidthChars(30);
-        if (Version.checkVersion(3, 20, 0).length != 0) {
+        if (checkVersion(3, 20, 0).length != 0) {
             seSearch.getStyleContext().addClass("ttyx-search-entry");
         }
-        seSearch.addOnSearchChanged(delegate(SearchEntry) {
+        seSearch.connectSearchChanged(delegate() {
             setTerminalSearchCriteria();
         });
-        seSearch.addOnKeyRelease(delegate(Event event, Widget) {
-            uint keyval;
-            if (event.getKeyval(keyval)) {
-                switch (keyval) {
-                    case GdkKeysyms.GDK_Escape:
-                        setRevealChild(false);
-                        vte.grabFocus();
-                        break;
-                    case GdkKeysyms.GDK_Return:
-                        if (event.key.state & GdkModifierType.SHIFT_MASK) {
-                            terminalActions.activateAction(ACTION_FIND_NEXT, null);
-                        } else {
-                            terminalActions.activateAction(ACTION_FIND_PREVIOUS, null);
-                        }
-                        break;
-                    default:
-                }
+        connectGdkEvent!EventKey(seSearch, "key-release-event", delegate bool(EventKey event) {
+            switch (event.keyval) {
+                case KEY_Escape:
+                    setRevealChild(false);
+                    vte.grabFocus();
+                    break;
+                case KEY_Return:
+                    if (event.state & ModifierType.ShiftMask) {
+                        terminalActions.activateAction(ACTION_FIND_NEXT, null);
+                    } else {
+                        terminalActions.activateAction(ACTION_FIND_PREVIOUS, null);
+                    }
+                    break;
+                default:
             }
             return false;
         });
@@ -127,23 +155,23 @@ private:
         mbOptions = new MenuButton();
         mbOptions.setTooltipText(_("Search Options"));
         mbOptions.setFocusOnClick(false);
-        Image iHamburger = new Image("pan-down-symbolic", IconSize.MENU);
+        Image iHamburger = Image.newFromIconName("pan-down-symbolic", IconSize.Menu);
         mbOptions.add(iHamburger);
-        mbOptions.setPopover(createPopover);
+        mbOptions.setPopover(createPopover());
         bEntry.add(mbOptions);
 
         bSearch.add(bEntry);
 
-        Box bButtons = new Box(Orientation.HORIZONTAL, 0);
+        Box bButtons = new Box(Orientation.Horizontal, 0);
         bButtons.getStyleContext().addClass("linked");
 
-        Button btnNext = new Button("go-up-symbolic", IconSize.MENU);
+        Button btnNext = Button.newFromIconName("go-up-symbolic", IconSize.Menu);
         btnNext.setTooltipText(_("Find next"));
         btnNext.setActionName(getActionDetailedName(ACTION_PREFIX, ACTION_FIND_PREVIOUS));
         btnNext.setCanFocus(false);
         bButtons.add(btnNext);
 
-        Button btnPrevious = new Button("go-down-symbolic", IconSize.MENU);
+        Button btnPrevious = Button.newFromIconName("go-down-symbolic", IconSize.Menu);
         btnPrevious.setTooltipText(_("Find previous"));
         btnPrevious.setActionName(getActionDetailedName(ACTION_PREFIX, ACTION_FIND_NEXT));
         btnPrevious.setCanFocus(false);
@@ -151,18 +179,19 @@ private:
 
         bSearch.add(bButtons);
 
-        Button btnClose = new Button("window-close-symbolic", IconSize.MENU);
+        Button btnClose = Button.newFromIconName("window-close-symbolic", IconSize.Menu);
         btnClose.setTooltipText(_("Close search box"));
-        btnClose.setRelief(ReliefStyle.NONE);
+        btnClose.setRelief(ReliefStyle.None);
         btnClose.setFocusOnClick(true);
-        btnClose.addOnClicked(delegate(Button) {
+        btnClose.connectClicked(delegate() {
             setRevealChild(false);
             vte.grabFocus();
         });
         bSearch.packEnd(btnClose, false, false, 0);
 
-        Frame frame = new Frame(bSearch, null);
-        frame.setShadowType(ShadowType.NONE);
+        Frame frame = new Frame();
+        frame.add(bSearch);
+        frame.setShadowType(ShadowType.None);
         frame.getStyleContext().addClass("ttyx-search-frame");
         add(frame);
     }
@@ -196,7 +225,7 @@ private:
             vte.searchSetWrapAround(newState);
         }, null, gsGeneral.getValue(SETTINGS_SEARCH_DEFAULT_WRAP_AROUND));
 
-        updateActionsState ();
+        updateActionsState();
         insertActionGroup(ACTION_SEARCH_PREFIX, sagSearch);
     }
 
@@ -207,12 +236,12 @@ private:
         model.append(_("Wrap around"), getActionDetailedName(ACTION_SEARCH_PREFIX, ACTION_SEARCH_WRAP_AROUND));
         model.append(_("Match as regular expression"), getActionDetailedName(ACTION_SEARCH_PREFIX, ACTION_SEARCH_MATCH_REGEX));
 
-        return new Popover(mbOptions, model);
+        return Popover.newFromModel(mbOptions, model);
     }
 
     void updateActionsState()
     {
-        auto action = cast(SimpleAction) sagSearch.lookup(ACTION_SEARCH_MATCH_REGEX);
+        auto action = cast(SimpleAction) sagSearch.lookupAction(ACTION_SEARCH_MATCH_REGEX);
         bool alwaysUseRegex = gsSettings.getBoolean(SETTINGS_ALWAYS_USE_REGEX_IN_SEARCH);
         action.setEnabled(!alwaysUseRegex);
         action.setState(new GVariant(alwaysUseRegex));
@@ -237,9 +266,9 @@ private:
                 flags |= PCRE2Flags.CASELESS;
             }
             trace("Setting VTE.Regex for pattern %s", text);
-            vte.searchSetRegex(VRegex.newSearch(text, -1, flags), 0);
+            vte.searchSetRegex(VRegex.newForSearch(text, flags), 0);
             seSearch.getStyleContext().removeClass("error");
-        } catch (GException ge) {
+        } catch (ErrorWrap ge) {
             string message = format(_("Search '%s' is not a valid regex\n%s"), text, ge.msg);
             seSearch.getStyleContext().addClass("error");
             error(message);
@@ -249,7 +278,7 @@ private:
 
 public:
 
-    this(VTE vte, ActionGroupIF terminalActions) {
+    this(VTE vte, ActionGroup terminalActions) {
         super();
 
         this.vte = vte;
@@ -257,20 +286,23 @@ public:
 
         gsSettings = new GSettings(SETTINGS_ID);
         createUI();
-        gsSettings.addOnChanged(delegate(string key, GSettings) {
+        gsSettings.connectChanged(null, delegate(string key, GSettings settings) {
             if (key == SETTINGS_ALWAYS_USE_REGEX_IN_SEARCH)
                 updateActionsState();
         });
 
-        this.addOnDestroy(delegate(Widget) {
+        this.connectDestroy(delegate() {
             this.vte = null;
             this.terminalActions = null;
         });
-        seSearch.addOnFocusIn(delegate(Event event, Widget widget) {
+        connectGdkEvent!EventFocus(seSearch, "focus-in-event", delegate bool(EventFocus event, Widget widget) {
             onSearchEntryFocusIn.emit(widget);
             return false;
         });
-        seSearch.addOnFocusIn(delegate(Event event, Widget widget) {
+        // The GtkD original connected addOnFocusIn here a second time (an
+        // evident copy-paste bug); the focus-out emission belongs on the
+        // focus-out signal.
+        connectGdkEvent!EventFocus(seSearch, "focus-out-event", delegate bool(EventFocus event, Widget widget) {
             onSearchEntryFocusOut.emit(widget);
             return false;
         });

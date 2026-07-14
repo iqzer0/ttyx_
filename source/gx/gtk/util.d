@@ -2,94 +2,79 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
  * distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+
+/*
+ * giD port of source/gx/gtk/util.d. Key differences from the GtkD original:
+ *   - gdk.rgba.RGBA is a value struct, not a class: equal(RGBA, RGBA) loses its
+ *     null handling (structs cannot be null), callers compare directly;
+ *   - parseName uses gio.file.File.parseName (giD binds it; GtkD needed a
+ *     hand-rolled g_file_parse_name call);
+ *   - isWayland replaces GtkD's gtkc.gdk/gtkc.gobject C imports with a plain
+ *     extern(C) gdk_x11_window_get_type (link-time resolve from libgdk-3, same
+ *     pattern as gx.gtk.x11) + gobject.global.typeCheckInstanceIsA;
+ *   - Container.getChildren returns Widget[] directly (no ListG);
+ *   - tree stores: createIter → append(out iter), setValue takes a
+ *     gobject.value.Value (Value's templated ctor covers strings + scalars);
+ *   - ComboBox: ComboBox.newWithModel + CellLayout packStart/addAttribute;
+ *   - getGtkTheme reads gtk.settings.Settings.getDefault().gtkThemeName
+ *     (giD generates typed property accessors, no gobject.Value dance);
+ *   - processEvents uses gtk.global.eventsPending/mainIterationDo; the
+ *     pre-2.075 std.datetime branch is dropped (toolchain floor is LDC 1.40).
+ */
 module gx.gtk.util;
 
 import std.conv;
+import std.datetime.stopwatch : AutoStart, StopWatch;
 import std.experimental.logger;
-import std.format;
-import std.process;
-import std.string;
+import std.process : environment;
+import std.typecons : No;
 
-import gdk.Atom;
-import gdk.Gdk;
-import gdk.RGBA;
-import gdk.X11;
+import gdk.rgba : RGBA;
 
-import gio.FileIF;
-import gio.ListModelIF;
-import gio.Settings: GSettings = Settings;
+import gio.file : File;
 
-import glib.GException;
-import glib.ListG;
-import glib.Str;
+import gobject.global : typeCheckInstanceIsA;
+import gobject.type_instance : TypeInstance;
+import gobject.types : GType, GTypeEnum;
+import gobject.value : Value;
 
-import gobject.ObjectG;
-import gobject.Type;
-import gobject.TypeInstance;
-import gobject.Value;
-
-import gtk.Bin;
-import gtk.Box;
-import gtk.ComboBox;
-import gtk.CellRendererText;
-import gtk.Container;
-import gtk.Entry;
-import gtk.ListStore;
-import gtk.Main;
-import gtk.Paned;
-import gtk.Settings;
-import gtk.StyleContext;
-import gtk.TreeIter;
-import gtk.TreeModelIF;
-import gtk.TreePath;
-import gtk.TreeStore;
-import gtk.TreeView;
-import gtk.TreeViewColumn;
-import gtk.Widget;
-import gtk.Window;
+import gtk.bin : Bin;
+import gtk.box : Box;
+import gtk.cell_renderer_text : CellRendererText;
+import gtk.combo_box : ComboBox;
+import gtk.container : Container;
+import gtk.global : eventsPending, mainIterationDo;
+import gtk.list_store : ListStore;
+import gtk.settings : Settings;
+import gtk.style_context : StyleContext;
+import gtk.tree_iter : TreeIter;
+import gtk.tree_model : TreeModel;
+import gtk.tree_store : TreeStore;
+import gtk.tree_view : TreeView;
+import gtk.tree_view_column : TreeViewColumn;
+import gtk.types : Orientation, StateFlags;
+import gtk.widget : Widget;
+import gtk.window : Window;
 
 import gx.gtk.x11;
 
 /**
- * Parse filename and return FileIF object
+ * Parse filename and return File object
  */
-public FileIF parseName(string parseName) {
-    import gio.c.functions;
-    auto p = g_file_parse_name(Str.toStringz(parseName));
-
-    if(p is null) {
-        return null;
-    }
-
-    return ObjectG.getDObject!(FileIF)(cast(GFile*) p, true);
+public File parseName(string parseName) {
+    return File.parseName(parseName);
 }
-
-
 
 /**
  * Directly process events for up to a specified period
  */
-static if (__VERSION__ >=2075) {
-    void processEvents(uint millis) {
-        import std.datetime.stopwatch: StopWatch, AutoStart;
-        StopWatch sw = StopWatch(AutoStart.yes);
-        scope (exit) {
-            sw.stop();
-        }
-        while (gtk.Main.Main.eventsPending() && sw.peek.total!"msecs" < millis) {
-            Main.iterationDo(false);
-        }
+void processEvents(uint millis) {
+    StopWatch sw = StopWatch(AutoStart.yes);
+    scope (exit) {
+        sw.stop();
     }
-} else {
-    void processEvents(uint millis) {
-        import std.datetime: StopWatch, AutoStart;
-        StopWatch sw = StopWatch(AutoStart.yes);
-        scope (exit) {
-            sw.stop();
-        }
-        while (gtk.Main.Main.eventsPending() && sw.peek().msecs < millis) {
-            Main.iterationDo(false);
-        }
+    while (eventsPending() && sw.peek.total!"msecs" < millis) {
+        mainIterationDo(false);
     }
 }
 
@@ -101,7 +86,7 @@ void activateWindow(Window window) {
 
     if (isWayland(window)) {
         trace("Present Window for Wayland");
-        window.presentWithTime(GDK_CURRENT_TIME);
+        window.presentWithTime(cast(uint) GDK_CURRENT_TIME);
     } else {
         trace("Present Window for X11");
         window.present();
@@ -118,22 +103,17 @@ bool isWayland(Window window) {
         return (environment.get("XDG_SESSION_TYPE","x11") == "wayland" && environment.get("GDK_BACKEND")!="x11");
     }
 
-    import gtkc.gdk: gdk_x11_window_get_type;
-    import gtkc.gobject: g_type_check_instance_is_a;
-
     GType x11Type = gdk_x11_window_get_type();
-    GTypeInstance* instance = cast(GTypeInstance*)(window.getWindow().getObjectGStruct());
+    scope instance = new TypeInstance(window.getWindow()._cPtr, No.Take);
 
-    return g_type_check_instance_is_a(instance, x11Type) == 0;
+    return !typeCheckInstanceIsA(instance, x11Type);
 }
 
 /**
  * Return the name of the GTK Theme
  */
 string getGtkTheme() {
-    Value value = new Value("");
-    Settings.getDefault.getProperty("gtk-theme-name", value);
-    return value.getString();
+    return Settings.getDefault().gtkThemeName;
 }
 
 /**
@@ -151,9 +131,9 @@ Box createBox(Orientation orientation, int spacing,  Widget[] children) {
  * Finds the index position of a child in a container.
  */
 int getChildIndex(Container container, Widget child) {
-    Widget[] children = container.getChildren().toArray!Widget();
+    Widget[] children = container.getChildren();
     foreach(i, c; children) {
-        if (c.getWidgetStruct() == child.getWidgetStruct()) return cast(int) i;
+        if (c._cPtr == child._cPtr) return cast(int) i;
     }
     return -1;
 }
@@ -186,13 +166,12 @@ T[] getChildren(T) (Widget widget, bool recursive) {
     } else {
         Container container = cast(Container) widget;
         if (container !is null) {
-            ListG list = container.getChildren();
-            if (list !is null)
-                children = list.toArray!(Widget)();
+            children = container.getChildren();
         }
     }
 
     foreach(child; children) {
+        if (child is null) continue;
         T match = cast(T) child;
         if (match !is null) result ~= match;
         if (recursive) {
@@ -257,18 +236,15 @@ enum MouseButton : uint {
 }
 
 /**
- * Not declared in GtkD
+ * Not declared in giD
  */
 enum long GDK_CURRENT_TIME = 0;
 
 /**
- * Compares two RGBA and returns if they are equal, supports null references
+ * Compares two RGBA and returns if they are equal. In giD RGBA is a value
+ * struct, so the GtkD version's null handling no longer applies.
  */
 bool equal(RGBA r1, RGBA r2) {
-    if (r1 is null && r2 is null)
-        return true;
-    if ((r1 is null && r2 !is null) || (r1 !is null && r2 is null))
-        return false;
     return r1.equal(r2);
 }
 
@@ -277,16 +253,17 @@ bool equal(Widget w1, Widget w2) {
         return true;
     if ((w1 is null && w2 !is null) || (w1 !is null && w2 is null))
         return false;
-    return w1.getWidgetStruct() == w2.getWidgetStruct();
+    return w1._cPtr == w2._cPtr;
 }
 
 /**
- * Appends multiple values to a row in a list store
+ * Appends multiple values to a row in a tree store
  */
 TreeIter appendValues(TreeStore ts, TreeIter parentIter, string[] values) {
-    TreeIter iter = ts.createIter(parentIter);
+    TreeIter iter;
+    ts.append(iter, parentIter);
     for (int i = 0; i < values.length; i++) {
-        ts.setValue(iter, i, values[i]);
+        ts.setValue(iter, i, new Value(values[i]));
     }
     return iter;
 }
@@ -295,9 +272,10 @@ TreeIter appendValues(TreeStore ts, TreeIter parentIter, string[] values) {
  * Appends multiple values to a row in a list store
  */
 TreeIter appendValues(ListStore ls, string[] values) {
-    TreeIter iter = ls.createIter();
+    TreeIter iter;
+    ls.append(iter);
     for (int i = 0; i < values.length; i++) {
-        ls.setValue(iter, i, values[i]);
+        ls.setValue(iter, i, new Value(values[i]));
     }
     return iter;
 }
@@ -308,21 +286,13 @@ TreeIter appendValues(ListStore ls, string[] values) {
  */
 ComboBox createNameValueCombo(const string[string] keyValues) {
 
-    ListStore ls = new ListStore([GType.STRING, GType.STRING]);
+    ListStore ls = ListStore.new_([cast(GType) GTypeEnum.String, cast(GType) GTypeEnum.String]);
 
     foreach (key, value; keyValues) {
         appendValues(ls, [value, key]);
     }
 
-    ComboBox cb = new ComboBox(ls, false);
-    cb.setFocusOnClick(false);
-    cb.setIdColumn(1);
-    CellRendererText cell = new CellRendererText();
-    cell.setAlignment(0, 0);
-    cb.packStart(cell, false);
-    cb.addAttribute(cell, "text", 0);
-
-    return cb;
+    return wireNameValueCombo(ls);
 }
 
 /**
@@ -332,21 +302,13 @@ ComboBox createNameValueCombo(const string[string] keyValues) {
 ComboBox createNameValueCombo(const string[] names, const string[] values) {
     assert(names.length == values.length);
 
-    ListStore ls = new ListStore([GType.STRING, GType.STRING]);
+    ListStore ls = ListStore.new_([cast(GType) GTypeEnum.String, cast(GType) GTypeEnum.String]);
 
     for (int i = 0; i < names.length; i++) {
         appendValues(ls, [names[i], values[i]]);
     }
 
-    ComboBox cb = new ComboBox(ls, false);
-    cb.setFocusOnClick(false);
-    cb.setIdColumn(1);
-    CellRendererText cell = new CellRendererText();
-    cell.setAlignment(0, 0);
-    cb.packStart(cell, false);
-    cb.addAttribute(cell, "text", 0);
-
-    return cb;
+    return wireNameValueCombo(ls);
 }
 
 template TComboBox(T) {
@@ -355,42 +317,59 @@ template TComboBox(T) {
         assert(names.length == values.length);
         trace(typeof(values).stringof);
 
-        GType valueType = GType.STRING;
-        if (is(typeof(values) == int[])) valueType = GType.INT;
-        else if (is(typeof(values) == uint[])) valueType = GType.INT;
-        else if (is(typeof(values) == long[])) valueType = GType.INT64;
-        else if (is(typeof(values) == ulong[])) valueType = GType.INT64;
-        else if (is(typeof(values) == double[])) valueType = GType.DOUBLE;
-
+        static if (is(T == int) || is(T == uint)) {
+            enum GTypeEnum valueType = GTypeEnum.Int;
+        } else static if (is(T == long) || is(T == ulong)) {
+            enum GTypeEnum valueType = GTypeEnum.Int64;
+        } else static if (is(T == double)) {
+            enum GTypeEnum valueType = GTypeEnum.Double;
+        } else {
+            enum GTypeEnum valueType = GTypeEnum.String;
+        }
         trace(valueType);
 
-        ListStore ls = new ListStore([GType.STRING, valueType]);
+        ListStore ls = ListStore.new_([cast(GType) GTypeEnum.String, cast(GType) valueType]);
 
         for (int row; row < values.length; row++) {
-            TreeIter iter = ls.createIter();
-            ls.setValue(iter, 0, names[row]);
-            ls.setValue(iter, 1, values[row]);
+            TreeIter iter;
+            ls.append(iter);
+            ls.setValue(iter, 0, new Value(names[row]));
+            static if (valueType == GTypeEnum.Int) {
+                ls.setValue(iter, 1, new Value(cast(int) values[row]));
+            } else static if (valueType == GTypeEnum.Int64) {
+                ls.setValue(iter, 1, new Value(cast(long) values[row]));
+            } else static if (valueType == GTypeEnum.Double) {
+                ls.setValue(iter, 1, new Value(cast(double) values[row]));
+            } else {
+                ls.setValue(iter, 1, new Value(to!string(values[row])));
+            }
         }
 
-        ComboBox cb = new ComboBox(ls, false);
-        cb.setFocusOnClick(false);
-        cb.setIdColumn(1);
-        CellRendererText cell = new CellRendererText();
-        cell.setAlignment(0, 0);
-        cb.packStart(cell, false);
-        cb.addAttribute(cell, "text", 0);
-        return cb;
+        return wireNameValueCombo(ls);
     }
+}
+
+/**
+ * Shared tail of the combo factories: display column 0, id column 1.
+ */
+private ComboBox wireNameValueCombo(ListStore ls) {
+    ComboBox cb = ComboBox.newWithModel(ls);
+    cb.setFocusOnClick(false);
+    cb.setIdColumn(1);
+    CellRendererText cell = new CellRendererText();
+    cell.setAlignment(0, 0);
+    cb.packStart(cell, false);
+    cb.addAttribute(cell, "text", 0);
+    return cb;
 }
 
 /**
  * Selects the specified row in a Treeview
  */
 void selectRow(TreeView tv, int row, TreeViewColumn column = null) {
-    TreeModelIF model = tv.getModel();
+    TreeModel model = tv.getModel();
     TreeIter iter;
-    model.iterNthChild(iter, null, row);
-    if (iter !is null) {
+    if (model.iterNthChild(iter, null, row)) {
         tv.setCursor(model.getPath(iter), column, false);
     } else {
         tracef("No TreeIter found for row %d", row);
@@ -403,17 +382,17 @@ void selectRow(TreeView tv, int row, TreeViewColumn column = null) {
 struct TreeIterRange {
 
 private:
-    TreeModelIF model;
+    TreeModel model;
     TreeIter iter;
     bool _empty;
 
 public:
-    this(TreeModelIF model) {
+    this(TreeModel model) {
         this.model = model;
         _empty = !model.getIterFirst(iter);
     }
 
-    this(TreeModelIF model, TreeIter parent) {
+    this(TreeModel model, TreeIter parent) {
         this.model = model;
         _empty = !model.iterChildren(iter, parent);
         if (_empty) trace("TreeIter has no children");
@@ -436,7 +415,6 @@ public:
      */
     int opApply(int delegate(ref TreeIter iter) dg) {
         int result = 0;
-        //bool hasNext = model.getIterFirst(iter);
         bool hasNext = !_empty;
         while (hasNext) {
             result = dg(iter);
@@ -448,3 +426,9 @@ public:
         return result;
     }
 }
+
+private:
+
+// giD does not bind the GDK X11 backend; resolves at link time from libgdk-3
+// (same pattern as gx.gtk.x11).
+extern(C) GType gdk_x11_window_get_type();

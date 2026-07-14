@@ -2,6 +2,11 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
  * distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+/*
+ * giD port of source/gx/ttyx/preferences.d. Near-mechanical: gio.Settings ->
+ * gio.settings, glib.Variant -> glib.variant, and the GSettings
+ * schema-with-path constructor is the static GSettings.newWithPath in giD.
+ */
 module gx.ttyx.preferences;
 
 import std.algorithm;
@@ -11,9 +16,9 @@ import std.range;
 import std.string;
 import std.uuid;
 
-import gio.Settings : GSettings = Settings;
+import gio.settings : GSettings = Settings;
 
-import glib.Variant : GVariant = Variant;
+import glib.variant : GVariant = Variant;
 
 import gx.i18n.l10n;
 import gx.util.array;
@@ -532,7 +537,7 @@ public:
 	 * @param uuid The identifier of the profile
 	 */
     GSettings getProfileSettings(string uuid) {
-        return new GSettings(SETTINGS_PROFILE_ID, getProfilePath(uuid));
+        return GSettings.newWithPath(SETTINGS_PROFILE_ID, getProfilePath(uuid));
     }
 
     /**

@@ -2,6 +2,27 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
  * distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+
+/*
+ * giD port of source/gx/ttyx/bookmark/manager.d. GtkD -> giD:
+ *  - gdk.Pixbuf -> gdkpixbuf.pixbuf.Pixbuf (own package in giD, pulled in by gid:gtk3).
+ *  - glib.Util.getUserConfigDir -> glib.global.getUserConfigDir free function.
+ *  - IconTheme.getForScreen / Screen.getDefault: same statics, snake_case modules.
+ *  - IconLookupFlags.GENERIC_FALLBACK -> gtk.types.IconLookupFlags.GenericFallback.
+ *  - IconInfo.loadSymbolic(fg, null, null, null, wasSymbolic): giD's RGBA is a
+ *    value struct, so the three null (use-default) color args cannot be expressed
+ *    -- giD passes &arg unconditionally. Replaced with
+ *    IconInfo.loadSymbolicForContext(widget.getStyleContext(), wasSymbolic),
+ *    which derives the fg color and the success/warning/error colors (with the
+ *    same defaults as passing null) from the widget's style context. The
+ *    explicit theme_fg_color lookup is kept as the availability guard so the
+ *    error path ([null,null,null,null]) matches the original.
+ *  - StyleContext.lookupColor takes `out RGBA` (value struct) instead of a class ref.
+ *  - loadSymbolicForContext throws glib.error.ErrorWrap (was GException); like the
+ *    original, errors are left to propagate.
+ * Everything else (bookmark classes, JSON serialization, BookmarkManager) is
+ * pure D and carries over unchanged.
+ */
 module gx.ttyx.bookmark.manager;
 
 import std.algorithm;
@@ -13,16 +34,17 @@ import std.json;
 import std.path;
 import std.uuid;
 
-import gdk.Pixbuf;
-import gdk.RGBA;
-import gdk.Screen;
+import gdk.rgba : RGBA;
+import gdk.screen : Screen;
 
-import glib.Util;
+import gdkpixbuf.pixbuf : Pixbuf;
 
-import gtk.IconInfo;
-import gtk.IconTheme;
-import gtk.StyleContext;
-import gtk.Widget;
+import glib.global : getUserConfigDir;
+
+import gtk.icon_info : IconInfo;
+import gtk.icon_theme : IconTheme;
+import gtk.types : IconLookupFlags;
+import gtk.widget : Widget;
 
 import gx.i18n.l10n;
 
@@ -595,7 +617,7 @@ public:
     }
 
     void save() {
-        string path = buildPath(Util.getUserConfigDir(), APPLICATION_CONFIG_FOLDER);
+        string path = buildPath(getUserConfigDir(), APPLICATION_CONFIG_FOLDER);
         if (!exists(path)) {
             mkdirRecurse(path);
         }
@@ -605,7 +627,7 @@ public:
     }
 
     void load() {
-        string filename = buildPath(Util.getUserConfigDir(), APPLICATION_CONFIG_FOLDER, BOOKMARK_FILE);
+        string filename = buildPath(getUserConfigDir(), APPLICATION_CONFIG_FOLDER, BOOKMARK_FILE);
         if (exists(filename)) {
             try {
                 string json = readText(filename);
@@ -654,9 +676,13 @@ Pixbuf[] getBookmarkIcons(Widget widget) {
         return [null, null, null, null];
     }
     foreach(name; names) {
-        IconInfo iconInfo = iconTheme.lookupIcon(name, 16, IconLookupFlags.GENERIC_FALLBACK);
+        IconInfo iconInfo = iconTheme.lookupIcon(name, 16, IconLookupFlags.GenericFallback);
         bool wasSymbolic;
-        icons ~= iconInfo.loadSymbolic(fg, null, null, null, wasSymbolic);
+        // giD's RGBA is a value struct, so loadSymbolic's use-default (null)
+        // success/warning/error colors cannot be expressed; the ForContext
+        // variant derives fg and the optional colors from the style context,
+        // matching the original's fg + defaults behavior.
+        icons ~= iconInfo.loadSymbolicForContext(widget.getStyleContext(), wasSymbolic);
     }
     bmIcons = icons;
     return icons;

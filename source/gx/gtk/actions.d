@@ -2,21 +2,38 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
  * distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+
+/*
+ * giD port of source/gx/gtk/actions.d. The pure string helpers and their unit
+ * tests are unchanged. GtkD -> giD notes:
+ *  - Accelerator parse/label are free functions in gtk.global.
+ *  - ActionMapIF -> gio.action_map.ActionMap; SimpleAction stateful ctor is the
+ *    static SimpleAction.newStateful; signals via connectActivate/ChangeState
+ *    (delegate signature void(Variant, SimpleAction) matches GtkD).
+ *  - Only gio.Application has getDefault; re-type it to gtk.Application via
+ *    giD's ObjectWrap._getDObject re-wrap (a plain cast could see a base-typed
+ *    wrapper) so setAccelsForAction is reachable.
+ */
 module gx.gtk.actions;
 
 import std.experimental.logger;
 import std.string;
+import std.typecons : No;
 
-import gio.ActionMapIF;
-import gio.SimpleAction;
-import gio.Settings : GSettings = Settings;
+import gio.action_map : ActionMap;
+import gio.simple_action : SimpleAction;
+import gio.settings : GSettings = Settings;
+import gio.application : GioApplication = Application;
 
-import glib.Variant: GVariant = Variant;
-import glib.VariantType: GVariantType = VariantType;
+import glib.variant : GVariant = Variant;
+import glib.variant_type : GVariantType = VariantType;
 
-import gtk.AccelGroup;
-import gtk.Application;
-import gtk.ApplicationWindow;
+import gobject.object : ObjectWrap;
+
+import gdk.types : ModifierType;
+
+import gtk.global : acceleratorParse, acceleratorGetLabel;
+import gtk.application : Application;
 
 import gx.i18n.l10n;
 
@@ -29,9 +46,9 @@ enum SHORTCUT_DISABLED = N_("disabled");
  */
 string acceleratorNameToLabel(string acceleratorName) {
     uint acceleratorKey;
-    GdkModifierType acceleratorMods;
-    AccelGroup.acceleratorParse(acceleratorName, acceleratorKey, acceleratorMods);
-    string label = AccelGroup.acceleratorGetLabel(acceleratorKey, acceleratorMods);
+    ModifierType acceleratorMods;
+    acceleratorParse(acceleratorName, acceleratorKey, acceleratorMods);
+    string label = acceleratorGetLabel(acceleratorKey, acceleratorMods);
     if (label == "") {
       label = _(SHORTCUT_DISABLED);
     }
@@ -72,24 +89,10 @@ string keyToDetailedActionName(string key) {
 }
 
 /**
-    * Adds a new action to the specified menu. An action is automatically added to the application that invokes the
-    * specified callback when the actual menu item is activated.
-    *
-    * This code from grestful (https://github.com/Gert-dev/grestful)
-    *
-    * Params:
-    * actionMap =            The map that is holding the action
-    * prefix =               The prefix part of the action name that comes before the ".", i.e. "app" for GtkApplication, etc
-    * id =                   The ID to give to the action. This can be used in other places to refer to the action
-    *                             by a string. Must always start with "app.".
-    * settings =             A GIO GSettings object where shortcuts can be looked up using the key name "{prefix}-{id}"
-    * callback =             The callback to invoke when the action is invoked.
-    * parameterType =        The type of data passed as parameter to the action when activated.
-    * state =                The state of the action
-    *
-    * Returns: The registered action.
+    * Adds a new action to the specified menu, looking up its accelerator in
+    * GSettings under "{prefix}-{id}". This code from grestful.
     */
-SimpleAction registerActionWithSettings(ActionMapIF actionMap, string prefix, string id, GSettings settings, void delegate(GVariant,
+SimpleAction registerActionWithSettings(ActionMap actionMap, string prefix, string id, GSettings settings, void delegate(GVariant,
         SimpleAction) cbActivate = null, GVariantType type = null, GVariant state = null, void delegate(GVariant,
         SimpleAction) cbStateChange = null) {
 
@@ -99,7 +102,7 @@ SimpleAction registerActionWithSettings(ActionMapIF actionMap, string prefix, st
         if (shortcut.length > 0 && shortcut != SHORTCUT_DISABLED)
             shortcuts = [shortcut];
     }
-    catch (Exception e) {
+    catch (Exception) {
         //TODO - This does not work, figure out to catch GLib-GIO-ERROR
         tracef("No shortcut for action %s.%s", prefix, id);
     }
@@ -108,44 +111,32 @@ SimpleAction registerActionWithSettings(ActionMapIF actionMap, string prefix, st
 }
 
 /**
-    * Adds a new action to the specified menu. An action is automatically added to the application that invokes the
-    * specified callback when the actual menu item is activated.
-    *
-    * This code from grestful (https://github.com/Gert-dev/grestful)
-    *
-    * Params:
-    * actionMap =            The map that is holding the action
-    * prefix =               The prefix part of the action name that comes before the ".", i.e. "app" for GtkApplication, etc
-    * id =                   The ID to give to the action. This can be used in other places to refer to the action
-    *                             by a string. Must always start with "app.".
-    * accelerator =          The (application wide) keyboard accelerator to activate the action.
-    * callback =             The callback to invoke when the action is invoked.
-    * parameterType =        The type of data passed as parameter to the action when activated.
-    * state =                The state of the action, creates a stateful action
-    *
-    * Returns: The registered action.
+    * Adds a new action to the specified menu with an optional accelerator.
+    * This code from grestful.
     */
-SimpleAction registerAction(ActionMapIF actionMap, string prefix, string id, string[] accelerators = null, void delegate(GVariant,
+SimpleAction registerAction(ActionMap actionMap, string prefix, string id, string[] accelerators = null, void delegate(GVariant,
         SimpleAction) cbActivate = null, GVariantType parameterType = null, GVariant state = null, void delegate(GVariant,
         SimpleAction) cbStateChange = null) {
     SimpleAction action;
     if (state is null)
         action = new SimpleAction(id, parameterType);
     else {
-        action = new SimpleAction(id, parameterType, state);
+        action = SimpleAction.newStateful(id, parameterType, state);
     }
 
     if (cbActivate !is null)
-        action.addOnActivate(cbActivate);
+        action.connectActivate(cbActivate);
 
     if (cbStateChange !is null)
-        action.addOnChangeState(cbStateChange);
+        action.connectChangeState(cbStateChange);
 
     actionMap.addAction(action);
 
     if (accelerators.length > 0) {
         if (app is null) {
-            app = cast(Application) Application.getDefault();
+            GioApplication def = GioApplication.getDefault();
+            if (def !is null)
+                app = ObjectWrap._getDObject!(Application)(def._cPtr, No.Take);
         }
         if (app !is null) {
             app.setAccelsForAction(prefix.length == 0 ? id : getActionDetailedName(prefix, id), accelerators);
@@ -157,13 +148,7 @@ SimpleAction registerAction(ActionMapIF actionMap, string prefix, string id, str
 }
 
 // --------------------------------------------------------------------------
-// Unit tests for action name parsing
-//
-// D lesson — `out` parameters:
-//   `out string prefix` means the caller's variable is set by the function.
-//   Unlike `ref`, `out` parameters are automatically initialized to their
-//   .init value (empty string for `string`) when the function starts.
-//   This is D's way of returning multiple values without tuples.
+// Unit tests for action name parsing (pure — unchanged from the GtkD version)
 // --------------------------------------------------------------------------
 
 /// Test: getActionNameFromKey splits on first hyphen
@@ -187,7 +172,6 @@ unittest {
 
 /// Test: keyToDetailedActionName converts hyphen key to dotted action name
 unittest {
-    // "terminal-split-horizontal" → "terminal.split-horizontal"
     assert(keyToDetailedActionName("terminal-split-horizontal") == "terminal.split-horizontal");
     assert(keyToDetailedActionName("win-close") == "win.close");
 }
@@ -196,12 +180,11 @@ unittest {
 unittest {
     string prefix, id;
     getActionNameFromKey("nohyphen", prefix, id);
-    // No hyphen found — both should remain empty (out params init to "")
     assert(prefix == "");
     assert(id == "");
 }
 
-/// Test: round-trip — key → name → key
+/// Test: round-trip — key -> name -> key
 unittest {
     string originalKey = "session-add-right";
     string prefix, id;

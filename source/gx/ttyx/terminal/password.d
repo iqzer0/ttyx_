@@ -3,57 +3,130 @@
  * distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
- module gx.ttyx.terminal.password;
+/*
+ * giD port of source/gx/ttyx/terminal/password.d. Differences from GtkD:
+ *
+ *   VENDORED libsecret → gid:secret1 (the headline change of this port):
+ *   - The original used ttyx_'s vendored GtkD-style bindings (import secret.* /
+ *     secretc.* from source/secret{,c}/). Those are NOT reused; this port uses
+ *     giD's native libsecret binding (dub dependency gid:secret1), whose
+ *     secret.* module names shadow the vendored ones by coincidence only.
+ *   - Attributes are D associative arrays (string[string]) end to end: no more
+ *     glib.HashTable, no immutable(char*) fields kept alive for C async calls,
+ *     and item.getAttributes().lookup(ptr) → item.getAttributes() returning
+ *     string[string]. The never-read EMPTY_ATTRIBUTES field was dropped.
+ *   - Async callbacks are D delegates (gio.types.AsyncReadyCallback) closing
+ *     over `this` — the three extern(C) static callbacks + userData =
+ *     getDialogStruct() + ObjectG.getDObject round-trip machinery is gone.
+ *   - Service.get / Service.getFinish / Collection.forAlias /
+ *     Collection.forAliasFinish are bound with the same shapes;
+ *     service.disconnect() is a *static* method in giD (Service.disconnect()).
+ *   - collection.getItems() returns Item[] directly (no ListG.toArray!Item).
+ *   - new Value(pwd, pwd.length, "text/plain") → new SecretValue(pwd,
+ *     "text/plain") (length is implicit; secret.value.Value aliased to
+ *     SecretValue to avoid clashing with gobject.value.Value).
+ *   - giD does NOT wrap three C entry points this module needs; each is a
+ *     small local helper over secret.c.functions (see bottom of module):
+ *       secret_schema_newv            → newSchema() (giD's Schema boxed class
+ *                                       has no constructor at all)
+ *       secret_password_storev async  → passwordStoreAsync() (giD only binds
+ *                                       the sync variants; helper mirrors the
+ *                                       generated freezeDelegate/trampoline
+ *                                       pattern so the callback is a D delegate)
+ *       secret_password_lookupv_nonpageable_sync
+ *                                     → passwordLookupNonpageableSync() (giD
+ *                                       only binds the pageable lookup; the
+ *                                       original deliberately used the
+ *                                       non-pageable one)
+ *   - Secret.passwordStoreFinish → free function secret.global
+ *     .passwordStoreFinish(AsyncResult); errors are glib.error.ErrorWrap
+ *     (was glib.GException).
+ *   - Enums: SecretSchemaFlags.NONE → secret.types.SchemaFlags.None,
+ *     SecretServiceFlags.OPEN_SESSION → ServiceFlags.OpenSession,
+ *     SecretCollectionFlags.LOAD_ITEMS → CollectionFlags.LoadItems.
+ *
+ *   GTK side (established patterns from advpaste/closedialog/advdialog):
+ *   - Dialog(title, parent, flags, buttons[], responses[]) → raw
+ *     g_object_new(Dialog._getGType(), "use-header-bar", 1, null) +
+ *     super(ptr, No.Take) + setTitle/setModal/setTransientFor/addButton.
+ *   - new ListStore([GType.STRING, ...]) → ListStore.new_([cast(GType)
+ *     GTypeEnum.String, ...]); createIter() → append(out iter); setValue takes
+ *     a gobject.value.Value.
+ *   - new TreeViewColumn(title, renderer, "text", col) → no-arg ctor +
+ *     setTitle/packStart/addAttribute; new TreeView(model) →
+ *     TreeView.newWithModel.
+ *   - tv.getSelectedIter()/ls.getValueString() (GtkD conveniences) → local
+ *     helpers over getSelection().getSelected(out m, out i) (bool return —
+ *     giD out iters are non-null even on false) and getValue + Value.getString.
+ *   - addOnSearchChanged/addOnCursorChanged/addOnRowActivated/addOnClicked/
+ *     addOnDestroy/addOnChanged → connect* equivalents; addOnKeyPress(Event,
+ *     Widget) → connectGdkEvent!EventKey(this, "key-press-event", bool delegate(EventKey)) with direct
+ *     .keyval access; keysyms are gdk.types.KEY_* constants.
+ *   - new Button(label) → Button.newWithLabel; new CheckButton(label) →
+ *     CheckButton.newWithLabel; new ScrolledWindow(tv) → no-arg + add(tv).
+ *   - Enums PascalCase in <pkg>.types (ResponseType.Apply/Cancel/Ok,
+ *     Orientation.Vertical, ShadowType.EtchedIn, PolicyType.Never/Automatic,
+ *     Align.End/Center, SettingsBindFlags.Default).
+ */
+module gx.ttyx.terminal.password;
 
 import std.algorithm;
 import std.array;
 import std.conv;
 import std.experimental.logger;
-import std.process;
 import std.string;
 import std.uuid;
 
-import gdk.Event;
-import gdk.Keysyms;
+import gid.gid;
 
-import gobject.ObjectG;
+import gdk.event_key : EventKey;
+import gdk.types : KEY_Escape, KEY_Return;
 
-import gio.Cancellable;
-import gio.Settings: GSettings=Settings;
-import gio.SimpleAsyncResult;
+import gio.async_result : AsyncResult;
+import gio.cancellable : Cancellable;
+import gio.settings : GSettings = Settings;
+import gio.types : AsyncReadyCallback, SettingsBindFlags;
 
-import glib.GException;
-import glib.HashTable;
-import glib.ListG;
+import glib.c.functions : g_hash_table_insert, g_hash_table_new, g_hash_table_unref, g_str_equal, g_str_hash;
+import glib.error : ErrorWrap;
 
-import gtk.Box;
-import gtk.Button;
-import gtk.CellRendererText;
-import gtk.CheckButton;
-import gtk.Dialog;
-import gtk.EditableIF;
-import gtk.Entry;
-import gtk.Grid;
-import gtk.Label;
-import gtk.ListStore;
-import gtk.TreeIter;
-import gtk.TreePath;
-import gtk.TreeView;
-import gtk.TreeViewColumn;
-import gtk.ScrolledWindow;
-import gtk.SearchEntry;
-import gtk.Widget;
-import gtk.Window;
+import gobject.c.functions : g_object_new;
+import gobject.object : ObjectWrap;
+import gobject.types : GType, GTypeEnum;
+import gobject.value : Value;
 
-import secret.Collection;
-import secret.Item;
-import secret.Schema;
-import secret.Secret;
-import secret.Service;
-import secret.Value;
+import gtk.box : Box;
+import gtk.button : Button;
+import gtk.cell_renderer_text : CellRendererText;
+import gtk.check_button : CheckButton;
+import gtk.dialog : Dialog;
+import gtk.editable : Editable;
+import gtk.entry : Entry;
+import gtk.grid : Grid;
+import gtk.label : Label;
+import gtk.list_store : ListStore;
+import gtk.scrolled_window : ScrolledWindow;
+import gtk.search_entry : SearchEntry;
+import gtk.tree_iter : TreeIter;
+import gtk.tree_model : TreeModel;
+import gtk.tree_view : TreeView;
+import gtk.tree_view_column : TreeViewColumn;
+import gtk.types : Align, Orientation, PolicyType, ResponseType, ShadowType;
+import gtk.window : Window;
+
+import secret.c.functions;
+import secret.c.types;
+import secret.collection : Collection;
+import secret.global : passwordStoreFinish;
+import secret.item : Item;
+import secret.schema : Schema;
+import secret.service : Service;
+import secret.types : CollectionFlags, SchemaAttributeType, SchemaFlags, ServiceFlags;
+import secret.value : SecretValue = Value;
 
 import gx.gtk.dialog: showErrorDialog;
 import gx.gtk.util;
+import gx.gtk.events;
 import gx.i18n.l10n;
 
 import gx.ttyx.preferences;
@@ -115,7 +188,7 @@ private:
 
     enum DEFAULT_COLLECTION = "default";
 
-    HashTable EMPTY_ATTRIBUTES;
+    enum DESCRIPTION_VALUE = "ttyx_ Password";
 
     SearchEntry se;
     TreeView tv;
@@ -132,11 +205,6 @@ private:
     // if the user closes the app
     Cancellable[string] pending;
 
-    // Null terminated strings we need to keep a reference for C async methods
-    immutable(char*) attrDescription;
-    immutable(char*) attrID;
-    immutable(char*) descriptionValue;
-
     // List of items
     string[][] rows;
 
@@ -148,100 +216,111 @@ private:
             setMarginBottom(18);
         }
 
-        Box b = new Box(Orientation.VERTICAL, 6);
+        Box b = new Box(Orientation.Vertical, 6);
 
         se = new SearchEntry();
-        se.addOnSearchChanged(delegate(SearchEntry) {
+        se.connectSearchChanged(delegate() {
             filterEntries();
         });
-        se.addOnKeyPress(delegate(Event event, Widget w) {
-            uint keyval;
-            if (event.getKeyval(keyval)) {
-                if (keyval == GdkKeysyms.GDK_Escape) {
-                    response = ResponseType.CANCEL;
-                    return true;
-                }
-                if (keyval == GdkKeysyms.GDK_Return) {
-                    response = ResponseType.APPLY;
-                    return true;
-                }
+        connectGdkEvent!EventKey(se, "key-press-event", delegate bool(EventKey event) {
+            if (event.keyval == KEY_Escape) {
+                response(ResponseType.Cancel);
+                return true;
+            }
+            if (event.keyval == KEY_Return) {
+                response(ResponseType.Apply);
+                return true;
             }
             return false;
         });
         b.add(se);
 
-        Box bList = new Box(Orientation.HORIZONTAL, 6);
+        Box bList = new Box(Orientation.Horizontal, 6);
 
-        ls = new ListStore([GType.STRING, GType.STRING]);
+        ls = ListStore.new_([cast(GType) GTypeEnum.String, cast(GType) GTypeEnum.String]);
 
-        tv = new TreeView(ls);
+        tv = TreeView.newWithModel(ls);
         tv.setHeadersVisible(false);
-        TreeViewColumn column = new TreeViewColumn(_("Name"), new CellRendererText(), "text", COLUMN_NAME);
+        CellRendererText crtName = new CellRendererText();
+        TreeViewColumn column = new TreeViewColumn();
+        column.setTitle(_("Name"));
+        column.packStart(crtName, true);
+        column.addAttribute(crtName, "text", COLUMN_NAME);
         column.setMinWidth(300);
         tv.appendColumn(column);
-        column = new TreeViewColumn(_("ID"), new CellRendererText(), "text", COLUMN_NAME);
+        CellRendererText crtID = new CellRendererText();
+        column = new TreeViewColumn();
+        column.setTitle(_("ID"));
+        column.packStart(crtID, true);
+        column.addAttribute(crtID, "text", COLUMN_NAME);
         column.setVisible(false);
         tv.appendColumn(column);
 
-        tv.addOnCursorChanged(delegate(TreeView) {
+        tv.connectCursorChanged(delegate() {
             updateUI();
         });
-        tv.addOnRowActivated(delegate(TreePath, TreeViewColumn, TreeView) {
-            response(ResponseType.APPLY);
+        tv.connectRowActivated(delegate() {
+            response(ResponseType.Apply);
         });
 
-        ScrolledWindow sw = new ScrolledWindow(tv);
-        sw.setShadowType(ShadowType.ETCHED_IN);
-        sw.setPolicy(PolicyType.NEVER, PolicyType.AUTOMATIC);
+        ScrolledWindow sw = new ScrolledWindow();
+        sw.add(tv);
+        sw.setShadowType(ShadowType.EtchedIn);
+        sw.setPolicy(PolicyType.Never, PolicyType.Automatic);
         sw.setHexpand(true);
         sw.setVexpand(true);
         sw.setSizeRequest(-1, 200);
 
         bList.add(sw);
 
-        Box bButtons = new Box(Orientation.VERTICAL, 6);
-        Button btnNew = new Button(_("New"));
-        btnNew.addOnClicked(delegate(Button) {
+        Box bButtons = new Box(Orientation.Vertical, 6);
+        Button btnNew = Button.newWithLabel(_("New"));
+        btnNew.connectClicked(delegate() {
             PasswordDialog pd = new PasswordDialog(this);
             scope (exit) {pd.clearSensitiveFields(); pd.destroy();}
             pd.showAll();
-            if (pd.run() == ResponseType.OK) {
-                SecretSchema* ss = schema.getSchemaStruct();
-                trace("Schema name is " ~ to!string(ss.name));
+            if (pd.run() == ResponseType.Ok) {
+                trace("Schema name is " ~ schema.name);
                 tracef("Storing password, label=%s",pd.label);
                 Cancellable c = new Cancellable();
                 //We could potentially have many password operations on the go, use random key
                 string uuid = randomUUID().toString();
                 pending[uuid] = c;
-                import gtkc.glib;
-                HashTable attributes = new HashTable(g_str_hash, g_str_equal);
-                immutable(char*) uuidz = toStringz(uuid);
-                attributes.insert(cast(void*)attrID, cast(void*)uuidz);
-                attributes.insert(cast(void*)attrDescription, cast(void*)descriptionValue);
-                Secret.passwordStorev(schema, attributes, DEFAULT_COLLECTION, pd.label, pd.password, c, &passwordStoreCallback, this.getDialogStruct());
+                string[string] attributes = [ATTRIBUTE_ID: uuid, ATTRIBUTE_DESCRIPTION: DESCRIPTION_VALUE];
+                passwordStoreAsync(schema, attributes, DEFAULT_COLLECTION, pd.label, pd.password, c,
+                    delegate(ObjectWrap sourceObject, AsyncResult res) {
+                        trace("passwordCallback called");
+                        try {
+                            passwordStoreFinish(res);
+                            pending.remove(uuid);
+                            trace("Re-loading entries");
+                            reload();
+                        } catch (ErrorWrap ge) {
+                            trace("Error occurred: " ~ ge.msg);
+                        }
+                    });
             }
         });
         bButtons.add(btnNew);
 
-        Button btnEdit = new Button(_("Edit"));
-        btnEdit.addOnClicked(delegate(Button) {
-            TreeIter selected = tv.getSelectedIter();
-            if (selected) {
-                string id = ls.getValueString(selected, COLUMN_ID);
-                PasswordDialog pd = new PasswordDialog(this, ls.getValueString(selected, COLUMN_NAME), "");
+        Button btnEdit = Button.newWithLabel(_("Edit"));
+        btnEdit.connectClicked(delegate() {
+            TreeIter selected = getSelectedIter(tv);
+            if (selected !is null) {
+                string id = getValueString(ls, selected, COLUMN_ID);
+                PasswordDialog pd = new PasswordDialog(this, getValueString(ls, selected, COLUMN_NAME), "");
                 scope(exit) {pd.clearSensitiveFields(); pd.destroy();}
                 pd.showAll();
-                if (pd.run() == ResponseType.OK) {
-                    ListG list = collection.getItems();
-                    Item[] items = list.toArray!Item;
+                if (pd.run() == ResponseType.Ok) {
+                    Item[] items = collection.getItems();
                     foreach (item; items) {
                         if (item.getSchemaName() == SCHEMA_NAME || item.getSchemaName() == LEGACY_SCHEMA_NAME) {
-                            string itemID = to!string(cast(char*)item.getAttributes().lookup(cast(void*)attrID));
+                            string itemID = item.getAttributes().get(ATTRIBUTE_ID, null);
                             trace("ItemID " ~ itemID);
                             if (id == itemID) {
                                 trace("Modifying item...");
                                 item.setLabelSync(pd.label, null);
-                                item.setSecretSync(new Value(pd.password, pd.password.length, "text/plain"), null);
+                                item.setSecretSync(new SecretValue(pd.password, "text/plain"), null);
                                 reload();
                                 break;
                             }
@@ -252,28 +331,25 @@ private:
         });
         bButtons.add(btnEdit);
 
-        Button btnDelete = new Button(_("Delete"));
-        btnDelete.addOnClicked(delegate(Button) {
-            TreeIter selected = tv.getSelectedIter();
+        Button btnDelete = Button.newWithLabel(_("Delete"));
+        btnDelete.connectClicked(delegate() {
+            TreeIter selected = getSelectedIter(tv);
             if (selected is null || collection is null) return;
-            string id = ls.getValueString(selected, COLUMN_ID);
+            string id = getValueString(ls, selected, COLUMN_ID);
 
             // Iterate items rather than calling passwordClearvSync(schema,...) so both the current and legacy schemas are handled uniformly.
             bool deleted = false;
             try {
-                ListG list = collection.getItems();
-                if (list !is null) {
-                    foreach (item; list.toArray!Item) {
-                        string schemaName = item.getSchemaName();
-                        if (schemaName != SCHEMA_NAME && schemaName != LEGACY_SCHEMA_NAME) continue;
-                        string itemID = to!string(cast(char*)item.getAttributes().lookup(cast(void*)attrID));
-                        if (itemID == id) {
-                            if (item.deleteSync(null)) deleted = true;
-                            break;
-                        }
+                foreach (item; collection.getItems()) {
+                    string schemaName = item.getSchemaName();
+                    if (schemaName != SCHEMA_NAME && schemaName != LEGACY_SCHEMA_NAME) continue;
+                    string itemID = item.getAttributes().get(ATTRIBUTE_ID, null);
+                    if (itemID == id) {
+                        if (item.deleteSync(null)) deleted = true;
+                        break;
                     }
                 }
-            } catch (GException ge) {
+            } catch (ErrorWrap ge) {
                 errorf("Failed to delete password %s: %s", id, ge.msg);
                 showErrorDialog(this, _("Failed to delete password: ") ~ ge.msg, _("Delete failed"));
                 return;
@@ -293,8 +369,8 @@ private:
         bList.add(bButtons);
 
         b.add(bList);
-        CheckButton cbIncludeEnter = new CheckButton(_("Include return character with password"));
-        gsSettings.bind(SETTINGS_PASSWORD_INCLUDE_RETURN_KEY, cbIncludeEnter, "active", GSettingsBindFlags.DEFAULT);
+        CheckButton cbIncludeEnter = CheckButton.newWithLabel(_("Include return character with password"));
+        gsSettings.bind(SETTINGS_PASSWORD_INCLUDE_RETURN_KEY, cbIncludeEnter, "active", SettingsBindFlags.Default);
 
         b.add(cbIncludeEnter);
         getContentArea().add(b);
@@ -302,15 +378,16 @@ private:
 
     void filterEntries() {
         string selectedID;
-        TreeIter selected = tv.getSelectedIter();
-        if (selected) selectedID = ls.getValueString(selected, COLUMN_ID);
+        TreeIter selected = getSelectedIter(tv);
+        if (selected !is null) selectedID = getValueString(ls, selected, COLUMN_ID);
         selected = null;
         ls.clear();
         foreach(row; rows) {
             if (se.getText().length ==0 || row[0].indexOf(se.getText()) >=0) {
-                TreeIter iter = ls.createIter();
-                ls.setValue(iter, COLUMN_NAME, row[0]);
-                ls.setValue(iter, COLUMN_ID, row[1]);
+                TreeIter iter;
+                ls.append(iter);
+                ls.setValue(iter, COLUMN_NAME, new Value(row[0]));
+                ls.setValue(iter, COLUMN_ID, new Value(row[1]));
                 if (row[1] == selectedID) selected = iter;
             }
         }
@@ -319,13 +396,11 @@ private:
     }
 
     void loadEntries() {
-        ListG list = collection.getItems();
-        if (list is null) return;
-        Item[] items = list.toArray!Item;
+        Item[] items = collection.getItems();
         rows.length = 0;
         foreach (item; items) {
             if (item.getSchemaName() == SCHEMA_NAME || item.getSchemaName() == LEGACY_SCHEMA_NAME) {
-                string id = to!string(cast(char*)item.getAttributes().lookup(cast(void*)attrID));
+                string id = item.getAttributes().get(ATTRIBUTE_ID, null);
                 rows ~= [item.getLabel(), id];
             }
         }
@@ -338,109 +413,80 @@ private:
     // Reload entries from collections
     void reload() {
         // Have to disconnect otherwise you just get back cached entries
-        service.disconnect();
+        // (static in giD: disconnects the default service proxy)
+        Service.disconnect();
         service = null;
         collection = null;
         createService();
     }
 
-    HashTable createHashTable() {
-        import gtkc.glib;
-        return new HashTable(g_str_hash, g_str_equal);
-    }
-
     void createSchema() {
-        HashTable ht = createHashTable();
-        ht.insert(cast(void*)attrID, cast(void*)0);
-        ht.insert(cast(void*)attrDescription, cast(void*)0);
-        schema = new Schema(SCHEMA_NAME, SecretSchemaFlags.NONE, ht);
+        schema = newSchema(SCHEMA_NAME, SchemaFlags.None,
+                           [ATTRIBUTE_ID: SchemaAttributeType.String,
+                            ATTRIBUTE_DESCRIPTION: SchemaAttributeType.String]);
     }
 
     void createService() {
         Cancellable c = new Cancellable();
         pending[PENDING_SERVICE] = c;
-        Service.get(SecretServiceFlags.OPEN_SESSION, c, &secretServiceCallback, this.getDialogStruct());
+        Service.get(ServiceFlags.OpenSession, c, delegate(ObjectWrap sourceObject, AsyncResult res) {
+            trace("secretServiceCallback called");
+            try {
+                Service ss = Service.getFinish(res);
+                if (ss !is null) {
+                    pending.remove(PENDING_SERVICE);
+                    service = ss;
+                    createCollection();
+                    trace("Retrieved secret service");
+                }
+            } catch (ErrorWrap ge) {
+                trace("Error occurred: " ~ ge.msg);
+            }
+        });
     }
 
     void createCollection() {
         Cancellable c = new Cancellable();
         pending[PENDING_COLLECTION] = c;
-        Collection.forAlias(service, DEFAULT_COLLECTION, SecretCollectionFlags.LOAD_ITEMS, c, &collectionCallback, this.getDialogStruct());
+        Collection.forAlias(service, DEFAULT_COLLECTION, CollectionFlags.LoadItems, c, delegate(ObjectWrap sourceObject, AsyncResult res) {
+            trace("collectionCallback called");
+            try {
+                Collection col = Collection.forAliasFinish(res);
+                if (col !is null) {
+                    pending.remove(PENDING_COLLECTION);
+                    collection = col;
+                    loadEntries();
+                    trace("Retrieved default collection");
+                }
+            } catch (ErrorWrap ge) {
+                trace("Error occurred: " ~ ge.msg);
+            }
+        });
     }
 
     void updateUI() {
-        setResponseSensitive(ResponseType.APPLY, tv.getSelectedIter() !is null);
-    }
-
-    extern(C) static void passwordStoreCallback(GObject* sourceObject, GAsyncResult* res, void* userData) {
-        trace("passwordCallback called");
-        try {
-            Secret.passwordStoreFinish(new SimpleAsyncResult(cast(GSimpleAsyncResult*)res, false));
-            PasswordManagerDialog pd = cast(PasswordManagerDialog) ObjectG.getDObject!(Dialog)(cast(GtkDialog*) userData, false);
-            if (pd !is null) {
-                trace("Re-loading entries");
-                pd.reload();
-            }
-        } catch (GException ge) {
-            trace("Error occurred: " ~ ge.msg);
-            return;
-        }
-    }
-
-    extern(C) static void collectionCallback(GObject* sourceObject, GAsyncResult* res, void* userData) {
-        trace("collectionCallback called");
-        try {
-            Collection c = Collection.forAliasFinish(new SimpleAsyncResult(cast(GSimpleAsyncResult*)res, false));
-            if (c !is null) {
-                PasswordManagerDialog pd = cast(PasswordManagerDialog) ObjectG.getDObject!(Dialog)(cast(GtkDialog*) userData, false);
-                if (pd !is null) {
-                    pd.pending.remove(PENDING_COLLECTION);
-                    pd.collection = c;
-                    pd.loadEntries();
-                    trace("Retrieved default collection");
-                }
-            }
-        } catch (GException ge) {
-            trace("Error occurred: " ~ ge.msg);
-            return;
-        }
-    }
-
-    extern(C) static void secretServiceCallback(GObject* sourceObject, GAsyncResult* res, void* userData) {
-        trace("secretServiceCallback called");
-        try {
-            Service ss = Service.getFinish(new SimpleAsyncResult(cast(GSimpleAsyncResult*)res, false));
-            if (ss !is null) {
-                PasswordManagerDialog pd = cast(PasswordManagerDialog) ObjectG.getDObject!(Dialog)(cast(GtkDialog*) userData, false);
-                if (pd !is null) {
-                    pd.pending.remove(PENDING_SERVICE);
-                    pd.service = ss;
-                    pd.createCollection();
-                    trace("Retrieved secret service");
-                }
-            }
-
-        } catch (GException ge) {
-            trace("Error occurred: " ~ ge.msg);
-            return;
-        }
+        setResponseSensitive(ResponseType.Apply, getSelectedIter(tv) !is null);
     }
 
 public:
 
     this(Window parent) {
-        super(_("Insert Password"), parent, GtkDialogFlags.MODAL + GtkDialogFlags.USE_HEADER_BAR, [_("Apply"), _("Cancel")], [GtkResponseType.APPLY, GtkResponseType.CANCEL]);
+        // gtk_dialog_new_with_buttons is varargs (not bound by giD) and
+        // use-header-bar is construct-only, so construct the underlying
+        // GtkDialog directly with the property set (see advpaste.d).
+        super(cast(void*) g_object_new(Dialog._getGType(), cast(const(char)*) "use-header-bar", 1, cast(const(char)*) null), No.Take);
+        setTitle(_("Insert Password"));
+        setModal(true);
+        setTransientFor(parent);
+        addButton(_("Apply"), ResponseType.Apply);
+        addButton(_("Cancel"), ResponseType.Cancel);
         gsSettings = new GSettings(SETTINGS_ID);
-        setDefaultResponse(GtkResponseType.APPLY);
-        addOnDestroy(delegate(Widget) {
+        setDefaultResponse(ResponseType.Apply);
+        connectDestroy(delegate() {
             foreach(c; pending) {
                 c.cancel();
             }
         });
-        EMPTY_ATTRIBUTES = createHashTable();
-        attrID = toStringz(ATTRIBUTE_ID);
-        attrDescription = toStringz(ATTRIBUTE_DESCRIPTION);
-        descriptionValue = toStringz("ttyx_ Password");
         trace("Retrieving secret service");
         createSchema();
         createUI();
@@ -448,17 +494,14 @@ public:
     }
 
     @property string password() {
-        TreeIter selected = tv.getSelectedIter();
-        if (selected) {
-            string id = ls.getValueString(selected, COLUMN_ID);
+        TreeIter selected = getSelectedIter(tv);
+        if (selected !is null) {
+            string id = getValueString(ls, selected, COLUMN_ID);
             trace("Getting password for " ~ id);
-            HashTable ht = createHashTable();
-            immutable(char*) idz = toStringz(id);
-            ht.insert(cast(void*)attrID, cast(void*)idz);
             // Use the non-pageable lookup so the retrieved secret is stored in
             // memory that libsecret keeps out of swap, rather than in ordinary
             // pageable memory that could be written to disk.
-            string password = Secret.passwordLookupvNonpageableSync(schema, ht, null);
+            string password = passwordLookupNonpageableSync(schema, [ATTRIBUTE_ID: id], null);
             if (gsSettings.getBoolean(SETTINGS_PASSWORD_INCLUDE_RETURN_KEY)) {
                 password ~= '\n';
             }
@@ -493,7 +536,7 @@ private:
         int row = 0;
         // Name (i.e. Label in libsecret parlance)
         lblName = new Label(_("Name"));
-        lblName.setHalign(GtkAlign.END);
+        lblName.setHalign(Align.End);
         grid.attach(lblName, 0, row, 1, 1);
         eLabel = new Entry();
         eLabel.setWidthChars(40);
@@ -503,7 +546,7 @@ private:
 
         //Password
         lblPassword = new Label(_("Password"));
-        lblPassword.setHalign(GtkAlign.END);
+        lblPassword.setHalign(Align.End);
         grid.attach(lblPassword, 0, row, 1, 1);
         ePassword = new Entry();
         ePassword.setVisibility(false);
@@ -513,7 +556,7 @@ private:
 
         //Confirm Password
         lblRepeatPwd = new Label(_("Confirm Password"));
-        lblRepeatPwd.setHalign(GtkAlign.END);
+        lblRepeatPwd.setHalign(Align.End);
         grid.attach(lblRepeatPwd, 0, row, 1, 1);
         eConfirmPassword = new Entry();
         eConfirmPassword.setVisibility(false);
@@ -524,7 +567,7 @@ private:
         lblMatch = new Label("Password does not match confirmation");
         lblMatch.setSensitive(false);
         lblMatch.setNoShowAll(true);
-        lblMatch.setHalign(GtkAlign.CENTER);
+        lblMatch.setHalign(Align.Center);
         grid.attach(lblMatch, 1, row, 1, 1);
 
         with (getContentArea()) {
@@ -535,17 +578,17 @@ private:
             add(grid);
         }
         updateUI();
-        eLabel.addOnChanged(&entryChanged);
-        ePassword.addOnChanged(&entryChanged);
-        eConfirmPassword.addOnChanged(&entryChanged);
+        eLabel.connectChanged(&entryChanged);
+        ePassword.connectChanged(&entryChanged);
+        eConfirmPassword.connectChanged(&entryChanged);
     }
 
-    void entryChanged(EditableIF) {
+    void entryChanged(Editable editable) {
         updateUI();
     }
 
     void updateUI() {
-        setResponseSensitive(GtkResponseType.OK, eLabel.getText().length > 0 && ePassword.getText().length > 0 && ePassword.getText() == eConfirmPassword.getText());
+        setResponseSensitive(ResponseType.Ok, eLabel.getText().length > 0 && ePassword.getText().length > 0 && ePassword.getText() == eConfirmPassword.getText());
         if (ePassword.getText() != eConfirmPassword.getText()) {
             lblMatch.show();
         } else {
@@ -554,8 +597,14 @@ private:
     }
 
     this(Window parent, string title) {
-        super(title, parent, GtkDialogFlags.MODAL + GtkDialogFlags.USE_HEADER_BAR, [_("OK"), _("Cancel")], [GtkResponseType.OK, GtkResponseType.CANCEL]);
-        setDefaultResponse(GtkResponseType.OK);
+        // Raw construct so use-header-bar is set at construct time (advpaste.d pattern).
+        super(cast(void*) g_object_new(Dialog._getGType(), cast(const(char)*) "use-header-bar", 1, cast(const(char)*) null), No.Take);
+        setTitle(title);
+        setModal(true);
+        setTransientFor(parent);
+        addButton(_("OK"), ResponseType.Ok);
+        addButton(_("Cancel"), ResponseType.Cancel);
+        setDefaultResponse(ResponseType.Ok);
     }
 
 public:
@@ -587,4 +636,104 @@ public:
         }
     }
 
+}
+
+/**
+ * GtkD's TreeView.getSelectedIter convenience (unbound in giD). giD's
+ * getSelected is an out-param + bool return, and the out iter is non-null
+ * even when nothing is selected — the bool is authoritative.
+ */
+TreeIter getSelectedIter(TreeView tv) {
+    TreeModel model;
+    TreeIter iter;
+    if (tv.getSelection().getSelected(model, iter)) {
+        return iter;
+    }
+    return null;
+}
+
+/**
+ * GtkD's TreeModel.getValueString convenience (unbound in giD).
+ */
+string getValueString(TreeModel model, TreeIter iter, int column) {
+    Value value;
+    model.getValue(iter, column, value);
+    return value.getString();
+}
+
+/**
+ * giD's secret.schema.Schema boxed class has no constructor —
+ * secret_schema_new is varargs and secret_schema_newv was not generated.
+ * Build the attribute-name → type GHashTable by hand and wrap the result.
+ * secret_schema_newv copies the names, so the temporary table is freed here.
+ */
+Schema newSchema(string name, SchemaFlags flags, SchemaAttributeType[string] attributes) {
+    GHashTable* ht = g_hash_table_new(g_str_hash, g_str_equal);
+    scope(exit) g_hash_table_unref(ht);
+    const(char)*[] keepAlive;
+    foreach (attrName, attrType; attributes) {
+        const(char)* key = toStringz(attrName);
+        keepAlive ~= key;
+        g_hash_table_insert(ht, cast(void*) key, cast(void*) attrType);
+    }
+    SecretSchema* ss = secret_schema_newv(toStringz(name), cast(SecretSchemaFlags) flags, ht);
+    return new Schema(cast(void*) ss, Yes.Take);
+}
+
+/**
+ * giD's secret.global binds only the synchronous variants of
+ * secret_password_storev; this mirrors giD's generated async pattern
+ * (extern(C) trampoline + freezeDelegate GC rooting) around the raw C call so
+ * callers get a plain D delegate. libsecret converts the attribute table
+ * before going async, so freeing it on scope exit is safe (same as giD's own
+ * generated code for e.g. Item.create).
+ */
+void passwordStoreAsync(Schema schema, string[string] attributes, string collection, string label,
+                        string password, Cancellable cancellable, AsyncReadyCallback callback) {
+    extern(C) void _callbackCallback(GObject* sourceObject, GAsyncResult* res, void* data) nothrow {
+        ptrThawGC(data);
+        auto _dlg = cast(AsyncReadyCallback*) data;
+        try {
+            (*_dlg)(ObjectWrap._getDObject!(ObjectWrap)(cast(void*) sourceObject, No.Take),
+                    ObjectWrap._getDObject!(AsyncResult)(cast(void*) res, No.Take));
+        } catch (Exception e) {
+            gidInvokeCallbackExceptionHandler(e, "gio.types.AsyncReadyCallback");
+        }
+    }
+    auto _callbackCB = callback ? &_callbackCallback : null;
+    auto _attributes = gHashTableFromD!(string, string)(attributes);
+    scope(exit) containerFree!(GHashTable*, string, GidOwnership.None)(_attributes);
+    const(char)* _collection = collection.toCString!(No.Malloc, Yes.Nullable);
+    const(char)* _label = label.toCString!(No.Malloc, No.Nullable);
+    const(char)* _password = password.toCString!(No.Malloc, No.Nullable);
+    auto _callback = callback ? freezeDelegate(cast(void*) &callback) : null;
+    secret_password_storev(schema ? cast(const(SecretSchema)*) schema._cPtr(No.Dup) : null, _attributes,
+                           _collection, _label, _password,
+                           cancellable ? cast(GCancellable*) cancellable._cPtr(No.Dup) : null,
+                           _callbackCB, _callback);
+}
+
+/**
+ * giD's secret.global binds only the pageable secret_password_lookupv_sync;
+ * the original deliberately used the non-pageable variant so libsecret keeps
+ * the retrieved secret out of swap. Raw C call with the same D-facing shape
+ * as secret.global.passwordLookupSync. The non-pageable C buffer is copied to
+ * a D string (as GtkD's wrapper also did) and released with
+ * secret_password_free.
+ * Throws: ErrorWrap
+ */
+string passwordLookupNonpageableSync(Schema schema, string[string] attributes, Cancellable cancellable = null) {
+    auto _attributes = gHashTableFromD!(string, string)(attributes);
+    scope(exit) containerFree!(GHashTable*, string, GidOwnership.None)(_attributes);
+    GError* _err;
+    char* _cretval = secret_password_lookupv_nonpageable_sync(
+        schema ? cast(const(SecretSchema)*) schema._cPtr(No.Dup) : null, _attributes,
+        cancellable ? cast(GCancellable*) cancellable._cPtr(No.Dup) : null, &_err);
+    if (_err)
+        throw new ErrorWrap(_err);
+    if (_cretval is null)
+        return null;
+    string result = fromCString!(No.Free)(_cretval);
+    secret_password_free(_cretval);
+    return result;
 }

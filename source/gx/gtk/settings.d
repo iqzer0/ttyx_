@@ -2,20 +2,24 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
  * distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+
+/*
+ * giD port of source/gx/gtk/settings.d. GtkD -> giD:
+ *  - GSettingsBindFlags (gtkc.giotypes) -> gio.types.SettingsBindFlags
+ *  - gobject.ObjectG -> gobject.object.ObjectWrap
+ *  - Settings.unbind is a STATIC method in giD (was an instance call)
+ *  - the wrapper-validity probe getObjectGStruct() -> _cPtr
+ */
 module gx.gtk.settings;
 
-import std.experimental.logger;
-
-import gtkc.giotypes;
-
-import gobject.ObjectG;
-import gio.Settings: GSettings = Settings;
+import gio.types : SettingsBindFlags;
+import gobject.object : ObjectWrap;
+import gio.settings : GSettings = Settings;
 
 /**
- * Bookkeeping class that keps track of objects which are
- * binded to a GSettings object so they can be unbinded later. it
- * also supports the concept of deferred bindings where a binding
- * can be added but is not actually attached to a Settings object
+ * Bookkeeping class that keeps track of objects which are bound to a GSettings
+ * object so they can be unbound later. It also supports deferred bindings where
+ * a binding can be added but is not actually attached to a Settings object
  * until one is set.
  */
 class BindingHelper {
@@ -35,7 +39,7 @@ private:
     /**
      * Adds a binding to the list
      */
-    void addBind(string key, ObjectG object, string property, GSettingsBindFlags flags) {
+    void addBind(string key, ObjectWrap object, string property, SettingsBindFlags flags) {
         bindings ~= Binding(key, object, property, flags);
     }
 
@@ -61,7 +65,7 @@ public:
      * previously set bindings and re-bind to the new settings automatically.
      */
     @property void settings(GSettings value) {
-        if (value != _settings) {
+        if (value !is _settings) {
             if (_settings !is null && bindings.length > 0) unbind();
             _settings = value;
             if (_settings !is null) bindAll();
@@ -71,7 +75,7 @@ public:
     /**
      * Add a binding to list and binds to Settings if it is set.
      */
-    void bind(string key, ObjectG object, string property, GSettingsBindFlags flags) {
+    void bind(string key, ObjectWrap object, string property, SettingsBindFlags flags) {
         addBind(key, object, property, flags);
         if (settings !is null) {
             _settings.bind(key, object, property, flags);
@@ -88,16 +92,16 @@ public:
         import core.memory : GC;
 
         if (_settings is null) return;
-        // Disable GC during unbind: on GLib 2.84+, the D GC can
-        // finalize GtkD wrappers mid-iteration, leaving the D object
-        // reference alive but its internal GObject pointer corrupt.
+        // Disable GC during unbind: a defensive carry-over from the GtkD
+        // version, where the D GC could finalize a wrapper mid-iteration and
+        // leave its internal GObject pointer corrupt on GLib 2.84+.
         GC.disable();
         scope(exit) GC.enable();
         foreach(binding; bindings) {
             if (binding.object is null) continue;
-            // Check the underlying GObject pointer is still valid
-            if (binding.object.getObjectGStruct() is null) continue;
-            _settings.unbind(binding.object, binding.property);
+            // Skip if the underlying GObject pointer is no longer set.
+            if (binding.object._cPtr is null) continue;
+            GSettings.unbind(binding.object, binding.property);
         }
     }
 
@@ -114,7 +118,7 @@ private:
 
 struct Binding {
     string key;
-    ObjectG object;
+    ObjectWrap object;
     string property;
-    GSettingsBindFlags flags;
+    SettingsBindFlags flags;
 }

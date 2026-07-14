@@ -2,22 +2,42 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
  * distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+
+/*
+ * giD port of source/gx/ttyx/terminal/exvte.d. Differences from GtkD:
+ *   - vtePasteText: giD binds vte_terminal_paste_text natively, so the
+ *     GtkD-3.10 compatibility shim (Linker + __gshared function pointer)
+ *     is gone — it is a plain call to Terminal.pasteText.
+ *   - The patched-VTE signals (notification-received /
+ *     terminal-screen-changed) are connected with hand-written closure
+ *     marshals mirroring giD's generated connect* methods (DClosure +
+ *     connectSignalClosure, signal args first, instance last). The GtkD
+ *     DelegateWrapper/extern(C)-callback machinery is gone; availability is
+ *     still probed with signalLookup, as in the gx.gtk.vte port.
+ *   - vte_terminal_get/set_disable_bg_draw exist only in patched VTE builds,
+ *     so they are resolved at runtime via dlsym(RTLD_DEFAULT) — a link-time
+ *     extern(C) would fail against standard VTE. Null-guarded: getDisableBGDraw
+ *     returns false and setDisableBGDraw is a no-op on standard VTE.
+ *   - VTE enums come from vte.types with PascalCase members.
+ */
 module gx.ttyx.terminal.exvte;
 
 import core.sys.posix.unistd;
 
-import std.algorithm;
 import std.experimental.logger;
+import std.typecons : Tuple;
 
-import gdk.Event;
-import gdk.RGBA;
+import gid.basictypes : gulong;
+import gid.gid : Flag, gidInvokeCallbackExceptionHandler;
 
-import gobject.Signals;
+import gobject.dclosure : DClosure, DGClosure;
+import gobject.global : signalLookup;
+import gobject.value : getVal;
+import gobject.c.types : GClosure, GValue;
 
-import glib.Str;
-
-import vte.Terminal;
-import vtec.vtetypes;
+import vte.terminal : Terminal;
+import vte.types : CursorBlinkMode, CursorShape, EraseBinding, TextBlinkMode;
+import vte.c.types : VteTerminal;
 
 import gx.ttyx.constants;
 import gx.ttyx.terminal.util;
@@ -28,7 +48,7 @@ enum TerminalScreen {
 };
 
 /**
- * Extends default GtKD VTE widget to support various patches
+ * Extends the giD VTE widget to support various patches
  * which provide additional features when available.
  */
 class ExtendedVTE : Terminal {
@@ -41,16 +61,12 @@ public:
     /**
 	 * Sets our main struct and passes it to the parent class.
 	 */
-    this(VteTerminal* vteTerminal, bool ownedRef = false) {
-        super(vteTerminal, ownedRef);
+    this(void* ptr, Flag!"Take" take) {
+        super(ptr, take);
     }
 
     /**
 	 * Creates a new terminal widget.
-	 *
-	 * Return: a new #VteTerminal object
-	 *
-	 * Throws: ConstructionException GTK+ fails to create the object.
 	 */
     this() {
         super();
@@ -63,129 +79,87 @@ public:
         }
     }
 
-	protected class OnNotificationReceivedDelegateWrapper
-	{
-		void delegate(string, string, Terminal) dlg;
-		gulong handlerId;
-		ConnectFlags flags;
-		this(void delegate(string, string, Terminal) dlg, gulong handlerId, ConnectFlags flags)
-		{
-			this.dlg = dlg;
-			this.handlerId = handlerId;
-			this.flags = flags;
-		}
-	}
-	protected OnNotificationReceivedDelegateWrapper[] onNotificationReceivedListeners;
+    /**
+     * Emitted when a process running in the terminal wants to
+     * send a notification to the desktop environment (patched VTE only).
+     *
+     * Callback: void delegate(string summary, string bod, Terminal terminal)
+     *
+     * Returns the signal handler id, or 0 when the running VTE does not
+     * carry the notification patch.
+     */
+    gulong addOnNotificationReceived(void delegate(string, string, Terminal) dlg) {
+        alias T = typeof(dlg);
+        if (signalLookup("notification-received", Terminal._getGType()) == 0)
+            return 0;
 
-	/**
-	 * Emitted when a process running in the terminal wants to
-	 * send a notification to the desktop environment.
-	 *
-	 * Params:
-	 *     summary = The summary
-	 *     bod = Extra optional text
-	 */
-	gulong addOnNotificationReceived(void delegate(string, string, Terminal) dlg, ConnectFlags connectFlags=cast(ConnectFlags)0)
-	{
-		if (Signals.lookup("notification-received", getType()) != 0) {
-			onNotificationReceivedListeners ~= new OnNotificationReceivedDelegateWrapper(dlg, 0, connectFlags);
-			onNotificationReceivedListeners[onNotificationReceivedListeners.length - 1].handlerId = Signals.connectData(
-				this,
-				"notification-received",
-				cast(GCallback)&callBackNotificationReceived,
-				cast(void*)onNotificationReceivedListeners[onNotificationReceivedListeners.length - 1],
-				cast(GClosureNotify)&callBackNotificationReceivedDestroy,
-				connectFlags);
-			return onNotificationReceivedListeners[onNotificationReceivedListeners.length - 1].handlerId;
-		} else {
-			return 0;
-		}
-	}
+        extern(C) static void _cmarshal(GClosure* _closure, GValue* _returnValue, uint _nParams, const(GValue)* _paramVals, void* _invocHint, void* _marshalData) nothrow
+        {
+            assert(_nParams == 3, "Unexpected number of signal parameters");
+            auto _dClosure = cast(DGClosure!T*)_closure;
+            Tuple!(string, string, Terminal) _paramTuple;
+            _paramTuple[0] = getVal!(string)(&_paramVals[1]);
+            _paramTuple[1] = getVal!(string)(&_paramVals[2]);
+            _paramTuple[2] = getVal!(Terminal)(&_paramVals[0]);
+            try
+            {
+                _dClosure.cb(_paramTuple[]);
+            }
+            catch (Exception e)
+            {
+                gidInvokeCallbackExceptionHandler(e, "gx.ttyx.terminal.exvte.notificationReceived");
+            }
+        }
 
-	extern(C) static void callBackNotificationReceived(VteTerminal* terminalStruct, char* summary, char* bod,OnNotificationReceivedDelegateWrapper wrapper)
-	{
-		wrapper.dlg(Str.toString(summary), Str.toString(bod), wrapper.outer);
-	}
+        auto closure = new DClosure(dlg, &_cmarshal);
+        return connectSignalClosure("notification-received", closure);
+    }
 
-	extern(C) static void callBackNotificationReceivedDestroy(OnNotificationReceivedDelegateWrapper wrapper, GClosure* closure)
-	{
-		wrapper.outer.internalRemoveOnNotificationReceived(wrapper);
-	}
+    /**
+     * Emitted when the terminal switches between the normal and the
+     * alternate screen (patched VTE only).
+     *
+     * Callback: void delegate(int screen, Terminal terminal)
+     *
+     * Returns the signal handler id, or 0 when the running VTE does not
+     * carry the screen-changed patch.
+     */
+    gulong addOnTerminalScreenChanged(void delegate(int, Terminal) dlg) {
+        alias T = typeof(dlg);
+        if (signalLookup("terminal-screen-changed", Terminal._getGType()) == 0)
+            return 0;
 
-	protected void internalRemoveOnNotificationReceived(OnNotificationReceivedDelegateWrapper source)
-	{
-		foreach(index, wrapper; onNotificationReceivedListeners)
-		{
-			if (wrapper.dlg == source.dlg && wrapper.flags == source.flags && wrapper.handlerId == source.handlerId)
-			{
-				onNotificationReceivedListeners[index] = null;
-				onNotificationReceivedListeners = std.algorithm.remove(onNotificationReceivedListeners, index);
-				break;
-			}
-		}
-	}
+        extern(C) static void _cmarshal(GClosure* _closure, GValue* _returnValue, uint _nParams, const(GValue)* _paramVals, void* _invocHint, void* _marshalData) nothrow
+        {
+            assert(_nParams == 2, "Unexpected number of signal parameters");
+            auto _dClosure = cast(DGClosure!T*)_closure;
+            Tuple!(int, Terminal) _paramTuple;
+            _paramTuple[0] = getVal!(int)(&_paramVals[1]);
+            _paramTuple[1] = getVal!(Terminal)(&_paramVals[0]);
+            try
+            {
+                _dClosure.cb(_paramTuple[]);
+            }
+            catch (Exception e)
+            {
+                gidInvokeCallbackExceptionHandler(e, "gx.ttyx.terminal.exvte.terminalScreenChanged");
+            }
+        }
 
-	protected class OnTerminalScreenChangedDelegateWrapper
-	{
-		void delegate(int, Terminal) dlg;
-		gulong handlerId;
-		ConnectFlags flags;
-		this(void delegate(int, Terminal) dlg, gulong handlerId, ConnectFlags flags)
-		{
-			this.dlg = dlg;
-			this.handlerId = handlerId;
-			this.flags = flags;
-		}
-	}
-	protected OnTerminalScreenChangedDelegateWrapper[] onTerminalScreenChangedListeners;
-
-	/** */
-	gulong addOnTerminalScreenChanged(void delegate(int, Terminal) dlg, ConnectFlags connectFlags=cast(ConnectFlags)0)
-	{
-		if (Signals.lookup("terminal-screen-changed", getType()) != 0) {
-			onTerminalScreenChangedListeners ~= new OnTerminalScreenChangedDelegateWrapper(dlg, 0, connectFlags);
-			onTerminalScreenChangedListeners[onTerminalScreenChangedListeners.length - 1].handlerId = Signals.connectData(
-				this,
-				"terminal-screen-changed",
-				cast(GCallback)&callBackTerminalScreenChanged,
-				cast(void*)onTerminalScreenChangedListeners[onTerminalScreenChangedListeners.length - 1],
-				cast(GClosureNotify)&callBackTerminalScreenChangedDestroy,
-				connectFlags);
-			return onTerminalScreenChangedListeners[onTerminalScreenChangedListeners.length - 1].handlerId;
-		} else {
-			return 0;
-		}
-	}
-
-	extern(C) static void callBackTerminalScreenChanged(VteTerminal* terminalStruct, int object,OnTerminalScreenChangedDelegateWrapper wrapper)
-	{
-		wrapper.dlg(object, wrapper.outer);
-	}
-
-	extern(C) static void callBackTerminalScreenChangedDestroy(OnTerminalScreenChangedDelegateWrapper wrapper, GClosure* closure)
-	{
-		wrapper.outer.internalRemoveOnTerminalScreenChanged(wrapper);
-	}
-
-	protected void internalRemoveOnTerminalScreenChanged(OnTerminalScreenChangedDelegateWrapper source)
-	{
-		foreach(index, wrapper; onTerminalScreenChangedListeners)
-		{
-			if (wrapper.dlg == source.dlg && wrapper.flags == source.flags && wrapper.handlerId == source.handlerId)
-			{
-				onTerminalScreenChangedListeners[index] = null;
-				onTerminalScreenChangedListeners = std.algorithm.remove(onTerminalScreenChangedListeners, index);
-				break;
-			}
-		}
-	}
+        auto closure = new DClosure(dlg, &_cmarshal);
+        return connectSignalClosure("terminal-screen-changed", closure);
+    }
 
     public bool getDisableBGDraw() {
-		return vte_terminal_get_disable_bg_draw(vteTerminal) != 0;
+        if (p_vte_terminal_get_disable_bg_draw is null)
+            return false;
+        return p_vte_terminal_get_disable_bg_draw(cast(VteTerminal*) _cPtr) != 0;
     }
 
     public void setDisableBGDraw(bool isDisabled) {
-		vte_terminal_set_disable_bg_draw(vteTerminal, isDisabled);
+        if (p_vte_terminal_set_disable_bg_draw is null)
+            return;
+        p_vte_terminal_set_disable_bg_draw(cast(VteTerminal*) _cPtr, isDisabled);
     }
 
     /**
@@ -194,55 +168,44 @@ public:
      * as well which also indicates no child process.
      */
     pid_t getChildPid() {
-		if (isFlatpak()) {
+        if (isFlatpak()) {
             warning("getChildPid should not be called from a Flatpak environment.");
-			return -1;
-		} else {
-			if (getPty() is null)
-            	return false;
-        	return tcgetpgrp(getPty().getFd());
-		}
+            return -1;
+        } else {
+            if (getPty() is null)
+                return false;
+            return tcgetpgrp(getPty().getFd());
+        }
     }
 }
 
 /**
- * Sends text to the terminal as if pasted. Calls vte_terminal_paste_text
- * directly, providing compatibility with GtkD 3.10.x where the D binding
- * for this method is missing from vte.Terminal.
+ * Sends text to the terminal as if pasted. giD binds
+ * vte_terminal_paste_text natively (the GtkD 3.10.x compatibility shim
+ * this function used to carry is no longer needed).
  */
 void vtePasteText(ExtendedVTE terminal, string text) {
-    _vtePasteText(terminal.getTerminalStruct(), Str.toStringz(text));
+    terminal.pasteText(text);
 }
 
 private:
 
-import gtkc.Loader;
-import vte.c.functions;
-
-// GtkD 3.11+ already defines vte_terminal_paste_text in vte.c.functions.
-// Only define our own binding when it is missing (GtkD 3.10.x).
-static if (__traits(compiles, { alias _ = vte.c.functions.vte_terminal_paste_text; })) {
-	alias _vtePasteText = vte.c.functions.vte_terminal_paste_text;
-} else {
-	__gshared extern(C) void function(VteTerminal* terminal, const(char)* text) _vtePasteText;
-}
-
+// vte_terminal_get/set_disable_bg_draw exist only in patched VTE builds
+// (e.g. Fedora's). Resolve them at runtime so linking against standard VTE
+// still works; the accessors above null-guard.
 __gshared extern(C) {
-	int function(VteTerminal* terminal) c_vte_terminal_get_disable_bg_draw;
-	void function(VteTerminal* terminal, int isAudible) c_vte_terminal_set_disable_bg_draw;
+    int function(VteTerminal* terminal) p_vte_terminal_get_disable_bg_draw;
+    void function(VteTerminal* terminal, int isDisabled) p_vte_terminal_set_disable_bg_draw;
 }
-
-alias vte_terminal_get_disable_bg_draw = c_vte_terminal_get_disable_bg_draw;
-alias vte_terminal_set_disable_bg_draw = c_vte_terminal_set_disable_bg_draw;
 
 shared static this() {
-	Linker.link(vte_terminal_get_disable_bg_draw, "vte_terminal_get_disable_bg_draw", LIBRARY_VTE);
-	Linker.link(vte_terminal_set_disable_bg_draw, "vte_terminal_set_disable_bg_draw", LIBRARY_VTE);
+    import core.sys.linux.dlfcn : RTLD_DEFAULT;
+    import core.sys.posix.dlfcn : dlsym;
 
-	// Only link our own binding if GtkD doesn't provide it
-	static if (!__traits(compiles, { alias _ = vte.c.functions.vte_terminal_paste_text; })) {
-		Linker.link(_vtePasteText, "vte_terminal_paste_text", LIBRARY_VTE);
-	}
+    p_vte_terminal_get_disable_bg_draw = cast(typeof(p_vte_terminal_get_disable_bg_draw))
+        dlsym(RTLD_DEFAULT, "vte_terminal_get_disable_bg_draw");
+    p_vte_terminal_set_disable_bg_draw = cast(typeof(p_vte_terminal_set_disable_bg_draw))
+        dlsym(RTLD_DEFAULT, "vte_terminal_set_disable_bg_draw");
 }
 
 // ---------------------------------------------------------------------------
@@ -254,35 +217,35 @@ package:
 import gx.ttyx.preferences;
 
 /// Convert a text blink mode settings string to VTE enum.
-VteTextBlinkMode getTextBlinkMode(string mode) {
+TextBlinkMode getTextBlinkMode(string mode) {
     import std.algorithm : countUntil;
     long i = countUntil(SETTINGS_PROFILE_TEXT_BLINK_MODE_VALUES, mode);
-    return cast(VteTextBlinkMode) i;
+    return cast(TextBlinkMode) i;
 }
 
 /// Convert a cursor blink mode settings string to VTE enum.
-VteCursorBlinkMode getBlinkMode(string mode) {
+CursorBlinkMode getBlinkMode(string mode) {
     import std.algorithm : countUntil;
     long i = countUntil(SETTINGS_PROFILE_CURSOR_BLINK_MODE_VALUES, mode);
-    return cast(VteCursorBlinkMode) i;
+    return cast(CursorBlinkMode) i;
 }
 
 /// Convert an erase binding settings string to VTE enum.
-VteEraseBinding getEraseBinding(string binding) {
+EraseBinding getEraseBinding(string binding) {
     import std.algorithm : countUntil;
     long i = countUntil(SETTINGS_PROFILE_ERASE_BINDING_VALUES, binding);
-    return cast(VteEraseBinding) i;
+    return cast(EraseBinding) i;
 }
 
 /// Convert a cursor shape settings string to VTE enum.
-VteCursorShape getCursorShape(string shape) {
+CursorShape getCursorShape(string shape) {
     final switch (shape) {
     case SETTINGS_PROFILE_CURSOR_SHAPE_BLOCK_VALUE:
-        return VteCursorShape.BLOCK;
+        return CursorShape.Block;
     case SETTINGS_PROFILE_CURSOR_SHAPE_IBEAM_VALUE:
-        return VteCursorShape.IBEAM;
+        return CursorShape.Ibeam;
     case SETTINGS_PROFILE_CURSOR_SHAPE_UNDERLINE_VALUE:
-        return VteCursorShape.UNDERLINE;
+        return CursorShape.Underline;
     }
 }
 
@@ -292,7 +255,7 @@ VteCursorShape getCursorShape(string shape) {
 
 /// Test: getCursorShape converts all shape values.
 unittest {
-    assert(getCursorShape(SETTINGS_PROFILE_CURSOR_SHAPE_BLOCK_VALUE) == VteCursorShape.BLOCK);
-    assert(getCursorShape(SETTINGS_PROFILE_CURSOR_SHAPE_IBEAM_VALUE) == VteCursorShape.IBEAM);
-    assert(getCursorShape(SETTINGS_PROFILE_CURSOR_SHAPE_UNDERLINE_VALUE) == VteCursorShape.UNDERLINE);
+    assert(getCursorShape(SETTINGS_PROFILE_CURSOR_SHAPE_BLOCK_VALUE) == CursorShape.Block);
+    assert(getCursorShape(SETTINGS_PROFILE_CURSOR_SHAPE_IBEAM_VALUE) == CursorShape.Ibeam);
+    assert(getCursorShape(SETTINGS_PROFILE_CURSOR_SHAPE_UNDERLINE_VALUE) == CursorShape.Underline);
 }

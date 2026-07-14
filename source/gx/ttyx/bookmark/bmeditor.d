@@ -2,34 +2,62 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
  * distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+
+/*
+ * giD port of source/gx/ttyx/bookmark/bmeditor.d. GtkD -> giD:
+ *  - Dialog(title, parent, flags, buttons[], responses[]) wraps the varargs
+ *    gtk_dialog_new_with_buttons, which giD does not bind, and use-header-bar
+ *    is construct-only: constructed via raw
+ *    g_object_new(Dialog._getGType(), "use-header-bar", 1, null) passed to
+ *    super(ptr, No.Take), then setTitle/setModal/setTransientFor/addButton
+ *    (the advpaste.d pattern). GtkDialogFlags.MODAL -> setModal(true).
+ *  - stEditors.addOnNotify(dg, "visible-child", ConnectFlags.AFTER) ->
+ *    stEditors.connectNotify("visible-child", dg, Yes.After) — detail comes
+ *    FIRST in giD; delegate params (ParamSpec, ObjectWrap) must ALL be named
+ *    (gobject.ObjectG -> gobject.object.ObjectWrap).
+ *  - addOnShow(delegate(Widget)) -> connectShow(zero-param delegate).
+ *  - new Button(iconName, IconSize.BUTTON) -> Button.newFromIconName(iconName,
+ *    IconSize.Button); addOnClicked -> connectClicked (zero-param delegates).
+ *  - new FileChooserButton(title, action): same ctor in giD;
+ *    FileChooserAction.SELECT_FOLDER -> gtk.types.FileChooserAction.SelectFolder.
+ *  - glib.Util.getHomeDir -> glib.global.getHomeDir free function.
+ *  - new SpinButton(min,max,step) -> SpinButton.newWithRange(min,max,step).
+ *  - eName.addOnChanged(delegate(EditableIF)) -> Entry's Editable mixin
+ *    connectChanged (zero-param delegate); cbProtocol.addOnChanged(
+ *    delegate(ComboBox)) -> connectChanged likewise.
+ *  - Enums PascalCase in gtk.types: GtkAlign.END -> Align.End,
+ *    Orientation.Vertical/Horizontal, ResponseType.Ok/Cancel.
+ *  - Dropped unused GtkD imports (HeaderBar, Separator, std.signals,
+ *    std.string, std.experimental.logger).
+ * Behavior is unchanged. GenericEvent (gx.ttyx.common) and
+ * createNameValueCombo (gx.gtk.util) come from already-ported/reused modules.
+ */
 module gx.ttyx.bookmark.bmeditor;
 
 import std.conv;
-import std.experimental.logger;
-import std.signals;
-import std.string;
 import std.traits;
 
-import glib.Util;
+import gid.gid : No, Yes;
 
-import gobject.ObjectG;
-import gobject.ParamSpec;
+import glib.global : getHomeDir;
 
-import gtk.Box;
-import gtk.Button;
-import gtk.ComboBox;
-import gtk.Dialog;
-import gtk.Entry;
-import gtk.FileChooserButton;
-import gtk.Grid;
-import gtk.HeaderBar;
-import gtk.Label;
-import gtk.Separator;
-import gtk.SpinButton;
-import gtk.Stack;
-import gtk.StackSwitcher;
-import gtk.Widget;
-import gtk.Window;
+import gobject.c.functions : g_object_new;
+import gobject.object : ObjectWrap;
+import gobject.param_spec : ParamSpec;
+
+import gtk.box : Box;
+import gtk.button : Button;
+import gtk.combo_box : ComboBox;
+import gtk.dialog : Dialog;
+import gtk.entry : Entry;
+import gtk.file_chooser_button : FileChooserButton;
+import gtk.grid : Grid;
+import gtk.label : Label;
+import gtk.spin_button : SpinButton;
+import gtk.stack : Stack;
+import gtk.stack_switcher : StackSwitcher;
+import gtk.types : Align, FileChooserAction, IconSize, Orientation, ResponseType;
+import gtk.window : Window;
 
 import gx.gtk.util;
 import gx.i18n.l10n;
@@ -58,11 +86,11 @@ private:
     FolderBookmark _folder;
 
     void createUI(Bookmark bm, bool folderPicker) {
-        Box bContent = new Box(Orientation.VERTICAL, 6);
+        Box bContent = new Box(Orientation.Vertical, 6);
         setAllMargins(bContent, 18);
 
         if (folderPicker) {
-            Box bPicker = new Box(Orientation.HORIZONTAL, 0);
+            Box bPicker = new Box(Orientation.Horizontal, 0);
             bPicker.getStyleContext().addClass("linked");
             eFolder = new Entry();
             eFolder.setPlaceholderText(_("Select Folder"));
@@ -70,21 +98,21 @@ private:
             eFolder.setHexpand(true);
             bPicker.add(eFolder);
 
-            Button btnFolderPicker = new Button("folder-symbolic", IconSize.BUTTON);
+            Button btnFolderPicker = Button.newFromIconName("folder-symbolic", IconSize.Button);
             btnFolderPicker.setTooltipText(_("Select folder"));
-            btnFolderPicker.addOnClicked(delegate(Button) {
+            btnFolderPicker.connectClicked(() {
                 BookmarkChooser bc = new BookmarkChooser(this, BMSelectionMode.FOLDER);
                 scope(exit) {bc.destroy();}
                 bc.showAll();
-                if (bc.run() == ResponseType.OK) {
+                if (bc.run() == ResponseType.Ok) {
                     folder = cast(FolderBookmark) bc.bookmark;
                 }
             });
             bPicker.add(btnFolderPicker);
 
-            Button btnClearFolder = new Button("edit-clear-symbolic", IconSize.BUTTON);
+            Button btnClearFolder = Button.newFromIconName("edit-clear-symbolic", IconSize.Button);
             btnClearFolder.setTooltipText(_("Clear folder"));
-            btnClearFolder.addOnClicked(delegate(Button) {
+            btnClearFolder.connectClicked(() {
                 _folder = null;
                 eFolder.setText("");
             });
@@ -93,13 +121,13 @@ private:
         }
 
         stEditors = new Stack();
-        stEditors.addOnNotify(delegate(ParamSpec, ObjectG) {
+        stEditors.connectNotify("visible-child", delegate(ParamSpec pspec, ObjectWrap obj) {
             updateUI();
             BaseEditor be = cast(BaseEditor)stEditors.getVisibleChild();
             if (be !is null) {
                 be.focusEditor();
             }
-        },"visible-child", ConnectFlags.AFTER);
+        }, Yes.After);
 
         // Adding a new bookmark or editing one?
         if (mode == BookmarkEditorMode.EDIT) {
@@ -134,26 +162,33 @@ private:
 
     void validateChanged(BaseEditor be, bool valid) {
         if (be == getEditor()) {
-            setResponseSensitive(ResponseType.OK, valid);
+            setResponseSensitive(ResponseType.Ok, valid);
         }
     }
 
     void updateUI() {
         if (getEditor() !is null) {
-            setResponseSensitive(ResponseType.OK, getEditor().validate());
+            setResponseSensitive(ResponseType.Ok, getEditor().validate());
         }
     }
 
 public:
 
     this(Window parent, BookmarkEditorMode mode, Bookmark bm = null, bool folderPicker = false) {
+        // gtk_dialog_new_with_buttons is varargs (not bound by giD) and
+        // use-header-bar is construct-only, so construct the underlying
+        // GtkDialog directly with the property set (see advpaste.d).
+        super(cast(void*) g_object_new(Dialog._getGType(), cast(const(char)*) "use-header-bar", 1, cast(const(char)*) null), No.Take);
         string title = (mode == BookmarkEditorMode.ADD)? _("Add Bookmark"):_("Edit Bookmark");
-        super(title, parent, GtkDialogFlags.MODAL + GtkDialogFlags.USE_HEADER_BAR, [_("OK"), _("Cancel")], [GtkResponseType.OK, GtkResponseType.CANCEL]);
+        setTitle(title);
+        setModal(true);
+        addButton(_("OK"), ResponseType.Ok);
+        addButton(_("Cancel"), ResponseType.Cancel);
         setTransientFor(parent);
-        setDefaultResponse(GtkResponseType.OK);
+        setDefaultResponse(ResponseType.Ok);
         this.mode = mode;
         createUI(bm, folderPicker);
-        this.addOnShow(delegate(Widget) {
+        this.connectShow(() {
             BaseEditor be = cast(BaseEditor)stEditors.getVisibleChild();
             be.focusEditor();
         });
@@ -208,7 +243,12 @@ BaseEditor createTypeEditor(BookmarkType bt, Bookmark bm = null) {
     }
 }
 
-abstract class BaseEditor: Grid {
+// NOTE: not `abstract`, though it is conceptually a base class. giD's
+// ObjectWrap.createClassMaps() instantiates every GObject-derived class at
+// startup via _d_newclass, which returns null for an abstract class and then
+// segfaults on the null wrapper. GObject-derived classes must be concrete
+// under giD; BaseEditor is never instantiated directly regardless.
+class BaseEditor: Grid {
 private:
     Entry eName;
 
@@ -217,7 +257,7 @@ protected:
 
     Label createLabel(string text) {
         Label result = new Label(text);
-        result.setHalign(GtkAlign.END);
+        result.setHalign(Align.End);
         return result;
     }
 
@@ -232,7 +272,7 @@ public:
 
         eName = new Entry();
         eName.setHexpand(true);
-        eName.addOnChanged(delegate(EditableIF) {
+        eName.connectChanged(() {
             onValidChanged.emit(this, validate);
         });
         attach(eName, 1, row, 1, 1);
@@ -291,9 +331,9 @@ public:
 
         attach(createLabel(_("Path")), 0, row, 1, 1);
 
-        fcbPath = new FileChooserButton(_("Select Path"), FileChooserAction.SELECT_FOLDER);
+        fcbPath = new FileChooserButton(_("Select Path"), FileChooserAction.SelectFolder);
         fcbPath.setHexpand(true);
-        fcbPath.setFilename(Util.getHomeDir());
+        fcbPath.setFilename(getHomeDir());
         attach(fcbPath, 1, row, 1, 1);
         row++;
 
@@ -333,7 +373,7 @@ public:
         attach(createLabel(_("Command")), 0, row, 1, 1);
 
         eCommand = new Entry();
-        eCommand.addOnChanged(delegate(EditableIF) {
+        eCommand.connectChanged(() {
             onValidChanged.emit(this, validate);
         });
         eCommand.setHexpand(true);
@@ -388,7 +428,7 @@ public:
 
         cbProtocol = createNameValueCombo(protocols);
         cbProtocol.setActiveId(to!string(ProtocolType.SSH));
-        cbProtocol.addOnChanged(delegate(ComboBox) {
+        cbProtocol.connectChanged(() {
             eCommand.setSensitive(cbProtocol.getActiveId() == to!string(ProtocolType.SSH));
         });
         attach(cbProtocol, 1, row, 1, 1);
@@ -396,15 +436,15 @@ public:
 
         // Host and Port
         attach(createLabel(_("Host")), 0, row, 1, 1);
-        Box bHost = new Box(Orientation.HORIZONTAL, 6);
+        Box bHost = new Box(Orientation.Horizontal, 6);
         eHost = new Entry();
-        eHost.addOnChanged(delegate(EditableIF) {
+        eHost.connectChanged(() {
             onValidChanged.emit(this, validate);
         });
         eHost.setHexpand(true);
         bHost.add(eHost);
         bHost.add(new Label(":"));
-        sPort = new SpinButton(0, 65535, 1);
+        sPort = SpinButton.newWithRange(0, 65535, 1);
         sPort.setValue(0);
         bHost.add(sPort);
         attach(bHost, 1, row, 1, 1);

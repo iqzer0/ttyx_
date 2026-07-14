@@ -2,30 +2,51 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
  * distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+
+/*
+ * giD port of source/gx/ttyx/terminal/flatpak.d. The GtkD original leaned on
+ * raw C for two things giD handles natively, so both go away:
+ *   - g_variant_new varargs ("(^ay^aay@a{uh}@a{ss}u)") → typed Variant
+ *     constructors (newBytestring / newBytestringArray / newDictEntry /
+ *     newHandle / newUint32 / newTuple). The two VariantBuilders stay so the
+ *     a{uh} / a{ss} arrays are correctly typed even when empty.
+ *   - the extern(C) HostCommandExited D-Bus callback + manual GC.addRoot →
+ *     signalSubscribe takes a D delegate (giD freezes/thaws it internally);
+ *     shared spawn/exit state lives in a heap struct captured by the closure.
+ * Also: callWithUnixFdListSync signals failure by throwing glib.error.ErrorWrap
+ * (GtkD returned null), and GtkD's manual connection.doref() is dropped —
+ * giD wrappers own their refs.
+ */
 module gx.ttyx.terminal.flatpak;
 
 private:
 
-import core.memory;
 import std.conv;
 import std.experimental.logger;
 import std.format;
 import std.string;
 
-import glib.Util;
-import glib.Variant : GVariant = Variant;
-import glib.VariantBuilder : GVariantBuilder = VariantBuilder;
-import glib.VariantType : GVariantType = VariantType;
+import gio.dbus_connection : DBusConnection;
+import gio.types : DBusCallFlags, DBusConnectionFlags, DBusSignalFlags;
+import gio.unix_fdlist : UnixFDList;
 
-import gtkc.giotypes : GDBusConnection, GDBusCallFlags, GDBusConnectionFlags, GDBusSignalCallback, GDBusSignalFlags;
-import gtkc.glibtypes;
+import glib.error : ErrorWrap;
+import glib.global : getHomeDir;
+import glib.key_file : KeyFile;
+import glib.main_context : MainContext;
+import glib.types : KeyFileFlags;
+import glib.variant : GVariant = Variant;
+import glib.variant_builder : GVariantBuilder = VariantBuilder;
+import glib.variant_type : GVariantType = VariantType;
 
 import gx.util.redact : redactSensitive;
 
 /// Delegate type for receiving host command exit notifications.
 package alias HostCommandExitedCallback = void delegate(int);
 
-/// Arguments passed to the D-Bus signal callback for HostCommandExited.
+/// Shared state between sendHostCommand and the HostCommandExited signal
+/// closure. Heap-allocated and captured by the delegate, so no manual GC
+/// rooting is needed (giD keeps the frozen delegate alive until unsubscribe).
 struct HostCommandExitedArgs {
     HostCommandExitedCallback callback;
     int pid = -1;
@@ -40,15 +61,12 @@ struct HostCommandExitedArgs {
  * org.freedesktop.Flatpak.Development.HostCommand.
  */
 GVariant buildHostCommandVariant(string workingDir, string[] args, string[] envv, uint[] handles) {
-    import gtkc.glib : g_variant_new;
-
-    if (workingDir.length == 0) workingDir = Util.getHomeDir();
+    if (workingDir.length == 0) workingDir = getHomeDir();
 
     GVariantBuilder fdBuilder = new GVariantBuilder(new GVariantType("a{uh}"));
     foreach (i, fd; handles) {
-        auto entry = new GVariant(g_variant_new("{uh}",
-            cast(uint) i, cast(int) fd), true);
-        fdBuilder.addValue(entry);
+        fdBuilder.addValue(GVariant.newDictEntry(
+            GVariant.newUint32(cast(uint) i), GVariant.newHandle(cast(int) fd)));
     }
     GVariantBuilder envBuilder = new GVariantBuilder(new GVariantType("a{ss}"));
     foreach (env; envv) {
@@ -57,50 +75,17 @@ GVariant buildHostCommandVariant(string workingDir, string[] args, string[] envv
         string key = env[0 .. eqPos];
         string val = env[eqPos + 1 .. $];
         tracef("Adding env var %s=%s", key, redactSensitive(key, val));
-        auto entry = new GVariant(g_variant_new("{ss}",
-            toStringz(key), toStringz(val)), true);
-        envBuilder.addValue(entry);
+        envBuilder.addValue(GVariant.newDictEntry(
+            GVariant.newString(key), GVariant.newString(val)));
     }
 
-    immutable(char)* wd = toStringz(workingDir);
-    immutable(char)*[] argsv;
-    foreach (i, arg; args) {
-        argsv ~= toStringz(arg);
-    }
-    argsv ~= null;
-
-    gtkc.glibtypes.GVariant* vs = g_variant_new("(^ay^aay@a{uh}@a{ss}u)",
-                      wd,
-                      argsv.ptr,
-                      fdBuilder.end().getVariantStruct(true),
-                      envBuilder.end().getVariantStruct(true),
-                      cast(uint) 1);
-
-    return new GVariant(vs, true);
-}
-
-/// D-Bus signal callback for HostCommandExited.
-extern(C) void hostCommandExitedCallback(GDBusConnection* connection, const(char)* senderName, const(char)* objectPath, const(char)* interfaceName,
-                                                const(char)* signalName, gtkc.glibtypes.GVariant* parameters, HostCommandExitedArgs* args) {
-    import gtkc.glib : g_variant_get;
-
-    uint pid, status;
-    g_variant_get(parameters, "(uu)", &pid, &status);
-
-    if (args.pid == -1 || pid == args.pid) {
-        import gtkc.gio : g_dbus_connection_signal_unsubscribe;
-
-        if (args.pid == -1) {
-            trace("hostCommandExitedCallback was called before spawn completed.");
-            args.pid = pid;
-            args.status = status;
-        } else {
-            g_dbus_connection_signal_unsubscribe(connection, args.signalId);
-            args.callback(status);
-        }
-
-        GC.removeRoot(cast(void*) args);
-    }
+    return GVariant.newTuple([
+        GVariant.newBytestring(workingDir),
+        GVariant.newBytestringArray(args),
+        fdBuilder.end(),
+        envBuilder.end(),
+        GVariant.newUint32(1)
+    ]);
 }
 
 package:
@@ -113,34 +98,27 @@ package:
 bool sendHostCommand(string workingDir, string[] args, string[] envv, int[] stdio_fds, out int gpid, HostCommandExitedCallback exitedCallback) {
     import std.process : environment;
 
-    import gio.DBusConnection;
-    import gio.UnixFDList;
-
-    import gtkc.glib : g_variant_get;
-
     uint[] handles;
 
     UnixFDList outFdList;
     UnixFDList inFdList = new UnixFDList();
     foreach (i, fd; stdio_fds) {
         handles ~= inFdList.append(fd);
-        if (handles[i] == -1) {
+        if (handles[i] == cast(uint) -1) {
             warning("Error creating fd list handles");
         }
     }
 
-    DBusConnection connection = new DBusConnection(
+    DBusConnection connection = DBusConnection.newForAddressSync(
         environment.get("DBUS_SESSION_BUS_ADDRESS"),
-        GDBusConnectionFlags.AUTHENTICATION_CLIENT | GDBusConnectionFlags.MESSAGE_BUS_CONNECTION,
+        DBusConnectionFlags.AuthenticationClient | DBusConnectionFlags.MessageBusConnection,
         null,
         null
     );
     connection.setExitOnClose(false);
-    connection.doref();
 
-    auto callbackArgs = new HostCommandExitedArgs();
-    callbackArgs.callback = exitedCallback;
-    GC.addRoot(cast(void*) callbackArgs);
+    auto state = new HostCommandExitedArgs();
+    state.callback = exitedCallback;
 
     uint signalId = connection.signalSubscribe(
         "org.freedesktop.Flatpak",
@@ -148,46 +126,58 @@ bool sendHostCommand(string workingDir, string[] args, string[] envv, int[] stdi
         "HostCommandExited",
         "/org/freedesktop/Flatpak/Development",
         null,
-        DBusSignalFlags.NONE,
-        cast(GDBusSignalCallback) &hostCommandExitedCallback,
-        cast(void*) callbackArgs,
-        null,
+        DBusSignalFlags.None,
+        delegate(DBusConnection conn, string senderName, string objectPath, string interfaceName, string signalName, GVariant parameters) {
+            uint pid = parameters.getChildValue(0).getUint32();
+            uint status = parameters.getChildValue(1).getUint32();
+
+            if (state.pid == -1 || pid == state.pid) {
+                if (state.pid == -1) {
+                    trace("HostCommandExited was emitted before spawn completed.");
+                    state.pid = pid;
+                    state.status = status;
+                } else {
+                    conn.signalUnsubscribe(state.signalId);
+                    state.callback(status);
+                }
+            }
+        }
     );
 
-    GVariant reply = connection.callWithUnixFdListSync(
-        "org.freedesktop.Flatpak",
-        "/org/freedesktop/Flatpak/Development",
-        "org.freedesktop.Flatpak.Development",
-        "HostCommand",
-        buildHostCommandVariant(workingDir, args, envv, handles),
-        new GVariantType("(u)"),
-        GDBusCallFlags.NONE,
-        -1,
-        inFdList,
-        outFdList,
-        null
-    );
-
-    if (reply is null) {
-        warning("No reply from flatpak dbus service");
+    GVariant reply;
+    try {
+        reply = connection.callWithUnixFdListSync(
+            "org.freedesktop.Flatpak",
+            "/org/freedesktop/Flatpak/Development",
+            "org.freedesktop.Flatpak.Development",
+            "HostCommand",
+            buildHostCommandVariant(workingDir, args, envv, handles),
+            new GVariantType("(u)"),
+            DBusCallFlags.None,
+            -1,
+            inFdList,
+            outFdList,
+            null
+        );
+    } catch (ErrorWrap e) {
+        warning("No reply from flatpak dbus service: " ~ e.msg);
         connection.signalUnsubscribe(signalId);
         return false;
-    } else {
-        uint pid;
-        g_variant_get(reply.getVariantStruct(), "(u)", &pid);
-        gpid = pid;
-
-        if (callbackArgs.pid != -1) {
-            trace("HostCommandExited was already emitted");
-            connection.signalUnsubscribe(signalId);
-            exitedCallback(callbackArgs.status);
-        } else {
-            callbackArgs.pid = pid;
-            callbackArgs.signalId = signalId;
-        }
-
-        return true;
     }
+
+    uint pid = reply.getChildValue(0).getUint32();
+    gpid = pid;
+
+    if (state.pid != -1) {
+        trace("HostCommandExited was already emitted");
+        connection.signalUnsubscribe(signalId);
+        exitedCallback(state.status);
+    } else {
+        state.pid = pid;
+        state.signalId = signalId;
+    }
+
+    return true;
 }
 
 /**
@@ -198,18 +188,15 @@ bool sendHostCommand(string workingDir, string[] args, string[] envv, int[] stdi
  */
 string captureHostToolboxCommand(string command, string arg, int[] extra_fds) {
     import std.process : Pipe, pipe;
-    import glib.MainContext;
-    import glib.KeyFile;
-    import gtkc.glibtypes : GKeyFileFlags;
 
     KeyFile kf = new KeyFile();
-    kf.loadFromFile("/.flatpak-info", GKeyFileFlags.NONE);
+    kf.loadFromFile("/.flatpak-info", KeyFileFlags.None);
 
     string hostRoot = kf.getString("Instance", "app-path");
     string[] args = [format("%s/bin/ttyx-flatpak-toolbox", hostRoot), command, arg];
 
     Pipe output = pipe();
-    scope(exit) pipe.close();
+    scope(exit) output.close();
 
     int gpid, status = -1;
 

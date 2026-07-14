@@ -2,6 +2,16 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
  * distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+/*
+ * giD port of source/gx/ttyx/colorschemes.d. Differences from GtkD:
+ *   - RGBA is a value struct. Its bare double fields default-init to NaN in D,
+ *     while GtkD's `RGBA(0, 0, 0, 0)` zero-initialized — so every former `RGBA(0, 0, 0, 0)`
+ *     becomes an explicit `RGBA(0, 0, 0, 0)` to keep "unset color is black"
+ *     semantics (loadScheme leaves optional colors untouched when absent).
+ *   - parseColor takes `ref RGBA` (structs are copied by value).
+ *   - glib.Util.getUserConfigDir/getSystemDataDirs -> free functions in
+ *     glib.global (same as the resource.d port).
+ */
 module gx.ttyx.colorschemes;
 
 import std.algorithm;
@@ -12,9 +22,9 @@ import std.json;
 import std.path;
 import std.uuid;
 
-import gdk.RGBA;
+import gdk.rgba : RGBA;
 
-import glib.Util;
+import glib.global : getSystemDataDirs, getUserConfigDir;
 
 import gx.gtk.color;
 import gx.gtk.util;
@@ -68,17 +78,17 @@ class ColorScheme {
 
     this() {
         id = randomUUID().toString();
-        foreground = new RGBA();
-        background = new RGBA();
-        highlightFG = new RGBA();
-        highlightBG = new RGBA();
-        cursorFG = new RGBA();
-        cursorBG = new RGBA();
-        badgeColor = new RGBA();
-        boldColor = new RGBA();
+        foreground = RGBA(0, 0, 0, 0);
+        background = RGBA(0, 0, 0, 0);
+        highlightFG = RGBA(0, 0, 0, 0);
+        highlightBG = RGBA(0, 0, 0, 0);
+        cursorFG = RGBA(0, 0, 0, 0);
+        cursorBG = RGBA(0, 0, 0, 0);
+        badgeColor = RGBA(0, 0, 0, 0);
+        boldColor = RGBA(0, 0, 0, 0);
 
         for (int i = 0; i < 16; i++) {
-            palette[i] = new RGBA();
+            palette[i] = RGBA(0, 0, 0, 0);
         }
     }
 
@@ -176,7 +186,7 @@ ColorScheme[] loadColorSchemes() {
     ColorScheme[] schemes;
     bool[string] seenFilenames;
     // User config dir takes precedence over system data dirs
-    string[] paths = Util.getUserConfigDir() ~ Util.getSystemDataDirs();
+    string[] paths = getUserConfigDir() ~ getSystemDataDirs();
     foreach (path; paths) {
         auto fullpath = buildPath(path, APPLICATION_CONFIG_FOLDER, SCHEMES_FOLDER);
         trace("Loading color schemes from " ~ fullpath);
@@ -300,7 +310,7 @@ private void saveScheme(ColorScheme scheme, string filename) {
     write(filename, json);
 }
 
-private void parseColor(RGBA rgba, string value) {
+private void parseColor(ref RGBA rgba, string value) {
     if (value.length == 0)
         return;
     rgba.parse(value);
@@ -509,7 +519,7 @@ unittest {
 
 /// Test: parseColor with empty string should not crash
 unittest {
-    RGBA color = new RGBA();
+    RGBA color = RGBA(0, 0, 0, 0);
     parseColor(color, "");
     // Should not crash — color remains at default (0,0,0,0)
     assert(color.red == 0.0);
@@ -517,7 +527,7 @@ unittest {
 
 /// Test: parseColor with valid hex
 unittest {
-    RGBA color = new RGBA();
+    RGBA color = RGBA(0, 0, 0, 0);
     parseColor(color, "#FF0000");
     assert(color.red > 0.99);
     assert(color.green < 0.01);

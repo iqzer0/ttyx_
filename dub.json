@@ -6,12 +6,10 @@
     "mainSourceFile": "source/app.d",
     "dflags-ldc": ["-disable-linker-strip-dead","-link-defaultlib-shared=false"],
     "dependencies": {
-        "gtk-d:gtkd": {
-            "version": "3.11.0"
-        },
-        "gtk-d:vte": {
-            "version": "3.11.0"
-        }
+        "gid:gtk3": "0.9.13",
+        "gid:vte2": "0.9.13",
+        "gid:pangocairo1": "0.9.13",
+        "gid:secret1": "0.9.13"
     },
     "buildTypes": {
         "release": {
@@ -35,22 +33,14 @@
         {
             "name": "default",
             "targetType": "executable",
-            "libs-linux": ["X11"],
+            "libs-linux": ["X11", "gdk-3"],
             "versions": ["StdLoggerDisableTrace"]
         },
         {
             "name": "trace",
             "targetType": "executable",
-            "libs-linux": ["X11"],
+            "libs-linux": ["X11", "gdk-3"],
             "debugVersions": ["Destructors"]
-        },
-        {
-            "name": "dynamic",
-            "targetType": "executable",
-            "libs": ["gtkd-3"],
-            "libs-linux": ["X11"],
-            "lflags": ["-defaultlib=libgtkd-3.so"],
-            "versions": ["StdLoggerDisableTrace"]
         }
     ]
 }

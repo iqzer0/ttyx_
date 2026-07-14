@@ -2,6 +2,28 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
  * distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+
+/*
+ * giD port of source/gx/ttyx/terminal/renderer.d. Differences from GtkD:
+ *  - gdk.RGBA class -> gdk.rgba.RGBA value struct: initColors() no longer
+ *    allocates (assigns explicit RGBA(0,0,0,0) — giD RGBA fields default-init
+ *    to NaN); dimColor() takes its output as `ref RGBA`; the `vteBG` property
+ *    now returns a COPY (a snapshot), not a live shared reference.
+ *  - VTE's optional color resets (setColorBold(null), setColorHighlight*(null),
+ *    setColorCursor*(null)) cannot be expressed through giD's wrappers (they
+ *    take RGBA by value and always pass &arg), so the reset paths call the raw
+ *    C functions from vte.c.functions with a null pointer.
+ *  - pango: PgFontDescription -> pango.font_description.FontDescription,
+ *    PgLayout -> pango.layout.Layout, PgCairo.showLayout -> free function
+ *    pangocairo.global.showLayout (needs the gid:pangocairo1 subpackage —
+ *    added to dub.json, it is not in gtk3/vte2's transitive deps),
+ *    PANGO_SCALE -> pango.types.SCALE, enums PascalCase in pango.types
+ *    (WrapMode.WordChar, Alignment.Right).
+ *  - Draw callbacks take a plain cairo.context.Context (no Scoped!Context);
+ *    signatures match gtk.widget.Widget.connectDraw.
+ *  - GdkRectangle -> gdk.rectangle.Rectangle (identical x/y/width/height
+ *    value struct); StateFlags -> gtk.types.StateFlags (PascalCase members).
+ */
 module gx.ttyx.terminal.renderer;
 
 private:
@@ -11,18 +33,23 @@ import std.conv : to;
 import std.experimental.logger;
 import std.math : floor;
 
-import cairo.Context;
+import cairo.context : Context;
 
-import gdk.RGBA;
-import gdk.Rectangle : GdkRectangle;
+import gdk.rgba : RGBA;
+import gdk.rectangle : Rectangle;
 
-import pango.PgCairo;
-import pango.PgFontDescription;
-import pango.PgLayout;
+import pango.font_description : FontDescription;
+import pango.layout : Layout;
+import pangocairo.global : showLayout;
 
-import gtk.Widget : Widget;
+import gtk.widget : Widget;
 
-import pango.c.types : PANGO_SCALE = SCALE;
+import pango.types : PANGO_SCALE = SCALE;
+
+import vte.c.functions : vte_terminal_set_color_bold, vte_terminal_set_color_cursor,
+    vte_terminal_set_color_cursor_foreground, vte_terminal_set_color_highlight,
+    vte_terminal_set_color_highlight_foreground;
+import vte.c.types : VteTerminal;
 
 import gx.gtk.color : adjustColor, contrast;
 import gx.gtk.vte : isVTEBackgroundDrawEnabled;
@@ -45,7 +72,7 @@ private:
     ITerminalContext _ctx;
 
     /// Badge rendering state.
-    PgFontDescription _badgeFont = null;
+    FontDescription _badgeFont = null;
     string _badgeText;
 
     /// Margin rendering state.
@@ -81,7 +108,7 @@ private:
     /// Delegate to check if terminal widget has focus (for dim color switching).
     bool delegate() _isTerminalWidgetFocused;
 
-    void dimColor(RGBA original, RGBA dim, double cf) {
+    void dimColor(RGBA original, ref RGBA dim, double cf) {
         double r, g, b;
         adjustColor(cf, original, r, g, b);
         dim.red = r;
@@ -104,7 +131,9 @@ private:
         if (gsProfile.getBoolean(SETTINGS_PROFILE_USE_BOLD_COLOR_KEY)) {
             _ctx.contextVte().setColorBold(color);
         } else {
-            _ctx.contextVte().setColorBold(null);
+            // giD's setColorBold takes RGBA by value and cannot express NULL
+            // (reset to default); call the C function directly.
+            vte_terminal_set_color_bold(cast(VteTerminal*) _ctx.contextVte()._cPtr, null);
         }
     }
 
@@ -151,26 +180,26 @@ public:
         ], &updateBadgeFont);
     }
 
-    /// Initialize all RGBA color objects.
+    /**
+     * Initialize all RGBA colors. giD's RGBA is a value struct whose double
+     * fields default-init to NaN, so zero them explicitly (GtkD's `new RGBA()`
+     * was zero-initialized).
+     */
     void initColors() {
-        _vteFG = new RGBA();
-        _dimFG = new RGBA();
-        _vteBG = new RGBA();
-        _vteHighlightFG = new RGBA();
-        _vteHighlightBG = new RGBA();
-        _vteCursorFG = new RGBA();
-        _vteCursorBG = new RGBA();
-        _vteDimBG = new RGBA();
-        _vteBadge = new RGBA();
-        _vteBold = new RGBA();
-        _dimBold = new RGBA();
+        _vteFG = RGBA(0, 0, 0, 0);
+        _dimFG = RGBA(0, 0, 0, 0);
+        _vteBG = RGBA(0, 0, 0, 0);
+        _vteHighlightFG = RGBA(0, 0, 0, 0);
+        _vteHighlightBG = RGBA(0, 0, 0, 0);
+        _vteCursorFG = RGBA(0, 0, 0, 0);
+        _vteCursorBG = RGBA(0, 0, 0, 0);
+        _vteDimBG = RGBA(0, 0, 0, 0);
+        _vteBadge = RGBA(0, 0, 0, 0);
+        _vteBold = RGBA(0, 0, 0, 0);
+        _dimBold = RGBA(0, 0, 0, 0);
 
-        _vtePalette = new RGBA[16];
-        _dimPalette = new RGBA[16];
-        for (int i = 0; i < 16; i++) {
-            _vtePalette[i] = new RGBA();
-            _dimPalette[i] = new RGBA();
-        }
+        _vtePalette[] = RGBA(0, 0, 0, 0);
+        _dimPalette[] = RGBA(0, 0, 0, 0);
     }
 
     /// Apply the current color set to VTE (normal or dim).
@@ -180,11 +209,11 @@ public:
         if (desired == _currentColorSet && !force) return;
 
         if (_isTerminalWidgetFocused() || _dimPercent == 0) {
-            vte.setColors(_vteFG, _vteBG, _vtePalette);
+            vte.setColors(_vteFG, _vteBG, _vtePalette[]);
             setBoldColor(_vteBold);
             _currentColorSet = VTEColorSet.normal;
         } else {
-            vte.setColors(_dimFG, _vteBG, _dimPalette);
+            vte.setColors(_dimFG, _vteBG, _dimPalette[]);
             setBoldColor(_dimBold);
             _currentColorSet = VTEColorSet.dim;
         }
@@ -202,8 +231,10 @@ public:
             vte.setColorHighlightForeground(_vteHighlightFG);
             vte.setColorHighlight(_vteHighlightBG);
         } else {
-            vte.setColorHighlightForeground(null);
-            vte.setColorHighlight(null);
+            // NULL resets are not expressible through giD's by-value RGBA
+            // wrappers; call the C functions directly.
+            vte_terminal_set_color_highlight_foreground(cast(VteTerminal*) vte._cPtr, null);
+            vte_terminal_set_color_highlight(cast(VteTerminal*) vte._cPtr, null);
         }
 
         if (gsProfile.getBoolean(SETTINGS_PROFILE_USE_CURSOR_COLOR_KEY)) {
@@ -212,22 +243,22 @@ public:
             vte.setColorCursorForeground(_vteCursorFG);
             vte.setColorCursor(_vteCursorBG);
         } else {
-            vte.setColorCursorForeground(null);
-            vte.setColorCursor(null);
+            vte_terminal_set_color_cursor_foreground(cast(VteTerminal*) vte._cPtr, null);
+            vte_terminal_set_color_cursor(cast(VteTerminal*) vte._cPtr, null);
         }
     }
 
     /// Read and apply main color preferences (FG, BG, palette, transparency, dim).
     void applyMainColors() {
         import gx.gtk.util : getStyleColor, getStyleBackgroundColor;
-        import gtk.StyleContext : StateFlags;
+        import gtk.types : StateFlags;
 
         auto vte = _ctx.contextVte();
         auto gsProfile = _ctx.contextGsProfile();
 
         if (gsProfile.getBoolean(SETTINGS_PROFILE_USE_THEME_COLORS_KEY)) {
-            getStyleColor(vte.getStyleContext(), StateFlags.ACTIVE, _vteFG);
-            getStyleBackgroundColor(vte.getStyleContext(), StateFlags.ACTIVE, _vteBG);
+            getStyleColor(vte.getStyleContext(), StateFlags.Active, _vteFG);
+            getStyleBackgroundColor(vte.getStyleContext(), StateFlags.Active, _vteBG);
         } else {
             if (!_vteFG.parse(gsProfile.getString(SETTINGS_PROFILE_FG_COLOR_KEY)))
                 trace("Parsing foreground color failed");
@@ -280,7 +311,7 @@ public:
             _badgeFont = vte.getFont().copy();
             _badgeFont.setSize(_badgeFont.getSize() * 2);
         } else {
-            _badgeFont = PgFontDescription.fromString(gsProfile.getString(SETTINGS_PROFILE_BADGE_FONT_KEY));
+            _badgeFont = FontDescription.fromString(gsProfile.getString(SETTINGS_PROFILE_BADGE_FONT_KEY));
         }
         tracef("Badge font is %s:%d", _badgeFont.getFamily(), _badgeFont.getSize());
         vte.queueDraw();
@@ -309,7 +340,11 @@ public:
         _dragInfo = info;
     }
 
-    /// Access to background color (needed by scrollbar CSS theming in Terminal).
+    /**
+     * Access to background color (needed by scrollbar CSS theming in Terminal).
+     * NOTE (giD): RGBA is a value struct, so this returns a snapshot COPY of
+     * the current background color, not a live reference as in GtkD.
+     */
     @property RGBA vteBG() { return _vteBG; }
 
     /// Access to dim percent (needed by focus change handlers in Terminal).
@@ -319,7 +354,7 @@ public:
      * Draw callback for badge text, background painting, and margin line.
      * Connect to VTE's draw signal (before the drag highlight).
      */
-    bool onDrawBadge(Scoped!Context cr, Widget w) {
+    bool onDrawBadge(Context cr, Widget w) {
 
         cr.save();
         double width = to!double(w.getAllocatedWidth());
@@ -346,7 +381,7 @@ public:
         if (_badgeText.length > 0 && _badgeFont !is null) {
             cr.setSourceRgba(_vteBadge.red, _vteBadge.green, _vteBadge.blue, 1.0);
 
-            GdkRectangle rect = GdkRectangle(BADGE_MARGIN, BADGE_MARGIN, to!int(width / 2) - BADGE_MARGIN, to!int(height / 2) - BADGE_MARGIN);
+            Rectangle rect = Rectangle(BADGE_MARGIN, BADGE_MARGIN, to!int(width / 2) - BADGE_MARGIN, to!int(height / 2) - BADGE_MARGIN);
             string position = gsProfile.getString(SETTINGS_PROFILE_BADGE_POSITION_KEY);
             switch (position) {
                 case SETTINGS_QUADRANT_NE_VALUE:
@@ -362,8 +397,8 @@ public:
                 default:
             }
 
-            import pango.PgLayout : PangoWrapMode, PangoAlignment;
-            PgLayout pgl = new PgLayout(vte.getPangoContext());
+            import pango.types : WrapMode, Alignment;
+            Layout pgl = new Layout(vte.getPangoContext());
             pgl.setFontDescription(_badgeFont);
             pgl.setText(_badgeText);
             pgl.setWidth(rect.width * PANGO_SCALE);
@@ -371,18 +406,18 @@ public:
 
             int pw, ph;
             pgl.getPixelSize(pw, ph);
-            pgl.setWrap(PangoWrapMode.WORD_CHAR);
+            pgl.setWrap(WrapMode.WordChar);
 
             switch (position) {
                 case SETTINGS_QUADRANT_NE_VALUE:
-                    pgl.setAlignment(PangoAlignment.RIGHT);
+                    pgl.setAlignment(Alignment.Right);
                     break;
                 case SETTINGS_QUADRANT_SW_VALUE:
                     rect.y = rect.y + rect.height - ph;
                     break;
                 case SETTINGS_QUADRANT_SE_VALUE:
                     rect.y = rect.y + rect.height - ph;
-                    pgl.setAlignment(PangoAlignment.RIGHT);
+                    pgl.setAlignment(Alignment.Right);
                     break;
                 default:
             }
@@ -390,7 +425,7 @@ public:
             cr.rectangle(rect.x, rect.y, rect.width, rect.height);
             cr.clip();
             cr.moveTo(rect.x, rect.y);
-            PgCairo.showLayout(cr, pgl);
+            showLayout(cr, pgl);
             cr.resetClip();
         }
         cr.restore();
@@ -399,11 +434,10 @@ public:
 
     /**
      * Draw callback for drag highlight overlay.
-     * Connect to VTE's draw signal with ConnectFlags.AFTER.
+     * Connect to VTE's draw signal with Yes.After.
      */
-    bool onDrawDragHighlight(Scoped!Context cr, Widget w) {
-        import gtk.Widget : Widget;
-        import gtk.StyleContext : StateFlags;
+    bool onDrawDragHighlight(Context cr, Widget w) {
+        import gtk.types : StateFlags;
         import gx.gtk.util : getStyleBackgroundColor;
 
         if (!_dragInfo.isDragActive)
@@ -412,7 +446,7 @@ public:
         auto vte = _ctx.contextVte();
         RGBA color;
         if (!vte.getStyleContext().lookupColor("theme_selected_bg_color", color)) {
-            getStyleBackgroundColor(vte.getStyleContext(), StateFlags.SELECTED, color);
+            getStyleBackgroundColor(vte.getStyleContext(), StateFlags.Selected, color);
         }
         cr.setSourceRgba(color.red, color.green, color.blue, 1.0);
         cr.setLineWidth(STROKE_WIDTH);

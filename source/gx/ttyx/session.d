@@ -2,6 +2,48 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
  * distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+
+/*
+ * giD port of source/gx/ttyx/session.d. Differences from the GtkD original:
+ *   - Enums are PascalCase in <pkg>.types (Orientation.Horizontal/Vertical,
+ *     Align.End, ResponseType.Ok/Cancel, Content.ColorAlpha, Operator.Over,
+ *     Format.Argb32).
+ *   - addOn* -> connect*; where the handler ignores its parameters the
+ *     delegate literal is written zero-arg (giD connect* templates accept
+ *     reduced arity, which also sidesteps the name-every-param pitfall):
+ *     connectRealize, connectDestroy, connectSizeAllocate,
+ *     connectButtonReleaseEvent, connectAcceptPosition.
+ *   - GSettings.addOnChanged(dg) -> connectChanged(null, dg) — detail comes
+ *     first, null means all keys; delegate receives just the key.
+ *   - Draw handler: addOnDraw(Scoped!Context, Widget) ->
+ *     connectDraw(bool delegate(Context, Widget)) — no Scoped! wrapper.
+ *   - giD binds cairo procedurally: no ImageSurface class. The cached
+ *     background from AppWindow.getBackgroundImage and the temporary child
+ *     surface are plain cairo.surface.Surface; ImageSurface.create ->
+ *     cairo.global.imageSurfaceCreate, Context.create -> cairo.global.create.
+ *     The explicit crChild.destroy()/isChildSurface.destroy() scope(exit) is
+ *     dropped — cairo objects are wrapper/GC-managed in giD (gx.gtk.cairo
+ *     precedent).
+ *   - paned.setProperty("position-set", true) -> giD typed property setter
+ *     paned.positionSet = true.
+ *   - GtkAllocation -> gtk.types.Allocation (alias of the gdk.rectangle
+ *     Rectangle value struct); getClip takes it as an out parameter.
+ *   - gtk.Version.checkVersion -> gtk.global.checkVersion (returns null when
+ *     compatible; .length == 0 still works).
+ *   - SessionProperties: Dialog(title, parent, flags, buttons, responses)
+ *     wraps varargs gtk_dialog_new_with_buttons which giD does not bind, and
+ *     use-header-bar is construct-only -> raw
+ *     g_object_new(Dialog._getGType(), "use-header-bar", 1, null) passed to
+ *     super(ptr, No.Take) + setTitle/setModal/setTransientFor/addButton (the
+ *     advpaste.d pattern). StockID.CANCEL/OK become plain _("Cancel")/_("OK")
+ *     labels — stock icons/mnemonics are gone (consistent with the other
+ *     ported dialogs).
+ *   - new Value(PANED_RESIZE_MODE) needs a cast(bool) — giD's templated
+ *     Value ctor does not accept immutable(bool).
+ *   - Dropped GtkD imports that the original never used (gdk.Atom, gdk.Cairo,
+ *     gdkpixbuf.Pixbuf, glib.Util, gobject.ObjectG, gobject.ParamSpec,
+ *     gtk.Button, gtk.Clipboard, gtk.Main, gtk.Menu, gtk.MenuItem).
+ */
 module gx.ttyx.session;
 
 import core.stdc.locale;
@@ -15,46 +57,37 @@ import std.string;
 import std.sumtype;
 import std.uuid;
 
-import cairo.Context;
-import cairo.ImageSurface;
+import gid.gid : No;
 
-import gdkpixbuf.Pixbuf;
+import cairo.context : Context;
+import cairo.global : createContext = create, imageSurfaceCreate;
+import cairo.surface : Surface;
+import cairo.types : Content, Format, Operator;
 
-import gdk.Atom;
-import gdk.Cairo;
-import gdk.Event;
+import gio.settings : GSettings = Settings;
 
-import gio.Settings : GSettings = Settings;
+import gobject.c.functions : g_object_new;
+import gobject.value : Value;
 
-import glib.Util;
-
-import gobject.ObjectG;
-import gobject.ParamSpec;
-import gobject.Value;
-
-import gtk.Application;
-import gtk.Box;
-import gtk.Button;
-import gtk.Container;
-import gtk.Clipboard;
-import gtk.ComboBox;
-import gtk.Dialog;
-import gtk.Entry;
-import gtk.Grid;
-import gtk.Label;
-import gtk.Main;
-import gtk.Menu;
-import gtk.MenuItem;
-import gtk.Paned;
-import gtk.Stack;
-import gtk.Version;
-import gtk.Widget;
-import gtk.Window;
+import gtk.box : Box;
+import gtk.combo_box : ComboBox;
+import gtk.container : Container;
+import gtk.dialog : Dialog;
+import gtk.entry : Entry;
+import gtk.global : checkVersion;
+import gtk.grid : Grid;
+import gtk.label : Label;
+import gtk.paned : Paned;
+import gtk.stack : Stack;
+import gtk.types : Align, Allocation, Orientation, ResponseType;
+import gtk.widget : Widget;
+import gtk.window : Window;
 
 import gx.gtk.cairo;
 import gx.gtk.dialog;
 import gx.gtk.threads;
 import gx.gtk.util;
+import gx.gtk.events;
 import gx.i18n.l10n;
 import gx.util.array;
 
@@ -104,7 +137,7 @@ class SessionCreationException : Exception {
  */
 Orientation parseOrientation(long raw) {
     import std.conv : to;
-    if (raw != Orientation.HORIZONTAL && raw != Orientation.VERTICAL) {
+    if (raw != Orientation.Horizontal && raw != Orientation.Vertical) {
         throw new SessionCreationException("Invalid paned orientation value in session: " ~ to!string(raw));
     }
     return cast(Orientation) raw;
@@ -112,8 +145,8 @@ Orientation parseOrientation(long raw) {
 
 unittest {
     import std.exception : assertThrown;
-    assert(parseOrientation(Orientation.HORIZONTAL) == Orientation.HORIZONTAL);
-    assert(parseOrientation(Orientation.VERTICAL) == Orientation.VERTICAL);
+    assert(parseOrientation(Orientation.Horizontal) == Orientation.Horizontal);
+    assert(parseOrientation(Orientation.Vertical) == Orientation.Vertical);
     assertThrown!SessionCreationException(parseOrientation(2));
     assertThrown!SessionCreationException(parseOrientation(-1));
     assertThrown!SessionCreationException(parseOrientation(9999));
@@ -180,17 +213,17 @@ private:
     }
 
     void createBaseUI() {
-        stackGroup = new Box(Orientation.VERTICAL, 0);
+        stackGroup = new Box(Orientation.Vertical, 0);
         stackGroup.getStyleContext().addClass("ttyx-background");
         addNamed(stackGroup, STACK_GROUP_NAME);
-        stackMaximized = new Box(Orientation.VERTICAL, 0);
+        stackMaximized = new Box(Orientation.Vertical, 0);
         stackMaximized.getStyleContext().addClass("ttyx-background");
         addNamed(stackMaximized, STACK_MAX_NAME);
-        groupChild = new Box(Orientation.VERTICAL, 0);
+        groupChild = new Box(Orientation.Vertical, 0);
         stackGroup.add(groupChild);
         // Need this to switch the stack in case we loaded a layout
         // with a maximized terminal since stack can't be switched until realized
-        addOnRealize(delegate(Widget) {
+        connectRealize(delegate() {
             if (maximizedInfo.isMaximized) {
                 setVisibleChild(stackMaximized);
             }
@@ -221,10 +254,10 @@ private:
      */
     TerminalPaned createPaned(Orientation orientation) {
         TerminalPaned result = new TerminalPaned(orientation);
-        if (Version.checkVersion(3, 16, 0).length == 0) {
+        if (checkVersion(3, 16, 0).length == 0) {
             result.setWideHandle(gsSettings.getBoolean(SETTINGS_ENABLE_WIDE_HANDLE_KEY));
         }
-        result.setProperty("position-set", true);
+        result.positionSet = true;
         return result;
     }
 
@@ -274,7 +307,7 @@ private:
         root.styleGetProperty("handle-size", handleSize);
         tracef("Handle size is %d", handleSize.getInt());
 
-        int size = root.getOrientation() == Orientation.HORIZONTAL ? root.getAllocatedWidth() : root.getAllocatedHeight();
+        int size = root.getOrientation() == Orientation.Horizontal ? root.getAllocatedWidth() : root.getAllocatedHeight();
         int baseSize = (size - (handleSize.getInt() * model.count)) / (model.count + 1);
         tracef("Redistributing %d terminals with pos %d out of total size %d", model.count + 1, baseSize, size);
 
@@ -554,8 +587,8 @@ private:
         int height = parent.getAllocatedHeight();
         int width = parent.getAllocatedWidth();
 
-        Box b1 = new Box(Orientation.VERTICAL, 0);
-        Box b2 = new Box(Orientation.VERTICAL, 0);
+        Box b1 = new Box(Orientation.Vertical, 0);
+        Box b2 = new Box(Orientation.Vertical, 0);
 
         Paned paned = createPaned(orientation);
         paned.pack1(b1, PANED_RESIZE_MODE, PANED_SHRINK_MODE);
@@ -572,10 +605,10 @@ private:
         }
 
         final switch (orientation) {
-        case Orientation.HORIZONTAL:
+        case Orientation.Horizontal:
             paned.setPosition(width / 2);
             break;
-        case Orientation.VERTICAL:
+        case Orientation.Vertical:
             paned.setPosition(height / 2);
             break;
 
@@ -636,7 +669,7 @@ private:
             //Add terminal to this one
             addTerminal(src);
         }
-        Orientation orientation = (dq == DragQuadrant.TOP || dq == DragQuadrant.BOTTOM) ? Orientation.VERTICAL : Orientation.HORIZONTAL;
+        Orientation orientation = (dq == DragQuadrant.TOP || dq == DragQuadrant.BOTTOM) ? Orientation.Vertical : Orientation.Horizontal;
         int child = (dq == DragQuadrant.TOP || dq == DragQuadrant.LEFT) ? 1 : 2;
         //Inserting terminal
         //trace(format("Inserting terminal orient=$d, child=$d", orientation, child));
@@ -829,7 +862,7 @@ private:
     void applyPreference(string key) {
         switch (key) {
             case SETTINGS_ENABLE_WIDE_HANDLE_KEY:
-                if (Version.checkVersion(3, 16, 0).length == 0) {
+                if (checkVersion(3, 16, 0).length == 0) {
                     updateWideHandle(gsSettings.getBoolean(SETTINGS_ENABLE_WIDE_HANDLE_KEY));
                 }
                 break;
@@ -992,9 +1025,9 @@ private:
         trace("Loading paned");
         Orientation orientation = parseOrientation(value[NODE_ORIENTATION].integer());
         TerminalPaned paned = createPaned(orientation);
-        Box b1 = new Box(Orientation.VERTICAL, 0);
+        Box b1 = new Box(Orientation.Vertical, 0);
         b1.add(parseNode(value[NODE_CHILD1], sizeInfo));
-        Box b2 = new Box(Orientation.VERTICAL, 0);
+        Box b2 = new Box(Orientation.Vertical, 0);
         b2.add(parseNode(value[NODE_CHILD2], sizeInfo));
         paned.pack1(b1, PANED_RESIZE_MODE, PANED_SHRINK_MODE);
         paned.pack2(b2, PANED_RESIZE_MODE, PANED_SHRINK_MODE);
@@ -1061,45 +1094,43 @@ private:
     void initSession() {
 
         gsSettings = new GSettings(SETTINGS_ID);
-        gsSettings.addOnChanged(delegate(string key, GSettings) {
+        gsSettings.connectChanged(null, delegate(string key) {
             applyPreference(key);
         });
         getStyleContext.addClass("ttyx-background");
 
-        addOnDraw(&onDraw);
+        connectDraw(&onDraw);
     }
 
-    bool onDraw(Scoped!Context cr, Widget w) {
+    bool onDraw(Context cr, Widget w) {
         AppWindow window = cast(AppWindow)getToplevel();
         if (window is null) return false;
         Container child = cast(Container) getVisibleChild();
         if (child is null) return false;
 
         //Cached render
-        ImageSurface isBGImage = window.getBackgroundImage(child);
+        Surface isBGImage = window.getBackgroundImage(child);
         if (isBGImage is null) return false;
 
         cr.save();
         cr.setSourceSurface(isBGImage, 0, 0);
         // Line below was causing issue for #83-, doesn't seem to be any ill effect removing it
-        //cr.setOperator(cairo_operator_t.SOURCE);
+        //cr.setOperator(Operator.Source);
         cr.paint();
 
         //Draw child onto temporary image so it doesn't overdraw background
-        import cairo.Surface: Surface;
-        Surface isChildSurface = cr.getTarget().createSimilar(cairo_content_t.COLOR_ALPHA, child.getAllocatedWidth(), child.getAllocatedHeight());
+        Surface isChildSurface = cr.getTarget().createSimilar(Content.ColorAlpha, child.getAllocatedWidth(), child.getAllocatedHeight());
         if (isChildSurface is null) {
             trace("****** ImageSurface is null");
-            isChildSurface = ImageSurface.create(cairo_format_t.ARGB32, child.getAllocatedWidth(), child.getAllocatedHeight());
+            isChildSurface = imageSurfaceCreate(Format.Argb32, child.getAllocatedWidth(), child.getAllocatedHeight());
         }
-        Context crChild = Context.create(isChildSurface);
-        scope (exit) {
-            crChild.destroy();
-            isChildSurface.destroy();
-        }
+        Context crChild = createContext(isChildSurface);
+        // Note: the GtkD original explicitly destroyed crChild/isChildSurface
+        // via scope(exit); giD cairo wrappers are GC-managed (gx.gtk.cairo
+        // precedent), so the explicit destroys are dropped.
         propagateDraw(child, crChild);
         cr.setSourceSurface(isChildSurface, 0, 0);
-        cr.setOperator(cairo_operator_t.OVER);
+        cr.setOperator(Operator.Over);
         cr.paint();
 
         cr.restore();
@@ -1107,7 +1138,7 @@ private:
     }
 
     void updateWideHandle(bool value) {
-        if (Version.checkVersion(3, 16, 0).length == 0) {
+        if (checkVersion(3, 16, 0).length == 0) {
             Paned[] all = gx.gtk.util.getChildren!(Paned)(stackGroup, true);
             tracef("Updating wide handle for %d paned", all.length);
             foreach (paned; all) {
@@ -1131,7 +1162,7 @@ public:
         _sessionUUID = randomUUID().toString();
         _name = name;
 
-        this.addOnDestroy(delegate(Widget) {
+        this.connectDestroy(delegate() {
             // Never use experimental logging in destructors, causes
             // memory exceptions on GC for some reason
 
@@ -1292,15 +1323,27 @@ public:
 
     /**
      * The name of the session
+     *
+     * giD note: gtk.widget.Widget has a generated `name` property pair
+     * (gtk_widget_get/set_name) that GtkD did not expose as a D property, so
+     * these must be declared `override nothrow` (the layout.d `title`
+     * precedent). Caller-visible semantics change: reading/writing `name`
+     * through a Widget reference now dispatches here (session title) instead
+     * of the GTK widget name.
      */
-    @property string name() {
+    override @property string name() nothrow {
         return _name;
     }
 
-    @property void name(string value) {
+    override @property void name(string value) nothrow {
         if (value.length > 0) {
             _name = value;
-            onSessionTitleChange();
+            try {
+                onSessionTitleChange();
+            } catch (Exception e) {
+                // Widget.name is nothrow in giD; state-change listeners must
+                // not break that contract.
+            }
         }
     }
 
@@ -1391,12 +1434,12 @@ public:
                 TerminalPaned paned = cast(TerminalPaned) parent;
                 trace("Testing Paned");
                 if (paned !is null) {
-                    if ((direction == "up" || direction == "down") && paned.getOrientation() == Orientation.VERTICAL) {
+                    if ((direction == "up" || direction == "down") && paned.getOrientation() == Orientation.Vertical) {
                         trace("Resizing " ~ direction);
                         paned.setPosition(paned.getPosition() + increment);
                         paned.updateRatio();
                         return;
-                    } else if ((direction == "left" || direction == "right") && paned.getOrientation() == Orientation.HORIZONTAL) {
+                    } else if ((direction == "left" || direction == "right") && paned.getOrientation() == Orientation.Horizontal) {
                         trace("Resizing " ~ direction);
                         paned.setPosition(paned.getPosition() + increment);
                         paned.updateRatio();
@@ -1454,7 +1497,7 @@ public:
         trace("Focusing ", direction);
 
         Widget appWindow = currentTerminal.getToplevel();
-        GtkAllocation appWindowAllocation;
+        Allocation appWindowAllocation;
         appWindow.getClip(appWindowAllocation);
 
         // Start at the top left of the current terminal
@@ -1491,7 +1534,7 @@ public:
                 int termX, termY;
                 terminal.translateCoordinates(appWindow, 0, 0, termX, termY);
 
-                GtkAllocation termAllocation;
+                Allocation termAllocation;
                 terminal.getClip(termAllocation);
 
                 if (xPos >= termX && yPos >= termY && xPos <= (termX + termAllocation.width) && yPos <= (termY + termAllocation.height)) {
@@ -1561,9 +1604,9 @@ public:
             int width = currentTerminal.getAllocatedWidth();
 
             if (height < width) {
-                addNewTerminal(currentTerminal, Orientation.HORIZONTAL);
+                addNewTerminal(currentTerminal, Orientation.Horizontal);
             } else {
-                addNewTerminal(currentTerminal, Orientation.VERTICAL);
+                addNewTerminal(currentTerminal, Orientation.Vertical);
             }
         }
     }
@@ -1638,7 +1681,7 @@ private:
 
         Label label = new Label(format("<b>%s</b>", _("Name")));
         label.setUseMarkup(true);
-        label.setHalign(GtkAlign.END);
+        label.setHalign(Align.End);
         grid.attach(label, 0, 0, 1, 1);
 
         eName = new Entry();
@@ -1649,7 +1692,7 @@ private:
 
         label = new Label(format("<b>%s</b>", _("Profile")));
         label.setUseMarkup(true);
-        label.setHalign(GtkAlign.END);
+        label.setHalign(Align.End);
         grid.attach(label, 0, 1, 1, 1);
 
         ProfileInfo[] profiles = prfMgr.getProfiles();
@@ -1670,12 +1713,22 @@ private:
 public:
 
     this(Window parent, string name, string profileUUID) {
-        super(_("New Session"), parent, GtkDialogFlags.MODAL + GtkDialogFlags.USE_HEADER_BAR, [StockID.CANCEL, StockID.OK], [ResponseType.CANCEL, ResponseType.OK]);
-        setDefaultResponse(ResponseType.OK);
+        // gtk_dialog_new_with_buttons is varargs (not bound by giD) and
+        // use-header-bar is construct-only, so construct the underlying
+        // GtkDialog directly with the property set (see advpaste.d).
+        super(cast(void*) g_object_new(Dialog._getGType(), cast(const(char)*) "use-header-bar", 1, cast(const(char)*) null), No.Take);
+        setTitle(_("New Session"));
+        setModal(true);
+        setTransientFor(parent);
+        addButton(_("Cancel"), ResponseType.Cancel);
+        addButton(_("OK"), ResponseType.Ok);
+        setDefaultResponse(ResponseType.Ok);
         createUI(name, profileUUID);
     }
 
-    @property string name() {
+    // override nothrow: shadows giD's generated Widget.name property
+    // (see the Session.name note above).
+    override @property string name() nothrow {
         return eName.getText();
     }
 
@@ -1705,16 +1758,16 @@ private:
 public:
     this(Orientation orientation) {
         super(orientation);
-        addOnSizeAllocate(delegate(GdkRectangle* rect, Widget) {
+        connectSizeAllocate(delegate() {
             updatePosition();
         });
 
-        addOnButtonRelease(delegate(Event event, Widget w) {
+        connectGdkEvent!EventButton(this, "button-release-event", delegate bool() {
             updateRatio();
             return false;
         });
 
-        addOnAcceptPosition(delegate(Paned) {
+        connectAcceptPosition(delegate bool() {
             updateRatio();
             return false;
         });
@@ -1723,7 +1776,7 @@ public:
     void updateRatio() {
         //trace("Updating ratio");
         double newRatio = ratio;
-        if (getOrientation() == Orientation.HORIZONTAL) {
+        if (getOrientation() == Orientation.Horizontal) {
             newRatio = to!double(getChild1().getAllocatedWidth()) / to!double(getAllocatedWidth());
             //tracef("Child1 Width=%d, Paned Width=%d, newRatio=%f",getChild1().getAllocatedWidth(),getAllocatedWidth(), newRatio);
         } else {
@@ -1739,7 +1792,7 @@ public:
     void updatePosition(bool force = false) {
         if (ignoreRatio) return;
         //tracef("TerminalPaned Size allocated, ratio %f", ratio);
-        if (getOrientation() == Orientation.HORIZONTAL) {
+        if (getOrientation() == Orientation.Horizontal) {
             if (force || lastWidth != getAllocatedWidth()) {
                 int position = to!int(to!double(getAllocatedWidth()) * ratio);
                 setPosition(position);
@@ -1792,18 +1845,18 @@ struct SessionSizeInfo {
 
     double scalePosition(int position, Orientation orientation) {
         final switch (orientation) {
-        case Orientation.HORIZONTAL:
+        case Orientation.Horizontal:
             return to!double(position) / to!double(width);
-        case Orientation.VERTICAL:
+        case Orientation.Vertical:
             return to!double(position) / to!double(height);
         }
     }
 
     int getPosition(double scaledPosition, Orientation orientation) {
         final switch (orientation) {
-        case Orientation.HORIZONTAL:
+        case Orientation.Horizontal:
             return to!int(scaledPosition * width);
-        case Orientation.VERTICAL:
+        case Orientation.Vertical:
             return to!int(scaledPosition * height);
         }
     }
@@ -1933,8 +1986,8 @@ private:
                 threadsAddIdleDelegate(delegate() {
                     tracef("    2nd pass, Node set to pos %d from pos %d", n.pos, n.paned.getPosition());
                     n.paned.setPosition(n.pos);
-                    n.paned.childSetProperty(n.paned.getChild1(), "resize", new Value(PANED_RESIZE_MODE));
-                    n.paned.childSetProperty(n.paned.getChild2(), "resize", new Value(PANED_RESIZE_MODE));
+                    n.paned.childSetProperty(n.paned.getChild1(), "resize", new Value(cast(bool) PANED_RESIZE_MODE));
+                    n.paned.childSetProperty(n.paned.getChild2(), "resize", new Value(cast(bool) PANED_RESIZE_MODE));
                     return false;
                 });
             }

@@ -2,6 +2,14 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
  * distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+/*
+ * giD port of source/gx/ttyx/terminal/monitor.d. Single-line difference:
+ * the original's only GtkD coupling was `import vtec.vtetypes;` for the GPid
+ * alias -- replaced by `glib.types : GPid = Pid` (both are plain int). All
+ * logic, threading, and unit tests are byte-identical to the original.
+ * NOTE: still imports gx.ttyx.application for `tilix.processMonitor`
+ * (satisfied by the porting stub until application.d is integrated).
+ */
 module gx.ttyx.terminal.monitor;
 
 import core.sys.posix.unistd;
@@ -12,7 +20,7 @@ import std.datetime;
 import std.experimental.logger;
 import std.parallelism;
 
-import vtec.vtetypes;
+import glib.types : GPid = Pid;
 
 import gx.i18n.l10n;
 import gx.gtk.threads;
