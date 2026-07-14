@@ -60,7 +60,7 @@
  *     giD out iters are non-null even on false) and getValue + Value.getString.
  *   - addOnSearchChanged/addOnCursorChanged/addOnRowActivated/addOnClicked/
  *     addOnDestroy/addOnChanged → connect* equivalents; addOnKeyPress(Event,
- *     Widget) → connectKeyPressEvent(bool delegate(EventKey)) with direct
+ *     Widget) → connectGdkEvent!EventKey(this, "key-press-event", bool delegate(EventKey)) with direct
  *     .keyval access; keysyms are gdk.types.KEY_* constants.
  *   - new Button(label) → Button.newWithLabel; new CheckButton(label) →
  *     CheckButton.newWithLabel; new ScrolledWindow(tv) → no-arg + add(tv).
@@ -126,6 +126,7 @@ import secret.value : SecretValue = Value;
 
 import gx.gtk.dialog: showErrorDialog;
 import gx.gtk.util;
+import gx.gtk.events;
 import gx.i18n.l10n;
 
 import gx.ttyx.preferences;
@@ -221,7 +222,7 @@ private:
         se.connectSearchChanged(delegate() {
             filterEntries();
         });
-        se.connectKeyPressEvent(delegate bool(EventKey event) {
+        connectGdkEvent!EventKey(se, "key-press-event", delegate bool(EventKey event) {
             if (event.keyval == KEY_Escape) {
                 response(ResponseType.Cancel);
                 return true;

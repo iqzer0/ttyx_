@@ -13,7 +13,7 @@
  *    (the advpaste.d / closedialog.d pattern). GtkDialogFlags.MODAL ->
  *    setModal(true).
  *  - addOnKeyPress(Event, Widget) + event.getKeyval(out kv) ->
- *    connectKeyPressEvent(bool delegate(EventKey)) with direct .keyval field
+ *    connectGdkEvent!EventKey(this, "key-press-event", bool delegate(EventKey)) with direct .keyval field
  *    access; keysyms are module-level gdk.types.KEY_* constants
  *    (GdkKeysyms.GDK_Escape -> KEY_Escape).
  *  - addOnCursorChanged/addOnRowActivated/addOnSearchChanged ->
@@ -49,6 +49,7 @@ import gtk.types : Orientation, PolicyType, ResponseType, SelectionMode, ShadowT
 import gtk.window : Window;
 
 import gx.gtk.util;
+import gx.gtk.events;
 
 import gx.i18n.l10n;
 
@@ -84,7 +85,7 @@ private:
         tv.connectRowActivated(() {
             response(ResponseType.Ok);
         });
-        tv.connectKeyPressEvent(&checkKeyPress);
+        connectGdkEvent!EventKey(tv, "key-press-event", &checkKeyPress);
 
         ScrolledWindow sw = new ScrolledWindow();
         sw.add(tv);
@@ -99,7 +100,7 @@ private:
             tv.filterText = se.getText();
             updateUI();
         });
-        se.connectKeyPressEvent(&checkKeyPress);
+        connectGdkEvent!EventKey(se, "key-press-event", &checkKeyPress);
 
         Box box = new Box(Orientation.Vertical, 6);
         setAllMargins(box, 18);

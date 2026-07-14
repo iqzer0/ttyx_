@@ -28,6 +28,7 @@
  *     module-level gdk.types.KEY_* constants.
  */
 module gx.ttyx.terminal.advpaste;
+import gx.gtk.events;
 
 import std.experimental.logger;
 import std.format;
@@ -106,7 +107,7 @@ private:
         buffer = new TextBuffer(new TextTagTable());
         buffer.setText(text);
         TextView view = TextView.newWithBuffer(buffer);
-        view.connectKeyPressEvent(delegate bool(EventKey event) {
+        connectGdkEvent!EventKey(view, "key-press-event", delegate bool(EventKey event) {
             if (event.keyval == KEY_Return && (event.state & ModifierType.ControlMask)) {
                 response(ResponseType.Apply);
                 return true;

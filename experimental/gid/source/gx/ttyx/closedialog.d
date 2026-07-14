@@ -27,7 +27,7 @@
  *     Value-from-enum init uses abstract G_TYPE_ENUM, so the typed setters
  *     are the reliable route for enum-typed properties.
  *   - addOnKeyRelease(Event, Widget) + event.getKeyval(out kv) →
- *     connectKeyReleaseEvent(bool delegate(EventKey)) with direct .keyval
+ *     connectGdkEvent!EventKey(this, "key-release-event", bool delegate(EventKey)) with direct .keyval
  *     field access; keysyms are module-level gdk.types.KEY_* constants.
  *   - new ScrolledWindow(tv) → new ScrolledWindow() + add(tv);
  *     new CheckButton(label) → CheckButton.newWithLabel(label).
@@ -75,6 +75,7 @@ import pango.types : EllipsizeMode;
 
 import gx.i18n.l10n;
 import gx.gtk.util;
+import gx.gtk.events;
 
 import gx.ttyx.common;
 import gx.ttyx.preferences;
@@ -145,7 +146,7 @@ private:
         loadProcesses();
 
         tv = TreeView.newWithModel(ts);
-        tv.connectKeyReleaseEvent(delegate bool(EventKey event) {
+        connectGdkEvent!EventKey(tv, "key-release-event", delegate bool(EventKey event) {
             switch (event.keyval) {
                 case KEY_Escape:
                     response(ResponseType.Cancel);

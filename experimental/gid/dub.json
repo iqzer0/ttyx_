@@ -10,16 +10,21 @@
         "../../source/x11/X.d",
         "../../source/x11/Xlib.d",
         "../../source/gx/util/array.d",
+        "../../source/gx/util/geometry.d",
+        "../../source/gx/util/proc.d",
         "../../source/gx/util/path.d",
         "../../source/gx/util/redact.d",
         "../../source/gx/util/string.d",
         "../../source/gx/ttyx/common.d",
         "../../source/gx/ttyx/terminal/util.d",
+        "../../source/gx/ttyx/terminal/process.d",
+        "../../source/gx/ttyx/terminal/activeprocess.d",
         "../../source/gx/ttyx/terminal/actions.d",
         "../../source/gx/ttyx/terminal/state.d",
-        "../../source/gx/ttyx/constants.d"
+        "../../source/gx/ttyx/constants.d",
+        "../../source/gx/ttyx/encoding.d"
     ],
-    "libs-linux": ["X11"],
+    "libs-linux": ["X11", "gdk-3"],
     "dependencies": {
         "gid:gtk3": "0.9.13",
         "gid:pangocairo1": "0.9.13",

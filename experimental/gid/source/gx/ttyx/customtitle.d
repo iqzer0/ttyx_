@@ -62,6 +62,7 @@ import gtk.widget : Widget;
 import pango.types : EllipsizeMode;
 
 import gx.gtk.util;
+import gx.gtk.events;
 import gx.i18n.l10n;
 
 import gx.ttyx.common;
@@ -104,8 +105,8 @@ private:
         lblTitle.getStyleContext().addClass("title");
         lblTitle.setEllipsize(EllipsizeMode.Start);
         eb = new EventBox();
-        eb.connectButtonPressEvent(&onButtonPress);
-        eb.connectButtonReleaseEvent(&onButtonRelease);
+        connectGdkEvent!EventButton(eb, "button-press-event", &onButtonPress);
+        connectGdkEvent!EventButton(eb, "button-release-event", &onButtonRelease);
         eb.add(lblTitle);
         eb.setHalign(Align.Fill);
         addNamed(eb, PAGE_LABEL);
@@ -113,7 +114,7 @@ private:
         eTitle = new Entry();
         eTitle.setWidthChars(5);
         eTitle.setHexpand(true);
-        eTitle.connectKeyPressEvent(delegate bool(EventKey event, Widget widget) {
+        connectGdkEvent!EventKey(eTitle, "key-press-event", delegate bool(EventKey event, Widget widget) {
             switch (event.keyval) {
                 case KEY_Escape:
                     setViewMode(ViewMode.LABEL);
@@ -127,7 +128,7 @@ private:
             }
             return false;
         });
-        focusOutHandlerId = eTitle.connectFocusOutEvent(&onFocusOut, Yes.After);
+        focusOutHandlerId = connectGdkEvent!EventFocus(eTitle, "focus-out-event", &onFocusOut, Yes.After);
         if (checkVersion(3, 16, 0).length == 0) {
             titleEditor = createTitleEditHelper(eTitle, TitleEditScope.WINDOW);
             titleEditor.onPopoverShow.connect(&onPopoverShow);

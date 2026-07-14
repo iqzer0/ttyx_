@@ -15,7 +15,7 @@
  *   - `Version.checkVersion(3,20,0)` → free function `gtk.global.checkVersion`
  *     (same null-on-compatible contract).
  *   - Key release: `addOnKeyRelease(Event, Widget)` + `event.getKeyval(out kv)`
- *     → `connectKeyReleaseEvent(bool delegate(EventKey))` with direct
+ *     → `connectGdkEvent!EventKey(this, "key-release-event", bool delegate(EventKey))` with direct
  *     `.keyval`/`.state` field access; keysyms are `gdk.types.KEY_*`,
  *     modifiers `gdk.types.ModifierType.ShiftMask`.
  *   - `sagSearch.lookup(name)` → `lookupAction(name)` (ActionMap mixin; the
@@ -68,6 +68,7 @@ import vte.terminal : VTE = Terminal;
 
 import gx.gtk.actions;
 import gx.gtk.vte;
+import gx.gtk.events;
 import gx.i18n.l10n;
 
 import gx.ttyx.common;
@@ -132,7 +133,7 @@ private:
         seSearch.connectSearchChanged(delegate() {
             setTerminalSearchCriteria();
         });
-        seSearch.connectKeyReleaseEvent(delegate bool(EventKey event) {
+        connectGdkEvent!EventKey(seSearch, "key-release-event", delegate bool(EventKey event) {
             switch (event.keyval) {
                 case KEY_Escape:
                     setRevealChild(false);
@@ -294,14 +295,14 @@ public:
             this.vte = null;
             this.terminalActions = null;
         });
-        seSearch.connectFocusInEvent(delegate bool(EventFocus event, Widget widget) {
+        connectGdkEvent!EventFocus(seSearch, "focus-in-event", delegate bool(EventFocus event, Widget widget) {
             onSearchEntryFocusIn.emit(widget);
             return false;
         });
         // The GtkD original connected addOnFocusIn here a second time (an
         // evident copy-paste bug); the focus-out emission belongs on the
         // focus-out signal.
-        seSearch.connectFocusOutEvent(delegate bool(EventFocus event, Widget widget) {
+        connectGdkEvent!EventFocus(seSearch, "focus-out-event", delegate bool(EventFocus event, Widget widget) {
             onSearchEntryFocusOut.emit(widget);
             return false;
         });

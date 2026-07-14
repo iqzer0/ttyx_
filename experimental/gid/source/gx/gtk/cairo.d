@@ -19,6 +19,7 @@
  *  - addOnDamage -> connectDamageEvent (bool delegate(EventExpose, Widget)).
  */
 module gx.gtk.cairo;
+import gx.gtk.events;
 
 import std.algorithm;
 import std.conv;
@@ -222,7 +223,7 @@ class RenderWindow: OffscreenWindow {
 public:
     this() {
         super();
-        connectDamageEvent(&onDamage);
+        connectGdkEvent!EventExpose(this, "damage-event", &onDamage);
         show();
     }
 

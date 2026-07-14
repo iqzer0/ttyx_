@@ -243,7 +243,12 @@ BaseEditor createTypeEditor(BookmarkType bt, Bookmark bm = null) {
     }
 }
 
-abstract class BaseEditor: Grid {
+// NOTE: not `abstract`, though it is conceptually a base class. giD's
+// ObjectWrap.createClassMaps() instantiates every GObject-derived class at
+// startup via _d_newclass, which returns null for an abstract class and then
+// segfaults on the null wrapper. GObject-derived classes must be concrete
+// under giD; BaseEditor is never instantiated directly regardless.
+class BaseEditor: Grid {
 private:
     Entry eName;
 

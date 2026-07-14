@@ -54,3 +54,4 @@ po/remove-potcdate.sin
 po/stamp-po
 po/*.gmo
 po/remove-potcdate.sed
+.claude/
