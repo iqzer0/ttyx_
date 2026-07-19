@@ -1,8 +1,12 @@
-# Phase 2a migration progress (GtkD → giD, on GTK3)
+# Phase 2a migration log (GtkD → giD, on GTK3)
 
-Living checklist for the wholesale GtkD→giD port. Rationale, constraints, and
-the reason this must be wholesale (giD and GtkD cannot coexist in one build)
-are in [`../../docs/gid-migration.md`](../../docs/gid-migration.md).
+> **Historical record.** This was the living checklist of the wholesale
+> GtkD→giD port, which completed at 44/44 modules; the ports now live in
+> `source/` and the `experimental/gid/` staging tree it describes has been
+> deleted (its history is in git). Kept for the GtkD→giD translation
+> cheat-sheet and the per-module porting notes, which remain the reference
+> for future giD work (Phase 2b / GTK4). Rationale and constraints are in
+> [`gid-migration.md`](gid-migration.md).
 
 **Model:** a separate giD build (this `experimental/gid/` project) that grows
 until it reaches parity with the GtkD app under `source/`, then the main build

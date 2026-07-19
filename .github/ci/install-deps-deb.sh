@@ -34,8 +34,6 @@ eatmydata apt-get install -yq \
         libpango1.0-dev \
         librsvg2-dev \
         libsecret-1-dev \
-        libgtksourceview-3.0-dev \
-        libpeas-dev \
         libvte-2.91-dev \
         po4a \
         xvfb \

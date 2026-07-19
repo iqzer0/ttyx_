@@ -81,7 +81,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
         matrix:
-          dc: [dmd-2.109.1, ldc-latest]
+          dc: [ldc-latest]
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
@@ -89,7 +89,6 @@ jobs:
       run: |
         sudo apt-get update -qq
         sudo apt-get install -yq \
-                dh-dlang \
                 libatk1.0-dev \
                 libcairo2-dev \
                 libglib2.0-dev \
@@ -97,8 +96,6 @@ jobs:
                 libpango1.0-dev \
                 librsvg2-dev \
                 libsecret-1-dev \
-                libgtksourceview-3.0-dev \
-                libpeas-dev \
                 libvte-2.91-dev \
                 xvfb
 

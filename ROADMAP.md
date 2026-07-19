@@ -35,7 +35,7 @@ A security-focused tiling terminal emulator for Linux/GNOME. Competes with GNOME
 
 **This is the critical path for long-term viability.** Spiked July 2026 —
 full plan and findings in [docs/gid-migration.md](docs/gid-migration.md); a
-buildable giD seed lives in [experimental/gid/](experimental/gid/).
+the full porting log and GtkD→giD cheat-sheet live in [docs/gid-migration-log.md](docs/gid-migration-log.md).
 
 **Spike outcome:** giD is viable and covers the whole stack (`gid:gtk3`,
 `gid:vte2` = VTE-for-GTK3, libsecret, xlib). A GTK3 window + VTE terminal
@@ -46,7 +46,7 @@ not incremental. Approach: a parallel giD rewrite that grows to parity (reusing
 the GtkD-free logic unchanged), then a single build swap.
 
 ### Phase 2a — GtkD → giD, staying on GTX3
-- [x] Grow `experimental/gid/` into a giD-based ttyx_ (own build target, always compiles)
+- [x] Grow a parallel giD tree into a giD-based ttyx_ (staging tree since folded into `source/` and removed)
 - [x] Port the widget layer (app → window → session → terminal → prefs) to `gid:gtk3` + `gid:vte2` — 44/44 modules; full app builds and runs
 - [x] Reuse `gx/util/*` and pure logic unchanged; collapse `exvte.d` into native giD VTE calls
 - [x] Drop vendored `secret/`/`secretc/` for `gid:secret1` (vendored `x11/` kept — giD's xlib2 lacks the raw event types x11.d needs)

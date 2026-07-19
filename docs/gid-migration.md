@@ -71,7 +71,7 @@ with both bindings linked is impossible.
 Because the codebase cannot be half-migrated, the migration is a **parallel giD
 rewrite that grows to feature parity**, then a single build swap:
 
-1. Grow the giD skeleton (see `experimental/gid/`) into a giD-based ttyx_,
+1. Grow the giD skeleton (a parallel staging tree; since folded into `source/` and removed) into a giD-based ttyx_,
    building it as its own target so it always compiles.
 2. Port the widget layer into it in dependency order (app → window → session →
    terminal → dialogs/preferences), translating GtkD API calls to giD.
@@ -123,11 +123,11 @@ giD is more D-idiomatic, but the translation is per-file, not mechanical.
 ## Status
 
 - ✅ Spike done: giD viable, stack covered, coexistence ruled out.
-- ✅ Buildable skeleton committed at `experimental/gid/` (GTK3 window + VTE
+- ✅ Buildable skeleton committed (staging tree, later folded into `source/`) (GTK3 window + VTE
   terminal, compiles and links).
 - ⏳ Not started: the parallel rewrite.
 
 ## Building the skeleton
 
-See `experimental/gid/README.md`. In short: `cd experimental/gid && dub run`
+Historical — the staging tree is gone; the shipping build IS the giD build now (`dub build`). Porting log: [gid-migration-log.md](gid-migration-log.md). Originally: `cd experimental/gid && dub run`
 (needs a D compiler with `dub`, and GTK3 + VTE 2.91 runtime libraries).

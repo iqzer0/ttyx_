@@ -1,20 +1,21 @@
 #!/bin/sh
 # Measure RSS memory footprint of ttyx at startup.
-# Runs inside the CI container after a meson build.
+# Runs inside the CI container after the dub build.
 # Always exits 0 — this step is informational, not a gate.
 
 set -e
 
-BUILD_DIR="cibuild"
+RUNDATA_DIR=".rundata"
 SCHEMA_DIR="data/gsettings"
 
 # Compile GSettings schemas from source tree
 glib-compile-schemas "$SCHEMA_DIR"
 
-# Create the gresource symlink that ttyx expects under XDG_DATA_DIRS
-mkdir -p "$BUILD_DIR/data/ttyx/resources"
-ln -sf "$(pwd)/$BUILD_DIR/data/ttyx.gresource" \
-       "$BUILD_DIR/data/ttyx/resources/ttyx.gresource"
+# Compile the gresource where ttyx expects it under XDG_DATA_DIRS
+mkdir -p "$RUNDATA_DIR/ttyx/resources"
+glib-compile-resources --sourcedir=data/resources \
+    --target="$RUNDATA_DIR/ttyx/resources/ttyx.gresource" \
+    data/resources/ttyx.gresource.xml
 
 # Start a virtual display
 Xvfb :99 -screen 0 1024x768x24 &
@@ -27,8 +28,8 @@ sleep 1
 DISPLAY=:99 \
 GSETTINGS_BACKEND=memory \
 GSETTINGS_SCHEMA_DIR="$(pwd)/$SCHEMA_DIR" \
-XDG_DATA_DIRS="$(pwd)/$BUILD_DIR/data:/usr/local/share:/usr/share" \
-"./$BUILD_DIR/ttyx" --new-process &
+XDG_DATA_DIRS="$(pwd)/$RUNDATA_DIR:/usr/local/share:/usr/share" \
+./ttyx --new-process &
 TTYX_PID=$!
 
 # Give the GTK app time to fully initialise

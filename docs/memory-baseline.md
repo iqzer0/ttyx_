@@ -47,20 +47,22 @@ GC pause time is negligible.
 ### RSS
 
 ```bash
-# Build first (system ldc2, meson):
-meson setup builddir --wipe && ninja -C builddir
+# Build first (ldc2, dub):
+dub build --compiler=ldc2
 
 # Then launch and measure:
 glib-compile-schemas data/gsettings/
-mkdir -p builddir/data/ttyx/resources
-ln -sf "$(pwd)/builddir/data/ttyx.gresource" builddir/data/ttyx/resources/ttyx.gresource
+mkdir -p .rundata/ttyx/resources
+glib-compile-resources --sourcedir=data/resources \
+  --target=.rundata/ttyx/resources/ttyx.gresource \
+  data/resources/ttyx.gresource.xml
 
 Xvfb :98 -screen 0 1024x768x24 &
 DISPLAY=:98 \
 GSETTINGS_BACKEND=memory \
 GSETTINGS_SCHEMA_DIR=$(pwd)/data/gsettings/ \
-XDG_DATA_DIRS=$(pwd)/builddir/data:/usr/local/share:/usr/share \
-./builddir/ttyx --new-process &
+XDG_DATA_DIRS=$(pwd)/.rundata:/usr/local/share:/usr/share \
+./ttyx --new-process &
 TTYX_PID=$!
 sleep 6
 ps -o pid=,rss= -p $TTYX_PID

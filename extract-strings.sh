@@ -78,7 +78,8 @@ find ${BASEDIR}/po \
 echo "Updating manpage translations..."
 if type po4a-updatepo >/dev/null 2>&1; then
   MANDIR=${BASEDIR}/data/man
-  po4a-gettextize -f man -m ${MANDIR}/ttyx.1 -p ${MANDIR}/po/tilix.1.man.pot
+  mkdir -p ${MANDIR}/po
+  po4a-gettextize -f man -m ${MANDIR}/ttyx.1 -p ${MANDIR}/po/ttyx.1.man.pot
   for file in ${MANDIR}/po/*.man.po
   do
     echo -n $file

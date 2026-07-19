@@ -20,8 +20,8 @@ Setup instructions, build workflow, test suite, debugging tips, and code-style c
 
 | Task | Command |
 |------|---------|
-| Build (Meson, debug) | `meson setup builddir --buildtype=debug && ninja -C builddir` |
-| Build (Dub) | `dub build --compiler=ldc2` |
-| Run unit tests | `meson test -C builddir --print-errorlogs` |
+| Build (debug) | `dub build --compiler=ldc2` |
+| Build (release) | `dub build --build=release --compiler=ldc2` |
+| Run unit tests | `dub test --compiler=ldc2` |
 | Run from build dir | `./debug-ttyx.sh` |
 | Analyze most recent crash | `./debug-ttyx.sh --core` |
