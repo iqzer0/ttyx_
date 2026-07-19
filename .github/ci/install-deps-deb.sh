@@ -22,8 +22,6 @@ apt-get install -yq \
 # so the package name varies. curl/xz-utils/ca-certificates are the
 # tools install-ldc-tarball.sh needs.
 eatmydata apt-get install -yq \
-        meson \
-        ninja-build \
         appstream \
         ca-certificates \
         curl \

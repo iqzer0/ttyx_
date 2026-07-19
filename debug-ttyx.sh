@@ -10,9 +10,9 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-BUILD_DIR="$SCRIPT_DIR/builddir"
-BINARY="$BUILD_DIR/ttyx"
+BINARY="$SCRIPT_DIR/ttyx"
 SCHEMAS_DIR="$SCRIPT_DIR/data/gsettings"
+RUNDATA_DIR="$SCRIPT_DIR/.rundata"
 
 # Colors
 RED='\033[0;31m'
@@ -23,7 +23,7 @@ NC='\033[0m'
 case "${1:-}" in
     --rebuild)
         echo -e "${YELLOW}Rebuilding with debug symbols...${NC}"
-        ninja -C "$BUILD_DIR"
+        dub build --compiler=ldc2
         echo -e "${GREEN}Build complete.${NC}"
         shift
         ;;
@@ -36,7 +36,7 @@ esac
 
 if [ ! -f "$BINARY" ]; then
     echo -e "${RED}Binary not found at $BINARY${NC}"
-    echo "Run: meson setup builddir && ninja -C builddir"
+    echo "Run: dub build --compiler=ldc2"
     exit 1
 fi
 
@@ -54,14 +54,15 @@ if [ -d "$SCHEMAS_DIR" ]; then
     export GSETTINGS_SCHEMA_DIR="$SCHEMAS_DIR"
 fi
 
-# Make the build directory's gresource findable via XDG_DATA_DIRS.
-# The app searches for ttyx/resources/ttyx.gresource under each XDG data dir.
-# We create a symlink so that $BUILD_DIR/data/ttyx/resources/ttyx.gresource
-# points to the compiled gresource at $BUILD_DIR/data/ttyx.gresource.
-RESOURCE_LINK_DIR="$BUILD_DIR/data/ttyx/resources"
-mkdir -p "$RESOURCE_LINK_DIR"
-ln -sf "$BUILD_DIR/data/ttyx.gresource" "$RESOURCE_LINK_DIR/ttyx.gresource"
-export XDG_DATA_DIRS="$BUILD_DIR/data:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+# Make the compiled gresource findable via XDG_DATA_DIRS.
+# The app searches for ttyx/resources/ttyx.gresource under each XDG data dir;
+# compile it into a local run-data dir (dub has no data build step).
+echo -e "${YELLOW}Compiling gresource...${NC}"
+mkdir -p "$RUNDATA_DIR/ttyx/resources"
+glib-compile-resources --sourcedir="$SCRIPT_DIR/data/resources" \
+    --target="$RUNDATA_DIR/ttyx/resources/ttyx.gresource" \
+    "$SCRIPT_DIR/data/resources/ttyx.gresource.xml"
+export XDG_DATA_DIRS="$RUNDATA_DIR:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
 
 # Enable core dumps for this session
 ulimit -c unlimited 2>/dev/null || true

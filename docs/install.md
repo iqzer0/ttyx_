@@ -12,7 +12,7 @@ Two install paths depending on who you are:
 | If you are… | Use this |
 |--------------|------------|
 | An end user who wants to run ttyx_ | [Flatpak](#flatpak-recommended) — signed bundle with checksum verification |
-| A distro packager, or a developer building from source | [Source build](#source-build) via Meson or Dub |
+| A distro packager, or a developer building from source | [Source build](#source-build) via Dub |
 
 ---
 
@@ -63,53 +63,47 @@ For distro packagers, Flatpak maintainers, or developers.
 - dconf / GSettings
 - A D compiler (LDC recommended for release builds, DMD also supported)
 
-### With Meson (primary, used in CI)
+### Building with Dub (the build system)
 
-The Meson build resolves the GtkD bindings (`gtkd-3`, `vted-3`) via pkg-config, so those must be installed separately. On distros that still package them, apt covers everything. **Debian Testing / Sid** dropped GtkD from their archive — on those you have to build GtkD from source.
+ttyx_ builds with [Dub](https://dub.pm/) against the [giD](https://github.com/Kymorphia/gid)
+GObject-Introspection bindings (`gid:gtk3`, `gid:vte2`, `gid:secret1`). giD is a
+source-only Dub package compiled into the binary, so — unlike the old GtkD
+bindings — nothing D-specific needs to be installed system-wide. (The Meson
+build was retired together with GtkD.)
 
-**Debian Stable / Ubuntu:**
-
-```bash
-sudo apt-get install libgtk-3-dev libvte-2.91-dev libatk1.0-dev \
-  libcairo2-dev libpango1.0-dev librsvg2-dev libglib2.0-dev \
-  libsecret-1-dev libgtksourceview-3.0-dev libpeas-dev dh-dlang \
-  libgtkd-3-dev libvted-3-dev
-```
-
-**Debian Testing / Sid** (no `libgtkd-3-dev` / `libvted-3-dev` in archive):
+**Debian / Ubuntu build dependencies:**
 
 ```bash
 sudo apt-get install libgtk-3-dev libvte-2.91-dev libatk1.0-dev \
   libcairo2-dev libpango1.0-dev librsvg2-dev libglib2.0-dev \
-  libsecret-1-dev libgtksourceview-3.0-dev libpeas-dev dh-dlang
+  libsecret-1-dev
 ```
 
-Then build and install GtkD v3.x from source. The CI helper at [.github/ci/make-install-deps-extern.sh](https://github.com/gwelr/ttyx_/blob/master/.github/ci/make-install-deps-extern.sh) has the exact commands.
-
-**Build, install, test:**
-
-```bash
-meson setup builddir --buildtype=release
-ninja -C builddir
-sudo ninja -C builddir install
-
-# Optional: run the unit test suite
-meson test -C builddir --print-errorlogs
-```
-
-### With Dub
-
-Simpler for development, doesn't need GtkD installed system-wide (Dub pulls the bindings from the registry).
+**Build, test, install:**
 
 ```bash
 dub build --build=release --compiler=ldc2
 
-# or with DMD:
-dub build --build=release --compiler=dmd
-
 # Unit tests:
 dub test --compiler=ldc2
+
+# Install (binary + schemas, gresource, icons, translations, man page):
+sudo ./install.sh
 ```
+
+**Offline / vendored builds** (distro packaging, sandboxed builds): download
+the giD package archive from
+`https://code.dlang.org/packages/gid/0.9.13.zip`, then:
+
+```bash
+unzip gid-0.9.13.zip
+export DUB_HOME=$PWD/.dub
+dub add-local gid-0.9.13 0.9.13
+dub build --build=release --compiler=ldc2 --skip-registry=all
+```
+
+The Flatpak manifest at `flatpak/io.github.gwelr.ttyx.yaml` uses exactly this
+recipe.
 
 ---
 

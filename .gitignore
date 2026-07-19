@@ -55,3 +55,7 @@ po/stamp-po
 po/*.gmo
 po/remove-potcdate.sed
 .claude/
+.rundata/
+data/pkg/desktop/io.github.gwelr.ttyx.desktop
+data/metainfo/io.github.gwelr.ttyx.appdata.xml
+data/resources/ttyx.gresource

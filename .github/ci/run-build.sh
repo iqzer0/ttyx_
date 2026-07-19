@@ -1,33 +1,29 @@
 #!/bin/sh
 set -e
 
-# This script is supposed to run inside the Tilix Docker container
+# This script is supposed to run inside the ttyx Docker container
 # on the CI system.
-
 #
-# Read options for the current test build
-#
-
-build_type=debugoptimized
-build_dir="cibuild"
+# ttyx builds with dub against the giD bindings (a source-only dub
+# package fetched from the dub registry); meson was retired with the
+# GtkD -> giD migration. install.sh performs the data install that
+# meson's subdirs used to do (schemas, gresource, icons, po, desktop).
 
 export DC=ldc2
 echo "D compiler: $DC"
 set -x
 $DC --version
+dub --version
 
 #
-# Configure build with all flags enabled
+# Build (release, same optimization intent as the old debugoptimized)
 #
 
-mkdir $build_dir && cd $build_dir
-meson --buildtype=$build_type \
-      ..
+dub build --compiler=$DC --build=release
 
 #
-# Build & Install
+# Verify the install layout into a throwaway prefix
 #
 
-ninja
-DESTDIR=/tmp/install_root/ ninja install
+./install.sh /tmp/install_root/usr
 rm -r /tmp/install_root/

@@ -6,49 +6,40 @@ The [online documentation](https://gwelr.github.io/ttyx_/) has install instructi
 
 ## Prerequisites
 
-- **D compiler**: [LDC](https://github.com/ldc-developers/ldc) 1.30+ recommended for release builds; DMD 2.100+ also supported. The `dub` package manager ships with both.
-- **GTK 3.18+** and **VTE 0.46+** (0.76+ recommended — some features like triggers depend on newer VTE releases) with development headers.
-- **GtkD bindings** 3.x. Packaged on Debian Stable and Ubuntu as `libgtkd-3-dev` + `libvted-3-dev`. **Debian Testing / Sid** dropped them from the archive; build GtkD from source following the CI helper at `.github/ci/make-install-deps-extern.sh`.
-- **Meson + Ninja**, or **Dub**.
+- **D compiler**: [LDC](https://github.com/ldc-developers/ldc) 1.40+ recommended. The `dub` package manager ships with it.
+- **GTK 3.18+** and **VTE 0.46+** (0.76+ recommended — some features like triggers depend on newer VTE releases) with development headers (`libgtk-3-dev`, `libvte-2.91-dev`, `libsecret-1-dev` on Debian/Ubuntu).
+- The GUI bindings are [giD](https://github.com/Kymorphia/gid) (`gid:gtk3`, `gid:vte2`, `gid:secret1`) — a source-only Dub package fetched from the registry and compiled in; nothing D-specific to install system-wide.
 
 See the [Install page](https://gwelr.github.io/ttyx_/install/) for the full system-dependency list.
 
 ## Build
 
-### Meson (primary — matches CI)
-
-```bash
-meson setup builddir --buildtype=debug
-ninja -C builddir
-```
-
-Swap `--buildtype=debug` for `--buildtype=release` for optimized builds.
-
-### Dub (simpler for iteration)
+ttyx_ builds with Dub (the Meson build was retired together with the GtkD bindings):
 
 ```bash
 dub build --compiler=ldc2                     # debug by default
 dub build --build=release --compiler=ldc2     # release
 ```
 
-Dub pulls GtkD bindings from the package registry, so it doesn't require `libgtkd-3-dev` installed system-wide — handy on distros where the package is missing.
+The first build compiles the giD binding packages from source and caches them under `~/.dub`; subsequent builds are fast.
 
 ## Run from the build dir
 
-The binary under `builddir/ttyx` doesn't know where to find GSettings schemas or the compiled gresource unless you point it at them:
+The freshly built `./ttyx` doesn't know where to find GSettings schemas or the compiled gresource unless you point it at them:
 
 ```bash
 glib-compile-schemas data/gsettings/
 export GSETTINGS_SCHEMA_DIR="$PWD/data/gsettings"
 
 # The app looks for ttyx/resources/ttyx.gresource under each XDG data dir;
-# symlink the compiled gresource into that location:
-mkdir -p "$PWD/builddir/data/ttyx/resources"
-ln -sf "$PWD/builddir/data/ttyx.gresource" \
-       "$PWD/builddir/data/ttyx/resources/ttyx.gresource"
-export XDG_DATA_DIRS="$PWD/builddir/data:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+# compile the gresource into such a location:
+mkdir -p "$PWD/.rundata/ttyx/resources"
+glib-compile-resources --sourcedir=data/resources \
+  --target="$PWD/.rundata/ttyx/resources/ttyx.gresource" \
+  data/resources/ttyx.gresource.xml
+export XDG_DATA_DIRS="$PWD/.rundata:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
 
-./builddir/ttyx --new-process
+./ttyx --new-process
 ```
 
 Or use the bundled wrapper `debug-ttyx.sh`, which does all of the above plus launches the binary under gdb with sensible defaults.
@@ -70,16 +61,14 @@ ttyx_ is a GTK single-instance application (via D-Bus activation), so the wrappe
 ### Unit tests
 
 ```bash
-meson test -C builddir --print-errorlogs
-# or
 dub test --compiler=ldc2
 ```
 
-Both invocations build a `ttyx_test` binary that links every module with `-unittest`. Tests live alongside the code they test in `unittest { ... }` blocks — see `source/gx/util/*.d` for straightforward examples. The pure-helper modules (`geometry`, `redact`, `proc`, `string`) exist partly to make logic unit-testable without spinning up GTK widgets.
+This builds a test binary that links every module with `-unittest`. Tests live alongside the code they test in `unittest { ... }` blocks — see `source/gx/util/*.d` for straightforward examples. The pure-helper modules (`geometry`, `redact`, `proc`, `string`) exist partly to make logic unit-testable without spinning up GTK widgets.
 
 ### Validation tests
 
-CI also runs `desktop-file-validate` against the `.desktop` file and `appstream-util validate-relax` against the AppStream metadata. These fire automatically on `meson test`.
+CI also runs `desktop-file-validate` against the `.desktop` file (via `install.sh`, which validates on install).
 
 ## Debugging
 
@@ -116,7 +105,7 @@ Key conventions worth knowing:
 1. Fork the repo and create a topic branch off `master`.
 2. Make changes, run the test suite, commit.
 3. Push and open a PR against `master`.
-4. CI runs Meson builds on Debian Stable / Testing / Ubuntu LTS, Dub builds with both DMD and LDC, plus desktop-file and AppStream validation. PRs need green CI before review.
+4. CI runs Dub builds and the unit-test suite on Debian Stable / Testing / Ubuntu LTS, plus an install-layout check via `install.sh`. PRs need green CI before review.
 
 ### Commit and PR conventions
 

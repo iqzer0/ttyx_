@@ -45,12 +45,14 @@ half-migrated codebase does not compile — the migration is a **wholesale swap*
 not incremental. Approach: a parallel giD rewrite that grows to parity (reusing
 the GtkD-free logic unchanged), then a single build swap.
 
-### Phase 2a — GtkD → giD, staying on GTK3
-- [ ] Grow `experimental/gid/` into a giD-based ttyx_ (own build target, always compiles)
-- [ ] Port the widget layer (app → window → session → terminal → prefs) to `gid:gtk3` + `gid:vte2`
-- [ ] Reuse `gx/util/*` and pure logic unchanged; collapse `exvte.d` into native giD VTE calls
-- [ ] Optionally drop vendored `secret/`/`x11/` for giD libsecret/xlib
-- [ ] Swap the main dub/meson build over, delete GtkD, ship
+### Phase 2a — GtkD → giD, staying on GTX3
+- [x] Grow `experimental/gid/` into a giD-based ttyx_ (own build target, always compiles)
+- [x] Port the widget layer (app → window → session → terminal → prefs) to `gid:gtk3` + `gid:vte2` — 44/44 modules; full app builds and runs
+- [x] Reuse `gx/util/*` and pure logic unchanged; collapse `exvte.d` into native giD VTE calls
+- [x] Drop vendored `secret/`/`secretc/` for `gid:secret1` (vendored `x11/` kept — giD's xlib2 lacks the raw event types x11.d needs)
+- [x] Swap the main build over to giD, delete GtkD (branch `migrate/gid-build-swap`; dub is now the single build system — Meson retired since giD has no pkg-config packages; CI + Flatpak moved to dub, `install.sh` does the data install)
+- [ ] Interactive GUI smoke tests on a real session, then merge the swap branch and ship
+- [ ] File the giD event-marshal bug upstream (see `source/gx/gtk/events.d`)
 
 ### Phase 2b — GTK3 → GTK4 + libadwaita
 - [ ] Dependency swap to `gid:gtk4` / `gid:vte3` / `gid:adw1` + API-delta pass (`add`→`setChild`, `showAll`→`present`, event/controller model)

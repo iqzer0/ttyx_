@@ -69,15 +69,6 @@ modules:
         url: https://download.gnome.org/sources/vte/0.76/vte-0.76.3.tar.xz
         sha256: f678e94c056f377fd0021214adff5450cb172e9a08b160911181ddff7b7d5d60
 
-  # GtkD - D language GTK3 bindings
-  - name: gtkd
-    buildsystem: simple
-    build-commands:
-      - make -j${FLATPAK_BUILDER_N_JOBS} prefix=/app install-gtkd install-vte DC=ldc2
-    sources:
-      - type: archive
-        url: https://github.com/gtkd-developers/GtkD/archive/refs/tags/v3.11.0.tar.gz
-        sha256: c5de7ef0d955c06a35bc979858e2b67c17919294a7aabe36fd593b79c46e5928
 
   # Toolbox helper for flatpak-specific operations (passwd lookup, PID, proc)
   - name: toolbox
@@ -88,13 +79,20 @@ modules:
       - type: file
         path: ttyx-flatpak-toolbox.c
 
-  # ttyx_ terminal emulator
+  # ttyx_ terminal emulator — built with dub against the giD bindings
+  # (gid is a source-only dub package; it is vendored below as an archive so
+  # the sandboxed build needs no network: dub add-local + --skip-registry=all).
+  # NOTE: the referenced git tag must contain the giD build (dub.json depends
+  # on gid:*), i.e. a release cut after the migrate/gid-build-swap merge.
   - name: ttyx
-    buildsystem: meson
-    config-opts:
-      - --buildtype=release
-      - -Dstrip=true
-    post-install:
+    buildsystem: simple
+    build-options:
+      env:
+        DC: ldc2
+    build-commands:
+      - export DUB_HOME=$PWD/.dub && dub add-local vendor/gid 0.9.13 &&
+        dub build --compiler=ldc2 --build=release --skip-registry=all
+      - PREFIX=/app ./install.sh /app
       # Copy D runtime shared libs before /ldc cleanup removes them
       - cp -P /app/ldc/lib/libphobos2-ldc-shared.so* /app/lib/
       - cp -P /app/ldc/lib/libdruntime-ldc-shared.so* /app/lib/
@@ -102,3 +100,8 @@ modules:
       - type: git
         url: https://github.com/gwelr/ttyx_.git
         tag: v1.2.0-beta.1
+      # giD 0.9.13 dub package, vendored for the offline sandbox build
+      - type: archive
+        url: https://code.dlang.org/packages/gid/0.9.13.zip
+        sha256: 04b537f0a63938d831121af3c2e848564ec99d321e7e710932636e47e00f99aa
+        dest: vendor/gid
