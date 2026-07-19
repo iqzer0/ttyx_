@@ -42,10 +42,10 @@ When the pasted text matches patterns for privilege escalation, destructive file
 - Destructive file operations: `rm -rf`, `rm -fr`, `mkfs`, `dd if=`, `chmod 777`, `chmod -R 777`
 - Remote code execution: `curl ... | bash`, `wget ... | sh`, `eval`, fork bombs
 
-Per-paste warning: unlike some terminal emulators that show this warning once per session and then suppress it, ttyx_'s warning fires **every time** a dangerous pattern is detected.
+When enabled, the warning fires **every time** a dangerous pattern is detected — unlike some terminal emulators that show it once per session and then suppress it.
 
 - GSetting: `unsafe-paste-alert` (boolean)
-- Default: **on**
+- Default: **off** — enable it under Preferences → Global → Clipboard if you want the guard. (Multi-line paste review, below, is a separate control and stays on by default.)
 
 ## Clipboard protection
 
@@ -156,7 +156,7 @@ All keys live under the `io.github.gwelr.ttyx.Settings` schema.
 
 | Feature | GSetting key | Default | Range |
 |---------|--------------|---------|-------|
-| Unsafe-paste alert | `unsafe-paste-alert` | true | bool |
+| Unsafe-paste alert | `unsafe-paste-alert` | false | bool |
 | Multi-line paste review | `warn-multiline-paste` | true | bool |
 | Clipboard auto-clear | `clipboard-auto-clear` | false | bool |
 | Clipboard auto-clear timeout | `clipboard-auto-clear-timeout` | 30 | 5–300 s |

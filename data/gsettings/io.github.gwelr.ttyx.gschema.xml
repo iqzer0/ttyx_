@@ -284,7 +284,7 @@
     </key>
     <!-- Unsafe Paste, cribbed from Pantheon -->
     <key name="unsafe-paste-alert" type="b">
-      <default>true</default>
+      <default>false</default>
       <summary>Alert the user about unsafe paste</summary>
       <description>Warn the user when pasting a command into the terminal that might be considered unsafe.</description>
     </key>
