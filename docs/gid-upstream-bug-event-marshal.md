@@ -1,8 +1,19 @@
 # Draft upstream bug report for giD (github.com/Kymorphia/gid)
 
-Status: **not yet filed**. File against giD (gidgen) and link back here.
+Status: **already reported upstream as
+[Kymorphia/gid#52](https://github.com/Kymorphia/gid/issues/52)**
+("Event delegates in gtk3 events struct incorrectly extracted from signal
+handler resulting in null pointer", opened 2026-06-11 against 0.9.12, still
+open with no maintainer response as of 2026-07-19). Do NOT file a duplicate —
+instead post the analysis below as a COMMENT on #52: it adds the root cause
+(the concrete Event classes don't derive from `gobject.boxed.Boxed`, so
+`getVal` falls through to `g_value_get_pointer`), a minimal repro, a suggested
+generator-level fix, and a link to a reusable drop-in workaround.
 Our workaround lives in [`source/gx/gtk/events.d`](../source/gx/gtk/events.d)
 and can be deleted once a fixed giD release is pinned.
+
+The **abstract-GObject-subclass startup segfault** (bottom of this file) is a
+separate, unreported bug — that one would be a NEW issue.
 
 ---
 
