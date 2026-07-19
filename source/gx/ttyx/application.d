@@ -404,6 +404,12 @@ private:
         scope (exit) {
             cp.clear();
             acl.setExitStatus(cp.exitCode);
+            // GtkD passed Scoped!ApplicationCommandLine, which unref'd the
+            // command-line object when the handler returned — that final unref
+            // is what signals a remote `ttyx -a ...` invocation to exit. giD's
+            // wrapper holds its ref until GC, leaving the remote hanging, so
+            // drop it eagerly (wrapper dtor → g_object_unref).
+            acl.destroy();
         }
         cp = CommandParameters(acl);
         if (cp.exit) {
