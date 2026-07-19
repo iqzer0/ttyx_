@@ -1,4 +1,3 @@
-.flatpak-builder/
 .dub
 docs.json
 __dummy.html

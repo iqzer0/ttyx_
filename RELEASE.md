@@ -10,8 +10,7 @@ ttyx_ Release Process
 
 2. Verify all CI checks pass on the latest commit.
 
-3. Update version number in both:
-   - `meson.build` (project version field)
+3. Update version number in:
    - `source/gx/ttyx/constants.d` (`APPLICATION_VERSION`)
 
 4. Write NEWS entries:
@@ -44,32 +43,28 @@ ttyx_ Release Process
    git push
    ```
 
-## Build Flatpak bundle
+## Build and verify the release binary
 
-7. Update the Flatpak manifest tag to the new version:
-   - `flatpak/io.github.gwelr.ttyx.yaml` (change `tag: vX.Y.Z`)
-
-8. Build the Flatpak (requires `flatpak-builder`, GNOME 48 SDK):
+7. Clean release build + test, and verify the install layout:
     ```
-    flatpak-builder --user --install-deps-from=flathub --force-clean \
-      builddir-flatpak flatpak/io.github.gwelr.ttyx.yaml
-    flatpak build-bundle ~/.local/share/flatpak/repo \
-      /tmp/ttyx-X.Y.Z_x86_64.flatpak io.github.gwelr.ttyx
+    dub build --build=release --compiler=ldc2
+    dub test --compiler=ldc2
+    ./install.sh /tmp/ttyx-install-check/usr && rm -r /tmp/ttyx-install-check
     ```
-
-    See `flatpak/README.md` for prerequisites and theme integration notes.
 
 ## Sign and checksum
 
-9. Generate signed checksums:
+8. Create the source archive and signed checksums (the signed git tag is
+   the primary integrity anchor; the checksums cover the exported archive):
     ```
-    sha256sum /tmp/ttyx-X.Y.Z_x86_64.flatpak > /tmp/ttyx-X.Y.Z_SHA256SUMS
+    git archive --format=tar.gz --prefix=ttyx-X.Y.Z/ -o /tmp/ttyx-X.Y.Z.tar.gz vX.Y.Z
+    sha256sum /tmp/ttyx-X.Y.Z.tar.gz > /tmp/ttyx-X.Y.Z_SHA256SUMS
     gpg --clearsign /tmp/ttyx-X.Y.Z_SHA256SUMS
     ```
 
 ## Publish
 
-10. Create the GitHub release **with all assets in one shot** (do NOT
+9. Create the GitHub release **with all assets in one shot** (do NOT
     upload assets after creation — GitHub's immutable releases will
     block subsequent uploads):
     ```
@@ -77,17 +72,16 @@ ttyx_ Release Process
       --title "ttyx_ vX.Y.Z" \
       --target master \
       --notes-file /path/to/release-notes.md \
-      /tmp/ttyx-X.Y.Z_x86_64.flatpak \
+      /tmp/ttyx-X.Y.Z.tar.gz \
       /tmp/ttyx-X.Y.Z_SHA256SUMS.asc
     ```
 
 ## Post-release
 
-11. Bump version to next development version in:
-    - `meson.build`
+10. Bump version to next development version in:
     - `source/gx/ttyx/constants.d`
 
-12. Commit and push:
+11. Commit and push:
     ```
     git commit -a -m "chore: Post-release version bump to X.Y.Z+1"
     git push
@@ -97,21 +91,18 @@ ttyx_ Release Process
 
 Users can verify release integrity with:
 ```
-# Check file integrity
-sha256sum -c ttyx-X.Y.Z_SHA256SUMS.asc 2>/dev/null
+# Verify the signed tag (primary)
+git verify-tag vX.Y.Z
 
-# Verify GPG signature
+# Or verify the archive: signature, then checksum
 gpg --verify ttyx-X.Y.Z_SHA256SUMS.asc
+sha256sum -c ttyx-X.Y.Z_SHA256SUMS.asc 2>/dev/null
 ```
 
-Users can install the Flatpak bundle with:
-```
-flatpak install --user ttyx-X.Y.Z_x86_64.flatpak
-```
+Users install from source — see the Install page (`docs/install.md`).
 
 ## Notes
 
 - All commits and tags are GPG-signed (key: `2CAAD12074F3C056`)
 - CI Actions are pinned to commit SHAs (not mutable tags)
 - Never create a release then try to add assets — always include them at creation time
-- Flatpak builds require GNOME 48 SDK; see `flatpak/README.md` for details

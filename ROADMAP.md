@@ -50,7 +50,7 @@ the GtkD-free logic unchanged), then a single build swap.
 - [x] Port the widget layer (app → window → session → terminal → prefs) to `gid:gtk3` + `gid:vte2` — 44/44 modules; full app builds and runs
 - [x] Reuse `gx/util/*` and pure logic unchanged; collapse `exvte.d` into native giD VTE calls
 - [x] Drop vendored `secret/`/`secretc/` for `gid:secret1` (vendored `x11/` kept — giD's xlib2 lacks the raw event types x11.d needs)
-- [x] Swap the main build over to giD, delete GtkD (branch `migrate/gid-build-swap`; dub is now the single build system — Meson retired since giD has no pkg-config packages; CI + Flatpak moved to dub, `install.sh` does the data install)
+- [x] Swap the main build over to giD, delete GtkD (branch `migrate/gid-build-swap`; dub is now the single build system — Meson retired since giD has no pkg-config packages; CI moved to dub, `install.sh` does the data install; Flatpak packaging dropped entirely — source build is the distribution channel)
 - [ ] Interactive GUI smoke tests on a real session, then merge the swap branch and ship
 - [ ] File the giD event-marshal bug upstream (see `source/gx/gtk/events.d`)
 

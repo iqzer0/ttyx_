@@ -20,7 +20,7 @@ ttyx_ is an actively maintained fork of [Tilix](https://github.com/gnunn1/tilix)
 
 ## Install
 
-End users: grab the signed Flatpak bundle from the [latest release](https://github.com/gwelr/ttyx_/releases/latest) — the [Install page](https://gwelr.github.io/ttyx_/install/) walks through signature verification and install.
+ttyx_ installs from source — build with Dub, install with the bundled `install.sh`. The [Install page](https://gwelr.github.io/ttyx_/install/) has the full walkthrough; releases are GPG-signed tags.
 
 Distro packagers and developers: the same page covers source builds with Dub (giD bindings, no system-wide D packages needed).
 

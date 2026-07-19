@@ -175,7 +175,7 @@ Being explicit so you don't rely on protections that aren't there:
 
 - **No defense against a compromised shell or malicious program running inside the terminal.** Everything that runs under your shell can do anything your user can do. ttyx_ protects the *boundary* (paste, clipboard, memory exposure, indicators) — not the contents.
 - **No kernel-level or hardware-level protection.** A root attacker on the local machine, a hypervisor, or anything with ptrace capability is out of scope.
-- **Flatpak provides additional sandboxing that ttyx_ benefits from but does not replace.** If sandbox isolation matters for your threat model, run ttyx_ via Flatpak and look into `flatpak-run --env=…` to further restrict its capabilities.
+- **ttyx_ ships unsandboxed (source install).** If sandbox isolation matters for your threat model, wrap it in your preferred containment (bubblewrap, firejail, or a Flatpak you build yourself from a pinned manifest) — sandboxing complements, but does not replace, the protections above.
 - **No remote-audit features.** ttyx_ doesn't log what you type, what you see, or what you paste — by design. If you need forensic recording, that's a different category of tool.
 - **Scrollback is user-memory-only, not locked memory.** A privileged process can still read it before Secure Clear runs. Core-dump protection closes the usual leak path but can't defend against an attacker with `ptrace` or kernel access.
 
