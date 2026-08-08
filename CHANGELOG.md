@@ -4,6 +4,11 @@ All notable changes to **ttyx_** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **New application icon** — a chevron-X above a cursor bar on a dark rounded square ("Midnight"). The scalable and symbolic hicolor icons are regenerated from the design sheet, which lives in `data/icons/design/` with alternate colorways (Amber, Ice, Paper).
+
 ## [1.3.0-beta.1] — 2026-08-08
 
 First beta of the 1.3.0 line — the giD build. Runtime behaviour is intended to be identical to 1.2.0; this beta's validation period exists to prove exactly that.
