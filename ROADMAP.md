@@ -57,7 +57,7 @@ the GtkD-free logic unchanged), then a single build swap.
 ### Phase 2b — GTK3 → GTK4 + libadwaita
 - [ ] Dependency swap to `gid:gtk4` / `gid:vte3` / `gid:adw1` + API-delta pass (`add`→`setChild`, `showAll`→`present`, event/controller model)
 - [ ] Adopt libadwaita for modern GNOME look and feel
-- [ ] **Blocker:** giD's GTK4 bindings did not compile at v0.9.13 (accessibility binding bug) — pin a known-good release or fix upstream before starting
+- [x] ~~**Blocker:** giD's GTK4 bindings did not compile at v0.9.13~~ **Re-spiked 2026-08-09: no longer reproduces — Phase 2b is unblocked.** The full target stack (`gid:gtk4` + `gid:vte3` + `gid:adw1`, all 0.9.13) compiles, links, and runs (adw window + embedded VTE renders) with LDC 1.40.0 / dub 1.39 against GTK 4.22.4, libadwaita 1.9.3, vte4 0.84. Note: giD resolves the C libraries at runtime (dlopen-style loader, `GID_LIBRARY_PATH` supported) — the spike binary has zero direct gtk/vte/adw link deps, so `vte4`/`libadwaita` become runtime requirements to document for packaging. Caveat for planning: giD upstream has had no release since 0.9.13 and ~2 months of master inactivity; our event-marshal report (Kymorphia/gid#52) is still unanswered — budget for carrying local workarounds.
 
 ### Why this matters
 - GTK3 is EOL — no new features, limited bug fixes
