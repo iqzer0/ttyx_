@@ -47,8 +47,8 @@ ttyx_ Release Process
 
 7. Clean release build + test, and verify the install layout:
     ```
-    dub build --build=release --compiler=ldmd2
-    dub test --compiler=ldmd2
+    dub build --build=release --compiler=ldc2
+    dub test --compiler=ldc2
     ./install.sh /tmp/ttyx-install-check/usr && rm -r /tmp/ttyx-install-check
     ```
 
@@ -105,8 +105,9 @@ Users install from source — see the Install page (`docs/install.md`).
 
 - Release tags from v1.2.0 on are GPG-signed with key `A63B62EC0FB924FC`
   (releases up to v1.2.0-beta.1 were signed with `2CAAD12074F3C056`)
-- The release build uses `ldmd2` (LDC's DMD-compatible driver): the
-  `-inline` dflag in dub.json's release build type is a DMD-style flag
-  that plain `ldc2` rejects
+- `-inline` is a DMD-only flag and must stay in dub.json's `dflags-dmd`,
+  never the compiler-agnostic `dflags` — plain `ldc2` rejects it (LDC's
+  `-O3` already enables inlining). Getting this wrong breaks CI and the
+  release build identically.
 - CI Actions are pinned to commit SHAs (not mutable tags)
 - Never create a release then try to add assets — always include them at creation time

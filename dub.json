@@ -13,8 +13,8 @@
     },
     "buildTypes": {
         "release": {
-            "dflags": ["-release", "-inline", "-boundscheck=off"],
-            "dflags-dmd": ["-O"],
+            "dflags": ["-release", "-boundscheck=off"],
+            "dflags-dmd": ["-O", "-inline"],
             "dflags-ldc": ["-O3"]
         },
         "debug": {
