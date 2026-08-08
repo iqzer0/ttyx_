@@ -51,8 +51,8 @@ the GtkD-free logic unchanged), then a single build swap.
 - [x] Reuse `gx/util/*` and pure logic unchanged; collapse `exvte.d` into native giD VTE calls
 - [x] Drop vendored `secret/`/`secretc/` for `gid:secret1` (vendored `x11/` kept — giD's xlib2 lacks the raw event types x11.d needs)
 - [x] Swap the main build over to giD, delete GtkD (branch `migrate/gid-build-swap`; dub is now the single build system — Meson retired since giD has no pkg-config packages; CI moved to dub, `install.sh` does the data install; Flatpak packaging dropped entirely — source build is the distribution channel)
-- [ ] Interactive GUI smoke tests on a real session, then merge the swap branch and ship
-- [ ] File the giD event-marshal bug upstream (see `source/gx/gtk/events.d`)
+- [x] Interactive GUI smoke tests on a real session (splits, input/exec, maximize/restore, preferences, multi-line paste review, session save+load — all green), shipped as v1.3.0-beta.1 (2026-08-08)
+- [x] File the giD event-marshal bug upstream — already tracked as Kymorphia/gid#52 (see `source/gx/gtk/events.d`)
 
 ### Phase 2b — GTK3 → GTK4 + libadwaita
 - [ ] Dependency swap to `gid:gtk4` / `gid:vte3` / `gid:adw1` + API-delta pass (`add`→`setChild`, `showAll`→`present`, event/controller model)
