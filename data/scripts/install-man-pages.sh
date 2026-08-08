@@ -16,6 +16,11 @@ gzip -f "$PREFIX/share/man/man1/ttyx.1"
 
 if type po4a-translate >/dev/null 2>&1; then
     for f in data/man/po/*.man.po; do
+        # An unmatched glob stays literal in POSIX sh; without this guard
+        # po4a-translate is handed the nonexistent '*.man.po' and blocks
+        # forever on a TTY with no input (28-minute CI hangs, and a hang
+        # for any user installing with po4a present).
+        [ -e "$f" ] || continue
         LOCALE=$(basename "$f" .man.po)
         install -d "$PREFIX/share/man/$LOCALE/man1"
         po4a-translate -k 0 -f man -m data/man/ttyx.1 -p "data/man/po/$LOCALE.man.po" -l "$PREFIX/share/man/$LOCALE/man1/ttyx.1"

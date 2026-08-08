@@ -16,10 +16,14 @@ $DC --version
 dub --version
 
 #
-# Build (release, same optimization intent as the old debugoptimized)
+# Build (debug): these containerized jobs exist to catch distro-specific
+# dependency and link breakage, which a debug build surfaces identically.
+# A release (-O3) compile of the giD bindings takes >1h on a hosted
+# runner. Release-flag acceptance is guarded in the workflow's Dub job;
+# actual optimized builds happen at release time per RELEASE.md.
 #
 
-dub build --compiler=$DC --build=release
+dub build --compiler=$DC --build=debug
 
 #
 # Verify the install layout into a throwaway prefix
