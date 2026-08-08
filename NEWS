@@ -1,3 +1,32 @@
+Version 1.2.0
+~~~~~~~~~~~~~
+Released: 2026-08-08
+
+Features:
+ * Security: restored sessions now ask for confirmation before running an
+   embedded per-terminal command, instead of executing it silently on load
+ * Security: custom-link and trigger commands shell-quote all substituted
+   match tokens and terminal variables, closing a shell-injection hole in
+   values drawn from terminal output or remote-settable OSC variables
+ * Security: paste sanitization is now applied on every paste path; the
+   default path previously fell through to pasting the raw clipboard text
+ * Security: bracketed-paste escape stripping loops to a fixed point so
+   split or overlapping markers cannot reassemble after removal
+ * Security: carriage return now counts as a command submitter in the
+   paste safety checks, matching newline handling
+ * Security: OSC 8 hyperlinks are restricted to an allow-listed set of URI
+   schemes before being handed to the desktop URI handler
+ * Security: trigger regex matching input is bounded as defense-in-depth
+   against catastrophic-backtracking UI hangs on adversarial output
+ * Security: spawn-failure logs redact proxy credentials; log redaction
+   covers more sensitive key names and strips URL userinfo from all values
+ * Security: retrieved keyring passwords are kept in non-pageable memory
+
+Bugfixes:
+ * Crash reading the host shell from a malformed passwd entry (Flatpak)
+ * Crash loading a session file with a corrupt paned orientation value
+ * Crash reading a child process name from a malformed /proc stat entry
+
 Version 1.2.0-beta.1
 ~~~~~~~~~~~~~~~~~~~~
 Released: 2026-04-29

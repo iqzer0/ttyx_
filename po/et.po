@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: tilix\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-11-08 21:52+0100\n"
+"POT-Creation-Date: 2026-08-08 19:28+0800\n"
 "PO-Revision-Date: 2026-01-20 17:01+0000\n"
 "Last-Translator: Priit Jõerüüt <jrthwlate@users.noreply.hosted.weblate.org>\n"
 "Language-Team: Estonian <https://hosted.weblate.org/projects/tilix/"
@@ -18,2204 +18,434 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 "X-Generator: Weblate 5.16-dev\n"
 
-#: source/gx/gtk/dialog.d:89 source/gx/tilix/closedialog.d:143
-msgid "Do not show this again"
-msgstr "Ära näita seda teadet uuesti"
-
-#: source/gx/gtk/actions.d:25
-msgid "disabled"
-msgstr "pole kasutusel"
-
-#: source/gx/tilix/sidebar.d:546 source/gx/tilix/terminal/terminal.d:383
-#: source/gx/tilix/terminal/terminal.d:1861
-msgid "Close"
-msgstr "Sulge"
-
-#: source/gx/tilix/closedialog.d:123 source/gx/tilix/constants.d:152
-#: source/gx/tilix/terminal/layout.d:54
-msgid "Title"
-msgstr "Pealkiri"
-
-#: source/gx/tilix/closedialog.d:129
-#: source/gx/tilix/prefeditor/profileeditor.d:447
-#: source/gx/tilix/bookmark/bmtreeview.d:70
-msgid "Icon"
-msgstr "Ikoon"
-
-#: source/gx/tilix/closedialog.d:170
-#, c-format
-msgid "Window (%s)"
-msgstr "Aken (%s)"
-
-#: source/gx/tilix/closedialog.d:173
-#, c-format
-msgid "Session (%s)"
-msgstr "Sessioon (%s)"
-
-#: source/gx/tilix/closedialog.d:189
-msgid "Close Application"
-msgstr "Sulge rakendus"
-
-#: source/gx/tilix/closedialog.d:191
-msgid "Close Window"
-msgstr "Sulge aken"
-
-#: source/gx/tilix/closedialog.d:193 source/gx/tilix/closedialog.d:195
-msgid "Close Session"
-msgstr "Sulge sessioon"
-
-#: source/gx/tilix/closedialog.d:202 source/gx/tilix/bookmark/bmeditor.d:151
-#: source/gx/tilix/bookmark/bmchooser.d:127
-#: source/gx/tilix/terminal/layout.d:33 source/gx/tilix/terminal/password.d:493
-msgid "OK"
-msgstr "Sobib"
-
-#: source/gx/tilix/closedialog.d:202 source/gx/tilix/prefeditor/advdialog.d:192
-#: source/gx/tilix/prefeditor/advdialog.d:362
-#: source/gx/tilix/prefeditor/profileeditor.d:948
-#: source/gx/tilix/appwindow.d:1509 source/gx/tilix/appwindow.d:1558
-#: source/gx/tilix/bookmark/bmeditor.d:151
-#: source/gx/tilix/bookmark/bmchooser.d:127
-#: source/gx/tilix/terminal/layout.d:33 source/gx/tilix/terminal/password.d:371
-#: source/gx/tilix/terminal/password.d:493
-#: source/gx/tilix/terminal/advpaste.d:137
-#: source/gx/tilix/terminal/terminal.d:3665
-msgid "Cancel"
-msgstr "Katkesta"
-
-#: source/gx/tilix/prefeditor/advdialog.d:94
-#: source/gx/tilix/prefeditor/advdialog.d:261
-msgid "Regex"
-msgstr "Regulaaravaldis"
-
-#: source/gx/tilix/prefeditor/advdialog.d:106
-#: source/gx/tilix/prefeditor/profileeditor.d:98
-#: source/gx/tilix/prefeditor/profileeditor.d:1136
-#: source/gx/tilix/bookmark/bmeditor.d:333
-#: source/gx/tilix/bookmark/bmeditor.d:428
-#: source/gx/tilix/bookmark/manager.d:687 source/gx/tilix/terminal/layout.d:89
-msgid "Command"
-msgstr "Käsk"
-
-#: source/gx/tilix/prefeditor/advdialog.d:118
-msgid "Case Insensitive"
-msgstr "Pole tõstutundlik"
-
-#: source/gx/tilix/prefeditor/advdialog.d:134
-#: source/gx/tilix/prefeditor/advdialog.d:313
-#: source/gx/tilix/prefeditor/profileeditor.d:1303
-msgid "Add"
-msgstr "Lisa"
-
-#: source/gx/tilix/prefeditor/advdialog.d:141
-#: source/gx/tilix/prefeditor/advdialog.d:319
-#: source/gx/tilix/prefeditor/profileeditor.d:1340
-#: source/gx/tilix/prefeditor/prefdialog.d:556
-#: source/gx/tilix/terminal/password.d:213
-msgid "Delete"
-msgstr "Kustuta"
-
-#: source/gx/tilix/prefeditor/advdialog.d:151
-msgid "Move up"
-msgstr "Liiguta ülespoole"
-
-#: source/gx/tilix/prefeditor/advdialog.d:162
-msgid "Move down"
-msgstr "Liiguta allapoole"
-
-#: source/gx/tilix/prefeditor/advdialog.d:192
-msgid "Edit Custom Links"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:4
+#: data/pkg/desktop/io.github.gwelr.ttyx.desktop.in:3
+#: source/gx/ttyx/application.d:325 source/gx/ttyx/appwindow.d:1695
+msgid "ttyx_"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/advdialog.d:192
-#: source/gx/tilix/prefeditor/advdialog.d:362
-#: source/gx/tilix/terminal/password.d:371
-msgid "Apply"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:5
+#: data/pkg/desktop/io.github.gwelr.ttyx.desktop.in:4
+msgid "A tiling terminal for Linux, forked from Tilix"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/advdialog.d:287
-#: source/gx/tilix/prefeditor/prefdialog.d:765
-msgid "Action"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/advdialog.d:299
-msgid "Parameter"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/advdialog.d:337
-msgid "Limit number of lines for trigger processing to:"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/advdialog.d:362
-msgid "Edit Triggers"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/advdialog.d:405
-#, c-format
-msgid "Row %d: "
-msgstr ""
-
-#: source/gx/tilix/prefeditor/common.d:37
-msgid "Custom Links"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/common.d:43
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:9
 msgid ""
-"A list of user defined links that can be clicked on in the terminal based on "
-"regular expression definitions."
+"ttyx_ is an actively maintained fork of Tilix, the tiling terminal emulator."
 msgstr ""
 
-#: source/gx/tilix/prefeditor/common.d:46
-#: source/gx/tilix/prefeditor/common.d:77
-#: source/gx/tilix/prefeditor/profileeditor.d:1321
-#: source/gx/tilix/terminal/password.d:184
-msgid "Edit"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:12
+msgid "It lets you:"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/common.d:67
-msgid "Triggers"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/common.d:74
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:14
 msgid ""
-"Triggers are regular expressions that are used to check against output text "
-"in the terminal. When a match is detected the configured action is executed."
+"Layout terminals in any fashion by splitting them horizontally or vertically"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/profileeditor.d:97
-msgid "General"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:99
-msgid "Color"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:100
-msgid "Scrolling"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:101
-msgid "Compatibility"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:103
-#: source/gx/tilix/prefeditor/profileeditor.d:693
-#: source/gx/tilix/prefeditor/profileeditor.d:1175
-#: source/gx/tilix/terminal/layout.d:68
-msgid "Badge"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:105
-#: source/gx/tilix/prefeditor/profileeditor.d:575
-#: source/gx/tilix/prefeditor/prefdialog.d:170
-#: source/gx/tilix/prefeditor/prefdialog.d:171
-msgid "Advanced"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:217
-msgid "Profile name"
-msgstr "Profiili nimi"
-
-#: source/gx/tilix/prefeditor/profileeditor.d:241
-msgid "Terminal title"
-msgstr "Terminali pealkiri"
-
-#: source/gx/tilix/prefeditor/profileeditor.d:254
-msgid "Text Appearance"
-msgstr "Teksti välimus"
-
-#: source/gx/tilix/prefeditor/profileeditor.d:262
-msgid "Terminal size"
-msgstr "Terminali suurus"
-
-#: source/gx/tilix/prefeditor/profileeditor.d:272
-msgid "columns"
-msgstr "veerge"
-
-#: source/gx/tilix/prefeditor/profileeditor.d:281
-msgid "rows"
-msgstr "ridu"
-
-#: source/gx/tilix/prefeditor/profileeditor.d:289
-#: source/gx/tilix/prefeditor/profileeditor.d:328
-#: source/gx/tilix/terminal/terminal.d:853
-msgid "Reset"
-msgstr "Lähtesta"
-
-#: source/gx/tilix/prefeditor/profileeditor.d:301
-msgid "Cell spacing"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:311
-msgid "width"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:320
-msgid "height"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:347
-msgid "Margin"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:358
-msgid "Text blink mode"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:361
-msgid "Never"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:361
-msgid "Focused"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:361
-msgid "Unfocused"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:361
-msgid "Always"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:380
-#: source/gx/tilix/prefeditor/profileeditor.d:1199
-msgid "Custom font"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:392
-msgid "Choose A Terminal Font"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:401
-msgid "Word-wise select chars"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:409
-#: source/gx/tilix/prefeditor/profileeditor.d:417
-#: source/gx/tilix/prefeditor/profileeditor.d:659
-msgid "Cursor"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:420
-msgid "Block"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:420
-msgid "IBeam"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:420
-msgid "Underline"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:428
-msgid "Cursor blink mode"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:431
-msgid "System"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:431
-msgid "On"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:431
-msgid "Off"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:436
-msgid "Notification"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:444
-#: source/gx/tilix/terminal/terminal.d:422
-msgid "Terminal bell"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:447
-#: source/gx/tilix/prefeditor/prefdialog.d:1188
-msgid "None"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:447
-msgid "Sound"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:447
-msgid "Icon and sound"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:465
-#, c-format
-msgid "ID: %s"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:513
-msgid "Color scheme"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:523
-#: source/gx/tilix/prefeditor/profileeditor.d:988
-msgid "Custom"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:536
-msgid "Export"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:548
-msgid "Color palette"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:556
-#: source/gx/tilix/prefeditor/prefdialog.d:1403
-msgid "Options"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:570
-msgid "Use theme colors for foreground/background"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:580
-msgid "Show bold text in bright colors"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:592
-msgid "Transparency"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:606
-msgid "Unfocused dim"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:654
-msgid "Text"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:655
-#: source/gx/tilix/prefeditor/profileeditor.d:757
-msgid "Background"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:664
-msgid "Select Cursor Foreground Color"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:666
-msgid "Select Cursor Background Color"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:671
-msgid "Highlight"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:676
-msgid "Select Highlight Foreground Color"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:678
-msgid "Select Highlight Background Color"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:683
-msgid "Bold"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:688
-msgid "Select Bold Color"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:697
-msgid "Select Badge Color"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:746
-msgid "Select Background Color"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:762
-#: source/gx/tilix/prefeditor/profileeditor.d:778
-msgid "Select Foreground Color"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:777
-msgid "Foreground"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:781
-msgid "Black"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:781
-msgid "Red"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:781
-msgid "Green"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:781
-msgid "Orange"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:781
-msgid "Blue"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:781
-msgid "Purple"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:781
-msgid "Turquoise"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:781
-msgid "Grey"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:787
-#, c-format
-msgid "Select %s Color"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:794
-#, c-format
-msgid "Select %s Light Color"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:945
-msgid "Export Color Scheme"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:948
-#: source/gx/tilix/appwindow.d:690 source/gx/tilix/appwindow.d:1558
-#: source/gx/tilix/terminal/terminal.d:3665
-msgid "Save"
-msgstr "Salvesta"
-
-#: source/gx/tilix/prefeditor/profileeditor.d:961
-#: source/gx/tilix/appwindow.d:1461
-msgid "All JSON Files"
-msgstr "Kõik JSON-failid"
-
-#: source/gx/tilix/prefeditor/profileeditor.d:965
-#: source/gx/tilix/prefeditor/prefdialog.d:1219
-#: source/gx/tilix/appwindow.d:1465 source/gx/tilix/terminal/terminal.d:3675
-msgid "All Files"
-msgstr "Kõik failid"
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1022
-msgid "Show scrollbar"
-msgstr "Näita kerimisriba"
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1026
-msgid "Scroll on output"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1030
-msgid "Scroll on keystroke"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1034
-msgid "Limit scrollback to:"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1069
-msgid "Backspace key generates"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1072
-#: source/gx/tilix/prefeditor/profileeditor.d:1081
-msgid "Automatic"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1072
-#: source/gx/tilix/prefeditor/profileeditor.d:1081
-msgid "Control-H"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1072
-#: source/gx/tilix/prefeditor/profileeditor.d:1081
-msgid "ASCII DEL"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1072
-#: source/gx/tilix/prefeditor/profileeditor.d:1081
-msgid "Escape sequence"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1072
-#: source/gx/tilix/prefeditor/profileeditor.d:1081
-msgid "TTY"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1078
-msgid "Delete key generates"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1087
-#: source/gx/tilix/prefeditor/prefdialog.d:166
-#: source/gx/tilix/prefeditor/prefdialog.d:167
-#: source/gx/tilix/prefeditor/prefdialog.d:463
-#: source/gx/tilix/prefeditor/prefdialog.d:681
-#: source/gx/tilix/terminal/terminal.d:858
-msgid "Encoding"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1102
-msgid "Ambiguous-width characters"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1105
-msgid "Narrow"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1105
-msgid "Wide"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1126
-msgid "Run command as a login shell"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1130
-msgid "Run a custom command instead of my shell"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1147
-msgid "When command exits"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1149
-msgid "Exit the terminal"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1149
-msgid "Restart the command"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1149
-msgid "Hold the terminal open"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1189
-msgid "Badge position"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1193
-msgid "Northwest"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1193
-msgid "Northeast"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1193
-msgid "Southwest"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1193
-msgid "Southeast"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1211
-msgid "Choose A Badge Font"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1249
-msgid "Notify New Activity"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1256
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:15
 msgid ""
-"A notification can be raised when new activity occurs after a specified "
-"period of silence."
+"Terminals can be re-arranged using drag and drop both within and between "
+"windows"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1269
-msgid "Automatic Profile Switching"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:16
+msgid "Terminals can be detached into a new window via drag and drop"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1278
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:17
 msgid ""
-"Profiles are automatically selected based on the values entered here.\n"
-"Values are entered using a <i>username@hostname:directory</i> format. Either "
-"the hostname or directory can be omitted but the colon must be present. "
-"Entries with neither hostname or directory are not permitted."
+"Input can be synchronized between terminals so commands typed in one "
+"terminal are replicated to the others"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1280
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:18
+msgid "The grouping of terminals can be saved and loaded from disk"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:19
+msgid "Terminals support custom titles"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:20
 msgid ""
-"Profiles are automatically selected based on the values entered here.\n"
-"Values are entered using a <i>hostname:directory</i> format. Either the "
-"hostname or directory can be omitted but the colon must be present. Entries "
-"with neither hostname or directory are not permitted."
+"Color schemes are stored in files and custom color schemes can be created by "
+"simply creating a new file"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1292
-msgid "Match"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:21
+msgid "Transparent background"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1307
-msgid "Enter username@hostname:directory to match"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:22
+msgid "Supports notifications when processes are completed out of view"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1309
-msgid "Enter hostname:directory to match"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:42
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:70
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:92
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:116
+msgid "This release adds the following features:"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1311
-msgid "Add New Match"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1328
-msgid "Edit username@hostname:directory to match"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1330
-msgid "Edit hostname:directory to match"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1332
-msgid "Edit Match"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1363
-msgid "Enable by default"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1372
-msgid "Threshold for continuous silence"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/profileeditor.d:1381
-msgid "(seconds)"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/titleeditor.d:105
-#: source/gx/tilix/terminal/terminal.d:348
-#: source/gx/tilix/terminal/terminal.d:1309
-msgid "Terminal"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/titleeditor.d:110
-msgid "Session"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/titleeditor.d:116
-msgid "Window"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/titleeditor.d:126
-#: source/gx/tilix/prefeditor/titleeditor.d:127
-msgid "Help"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:123
-msgid "Tilix Preferences"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:140
-#: source/gx/tilix/prefeditor/prefdialog.d:141
-#: source/gx/tilix/prefeditor/prefdialog.d:219
-msgid "Global"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:144
-#: source/gx/tilix/prefeditor/prefdialog.d:145
-msgid "Appearance"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:150
-#: source/gx/tilix/prefeditor/prefdialog.d:151
-msgid "Quake"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:155
-#: source/gx/tilix/prefeditor/prefdialog.d:156
-msgid "Bookmarks"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:162
-#: source/gx/tilix/prefeditor/prefdialog.d:163
-#: source/gx/tilix/prefeditor/prefdialog.d:299
-msgid "Shortcuts"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:176 source/gx/tilix/session.d:1583
-msgid "Profile"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:189
-msgid "Add profile"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:194
-msgid "Delete profile"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:263
-#: source/gx/tilix/prefeditor/prefdialog.d:414 source/gx/tilix/appwindow.d:702
-#: data/pkg/desktop/com.gexperts.Tilix.desktop.in:25
-msgid "Preferences"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:283
-#: source/gx/tilix/terminal/terminal.d:842
-msgid "Profiles"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:312
-#: source/gx/tilix/prefeditor/prefdialog.d:320
-#, c-format
-msgid "Profile: %s"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:366
-#, c-format
-msgid "Are you sure you want to delete '%s'?"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:557
-msgid "Clone"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:561
-msgid "Use for new terminals"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:637
-msgid "Encodings showing in menu:"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:679
-msgid "Enabled"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:789
-msgid "Shortcut Key"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:801
-msgid "Enable shortcuts"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:805
-msgid "Restore default shortcut for this action"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:916
-msgid "Overwrite Existing Shortcut"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:917
-#, c-format
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:44
 msgid ""
-"The shortcut %s is already assigned to %s.\n"
-"Disable the shortcut for the other action and assign here instead?"
+"OSC 11 dynamic background color — apps like neovim and theme-switching "
+"scripts can now change the terminal background at runtime via the OSC 11 "
+"escape sequence; reset with OSC 111"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1172
-msgid "Window style"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:45
+msgid ""
+"enable-wide-handle defaults to true so the splitter between split terminals "
+"is easier to see and grab on dark themes and HiDPI displays"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1174
-#: source/gx/tilix/prefeditor/prefdialog.d:1188
-msgid "Normal"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:46
+msgid "Auto-equalize panes on split and close, sway-style"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1174
-msgid "Disable CSD"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:47
+msgid "Documentation site at https://gwelr.github.io/ttyx_/"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1174
-msgid "Disable CSD, hide toolbar"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:48
+msgid ""
+"Sensitive values redaction: passwords, tokens and proxy credentials are "
+"stripped from trace logs, command-line argv and hyperlink click events "
+"before reaching any log sink"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1174
-msgid "Borderless"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:50
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:82
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:98
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:131
+msgid "This release fixes the following bugs:"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1178
-msgid "Window restart required"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:52
+msgid ""
+"Maximized terminal now correctly restores when loading a saved session; "
+"fixes a long-standing bug pre-existing since the upstream Tilix 2017 "
+"implementation"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1187
-msgid "Terminal title style"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:53
+msgid ""
+"Trigger templates: $0 now correctly substitutes the whole match (was shifted "
+"by one due to a size_t underflow); user templates relying on the bugged "
+"behaviour need indices shifted up by one"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1188
-msgid "Small"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:54
+msgid ""
+"Triggers with an unrecognised action name are now skipped with a warning "
+"instead of silently rewritten to UpdateState"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1193
-#: source/gx/tilix/prefeditor/prefdialog.d:1387
-msgid "Tab position"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:55
+msgid ""
+"Paste hardening: strip OSC, DCS, APC and PM escape sequences from clipboard "
+"content before paste"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1194
-#: source/gx/tilix/prefeditor/prefdialog.d:1381
-#: source/gx/tilix/prefeditor/prefdialog.d:1388
-msgid "Left"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:56
+msgid "Robust /proc/[pid]/stat parser with bounds validation"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1194
-#: source/gx/tilix/prefeditor/prefdialog.d:1381
-#: source/gx/tilix/prefeditor/prefdialog.d:1388
-msgid "Right"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:57
+msgid ""
+"Password manager delete now correctly reports keyring failures and handles "
+"legacy Tilix-schema entries"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1194
-#: source/gx/tilix/prefeditor/prefdialog.d:1388
-#: source/gx/tilix/prefeditor/prefdialog.d:1395
-msgid "Top"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:58
+msgid ""
+"Proxy URL builder: percent-encode userinfo and drop the redundant leading @; "
+"HTTPS proxy now receives credentials when configured"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1194
-#: source/gx/tilix/prefeditor/prefdialog.d:1388
-#: source/gx/tilix/prefeditor/prefdialog.d:1395
-msgid "Bottom"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:60
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:104
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:137
+msgid "This release includes the following changes:"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1200
-msgid "Theme variant"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:62
+msgid "First beta of the 1.2.0 release; validation period before GA"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1201
-#: source/gx/tilix/appwindow.d:1088 source/gx/tilix/session.d:1222
-msgid "Default"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:63
+msgid ""
+"Internal refactors using D SumType for compile-time exhaustiveness: "
+"TerminalRegex (BuiltinRegex/CustomRegex), SyncInputEvent, and a typed "
+"TerminalSnapshot struct as the single source of truth for session "
+"serialisation"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1201
-msgid "Light"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:64
+msgid ""
+"CI: install LDC from the upstream tarball; build GtkD from source on Debian "
+"Testing where the apt package was removed"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1201
-msgid "Dark"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:72
+msgid ""
+"Security: restored sessions now ask for confirmation before running an "
+"embedded per-terminal command, instead of executing it silently on load"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1207
-msgid "Background image"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:73
+msgid ""
+"Security: custom-link and trigger commands shell-quote all substituted match "
+"tokens and terminal variables, closing a shell-injection hole in values "
+"drawn from terminal output or remote-settable OSC variables"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1209
-msgid "Select Image"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:74
+msgid ""
+"Security: paste sanitization is now applied on every paste path; the default "
+"path previously fell through to pasting the raw clipboard text"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1212
-msgid "All Image Files"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:75
+msgid ""
+"Security: bracketed-paste escape stripping loops to a fixed point so split "
+"or overlapping markers cannot reassemble after removal"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1233
-msgid "Reset background image"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:76
+msgid ""
+"Security: carriage return now counts as a command submitter in the paste "
+"safety checks, matching newline handling"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1239
-msgid "Scale"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:77
+msgid ""
+"Security: OSC 8 hyperlinks are restricted to an allow-listed set of URI "
+"schemes before being handed to the desktop URI handler"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1239
-msgid "Tile"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:78
+msgid ""
+"Security: trigger regex matching input is bounded as defense-in-depth "
+"against catastrophic-backtracking UI hangs on adversarial output"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1239
-#: source/gx/tilix/prefeditor/prefdialog.d:1381
-msgid "Center"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:79
+msgid ""
+"Security: spawn-failure logs redact proxy credentials; log redaction covers "
+"more sensitive key names and strips URL userinfo from all values"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1239
-msgid "Stretch"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:80
+msgid "Security: retrieved keyring passwords are kept in non-pageable memory"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1258
-msgid "Default session name"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:84
+msgid "Crash reading the host shell from a malformed passwd entry (Flatpak)"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1273
-msgid "Application title"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:85
+msgid "Crash loading a session file with a corrupt paned orientation value"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1291
-msgid "Enable transparency, requires re-start"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:86
+msgid "Crash reading a child process name from a malformed /proc stat entry"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1297
-msgid "Use a wide handle for splitters"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:94
+msgid ""
+"Automatic config migration from Tilix — on first run, ~/.config/tilix/ is "
+"copied to ~/.config/ttyx/ with the original kept as backup"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1302
-msgid "Place the sidebar on the right"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:95
+msgid ""
+"Password manager reads legacy com.gexperts.tilix.Password schema for "
+"backwards compatibility; new passwords are saved under the ttyx schema"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1306
-msgid "Show the terminal title even if it's the only terminal"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:96
+msgid ""
+"TTYX_ID environment variable set in shells alongside TILIX_ID for backwards "
+"compatibility with existing shell integrations"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1311
-msgid "Use overlay scrollbars (Application restart required)"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:100
+msgid ""
+"Color scheme loader no longer shows duplicates; user config now wins over "
+"system defaults when a scheme filename exists in both"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1316
-msgid "Use tabs instead of sidebar (Application restart required)"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:101
+msgid ""
+"Post-install script writes a minimal index.theme at the install prefix so "
+"gtk-update-icon-cache can generate a valid icon cache"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1348
-msgid "Size"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:102
+msgid "AppStream metadata no longer includes stale Tilix release entries"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1359
-msgid "Height percent"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:106
+msgid ""
+"Rename user-visible Tilix references: Nautilus menu, shortcuts window, "
+"GSettings descriptions, icon filenames, log and temp paths"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1370
-msgid "Width percent"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:107
+msgid ""
+"Rewrite man page under ttyx_ identity; drop 30 stale translations that "
+"referenced Tilix-branded msgids"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1380
-msgid "Alignment"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:108
+msgid ""
+"Release process simplified: drop hand-assembled binary tarball, ship only "
+"Flatpak bundle with signed checksums"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1394
-msgid "Window position"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:109
+msgid "Add Troubleshooting section to README (stale icon cache, Wayland Quake)"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1411
-msgid "Show terminal on all workspaces"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:110
+msgid "Add ROADMAP.md documenting vision and phase plan"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1423
-msgid "Hide window when focus is lost"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:118
+msgid "Security: enforce in-memory-only scrollback, capped at 256-999999 lines"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1427
-msgid "Delay hiding window by (ms)"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:119
+msgid "Security: core dump protection via prctl PR_SET_DUMPABLE"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1440
-msgid "Hide the toolbar of the window"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:120
+msgid "Security: Secure Clear action (Ctrl+Shift+L) to wipe scrollback buffer"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1455
-msgid "Keep window always on top"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:121
+msgid ""
+"Security: SSH session detection indicator for ssh, scp, sftp, mosh, sshfs"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1460
-msgid "Display terminal on active monitor"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:122
+msgid "Security: clipboard auto-clear after configurable timeout"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1467
-msgid "Display on specific monitor"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:123
+msgid "Security: strip bracketed paste escape sequences to prevent injection"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1470
-msgid "Primary Monitor"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:124
+msgid "Security: multi-line paste review dialog before execution"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1473
-msgid "Monitor "
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:125
+msgid ""
+"Security: expanded dangerous command detection (sudo, rm -rf, curl|bash, "
+"etc.)"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1533
-msgid "Behavior"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:126
+msgid "Security: per-paste unsafe warning (no longer permanently dismissed)"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1539
-msgid "Prompt when creating a new session"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:127
+msgid ""
+"Security: all options consolidated in Advanced preferences with descriptions"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1544
-msgid "Focus a terminal when the mouse moves over it"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:128
+msgid "Flatpak packaging with GNOME 48 SDK and bundled LDC compiler"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1549
-msgid "Autohide the mouse pointer when typing"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:129
+msgid "ProcessMonitor optimization: idle CPU reduced from 1.4% to 0.1%"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1554
-msgid "Close terminal by clicking middle mouse button on title"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:133
+msgid "Fix GC crash when opening preferences on GLib 2.84+"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1559
-msgid "Zoom the terminal using <Control> and scroll wheel"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:134
+msgid "Fix SSH and root indicators not clearing when process exits"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1564
-msgid "Require the <Control> modifier to edit title on click"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:135
+msgid "Fix color scheme test when schemes not installed in XDG paths"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1569
-msgid "Close window when last session is closed"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:139
+msgid "Major terminal.d decomposition into extracted components"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1574
-msgid "Save and restore window state"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:140
+msgid "Replace applyPreference switch with PreferenceRegistry pattern"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1579
-msgid "Always search using regular expressions"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:141
+msgid "119 unit tests covering security, clipboard, rendering, and monitoring"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1585
-msgid "Send desktop notification on process complete"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:142
+msgid "CI: add xvfb support for GTK integration tests"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1593
-msgid "On new instance"
+#: data/nautilus/open-ttyx.py:119
+msgid "Open Remote ttyx"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1596 source/gx/tilix/appwindow.d:685
-#: data/pkg/desktop/com.gexperts.Tilix.desktop.in:17
+#: data/nautilus/open-ttyx.py:120
+#, python-brace-format
+msgid "Open Remote ttyx In {}"
+msgstr ""
+
+#: data/nautilus/open-ttyx.py:126
+msgid "Open In ttyx"
+msgstr ""
+
+#: data/nautilus/open-ttyx.py:127
+#, python-brace-format
+msgid "Open ttyx In {}"
+msgstr ""
+
+#: data/nautilus/open-ttyx.py:138
+msgid "Open Remote ttyx Here"
+msgstr ""
+
+#: data/nautilus/open-ttyx.py:139
+msgid "Open Remote ttyx In This Directory"
+msgstr ""
+
+#: data/nautilus/open-ttyx.py:144
+msgid "Open ttyx Here"
+msgstr ""
+
+#: data/nautilus/open-ttyx.py:145
+msgid "Open ttyx In This Directory"
+msgstr ""
+
+#: data/pkg/desktop/io.github.gwelr.ttyx.desktop.in:5
+msgid "shell;prompt;command;commandline;cmd;terminal;tiling;"
+msgstr ""
+
+#: data/pkg/desktop/io.github.gwelr.ttyx.desktop.in:16
+#: source/gx/ttyx/appwindow.d:685 source/gx/ttyx/prefeditor/prefdialog.d:1601
 msgid "New Window"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1596 source/gx/tilix/session.d:1606
-#: data/pkg/desktop/com.gexperts.Tilix.desktop.in:21
+#: data/pkg/desktop/io.github.gwelr.ttyx.desktop.in:20
+#: source/gx/ttyx/prefeditor/prefdialog.d:1601 source/gx/ttyx/session.d:1673
 msgid "New Session"
 msgstr ""
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1596
-msgid "Split Right"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:1596
-msgid "Split Down"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:1596
-msgid "Focus Window"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:1602
-#: source/gx/tilix/terminal/terminal.d:1851
-msgid "Clipboard"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:1608
-msgid "Always use advanced paste dialog"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:1613
-msgid "Warn when attempting unsafe paste"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:1618
-msgid "Strip first character of paste if comment or variable declaration"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:1623
-msgid "Strip trailing whitespaces and linebreak characters on paste"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/prefdialog.d:1628
-msgid "Automatically copy text to clipboard when selecting"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/bookmarkeditor.d:62
-msgid "Add bookmark"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/bookmarkeditor.d:67
-msgid "Edit bookmark"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/bookmarkeditor.d:72
-msgid "Delete bookmark"
-msgstr ""
-
-#: source/gx/tilix/prefeditor/bookmarkeditor.d:77
-msgid "Unselect bookmark"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:18 source/gx/tilix/encoding.d:31
-#: source/gx/tilix/encoding.d:45 source/gx/tilix/encoding.d:67
-#: source/gx/tilix/encoding.d:78
-msgid "Western"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:19 source/gx/tilix/encoding.d:46
-#: source/gx/tilix/encoding.d:57 source/gx/tilix/encoding.d:76
-msgid "Central European"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:20
-msgid "South European"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:21 source/gx/tilix/encoding.d:29
-#: source/gx/tilix/encoding.d:83
-msgid "Baltic"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:22 source/gx/tilix/encoding.d:47
-#: source/gx/tilix/encoding.d:53 source/gx/tilix/encoding.d:54
-#: source/gx/tilix/encoding.d:59 source/gx/tilix/encoding.d:77
-msgid "Cyrillic"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:23 source/gx/tilix/encoding.d:50
-#: source/gx/tilix/encoding.d:56 source/gx/tilix/encoding.d:82
-msgid "Arabic"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:24 source/gx/tilix/encoding.d:62
-#: source/gx/tilix/encoding.d:79
-msgid "Greek"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:25
-msgid "Hebrew Visual"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:26 source/gx/tilix/encoding.d:49
-#: source/gx/tilix/encoding.d:65 source/gx/tilix/encoding.d:81
-msgid "Hebrew"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:27 source/gx/tilix/encoding.d:48
-#: source/gx/tilix/encoding.d:69 source/gx/tilix/encoding.d:80
-msgid "Turkish"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:28
-msgid "Nordic"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:30
-msgid "Celtic"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:32 source/gx/tilix/encoding.d:68
-msgid "Romanian"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:33
-msgid "Unicode"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:34
-msgid "Armenian"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:35 source/gx/tilix/encoding.d:36
-#: source/gx/tilix/encoding.d:40
-msgid "Chinese Traditional"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:37
-msgid "Cyrillic/Russian"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:38 source/gx/tilix/encoding.d:51
-#: source/gx/tilix/encoding.d:71
-msgid "Japanese"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:39 source/gx/tilix/encoding.d:52
-#: source/gx/tilix/encoding.d:74
-msgid "Korean"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:41 source/gx/tilix/encoding.d:42
-#: source/gx/tilix/encoding.d:43
-msgid "Chinese Simplified"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:44
-msgid "Georgian"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:55 source/gx/tilix/encoding.d:70
-msgid "Cyrillic/Ukrainian"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:58
-msgid "Croatian"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:60
-msgid "Hindi"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:61
-msgid "Persian"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:63
-msgid "Gujarati"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:64
-msgid "Gurmukhi"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:66
-msgid "Icelandic"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:72 source/gx/tilix/encoding.d:75
-#: source/gx/tilix/encoding.d:84
-msgid "Vietnamese"
-msgstr ""
-
-#: source/gx/tilix/encoding.d:73
-msgid "Thai"
-msgstr ""
-
-#. TRANSLATORS: Please add your name to the list of translators if you want to be credited for the translations you have done.
-#: source/gx/tilix/application.d:273
-msgid "translator-credits"
-msgstr "Priit Jõerüüt 2025"
-
-#: source/gx/tilix/application.d:282
-msgid "Credits"
-msgstr "Tänuavaldused"
-
-#: source/gx/tilix/application.d:321 source/gx/tilix/appwindow.d:1694
-#: data/pkg/desktop/com.gexperts.Tilix.desktop.in:4
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:4
-msgid "Tilix"
-msgstr "Tilix"
-
-#: source/gx/tilix/application.d:679
-msgid "Set the working directory of the terminal"
-msgstr ""
-
-#: source/gx/tilix/application.d:679
-msgid "DIRECTORY"
-msgstr ""
-
-#: source/gx/tilix/application.d:680
-msgid "Set the starting profile"
-msgstr ""
-
-#: source/gx/tilix/application.d:680
-msgid "PROFILE_NAME"
-msgstr ""
-
-#: source/gx/tilix/application.d:681
-msgid "Set the title of the new terminal"
-msgstr ""
-
-#: source/gx/tilix/application.d:681
-msgid "TITLE"
-msgstr ""
-
-#: source/gx/tilix/application.d:682
-msgid "Open the specified session"
-msgstr ""
-
-#: source/gx/tilix/application.d:682
-msgid "SESSION_NAME"
-msgstr ""
-
-#: source/gx/tilix/application.d:684
-msgid "Send an action to current Tilix instance"
-msgstr ""
-
-#: source/gx/tilix/application.d:684
-msgid "ACTION_NAME"
-msgstr ""
-
-#: source/gx/tilix/application.d:686
-msgid "Execute the parameter as a command"
-msgstr ""
-
-#: source/gx/tilix/application.d:686
-msgid "COMMAND"
-msgstr ""
-
-#: source/gx/tilix/application.d:687
-msgid "Maximize the terminal window"
-msgstr ""
-
-#: source/gx/tilix/application.d:688
-msgid "Minimize the terminal window"
-msgstr ""
-
-#: source/gx/tilix/application.d:689
-msgid ""
-"Override the preferred window style to use, one of: normal,disable-csd,"
-"disable-csd-hide-toolbar,borderless"
-msgstr ""
-
-#: source/gx/tilix/application.d:689
-msgid "WINDOW_STYLE"
-msgstr ""
-
-#: source/gx/tilix/application.d:690
-msgid "Full-screen the terminal window"
-msgstr ""
-
-#: source/gx/tilix/application.d:691
-msgid "Focus the existing window"
-msgstr ""
-
-#: source/gx/tilix/application.d:692
-msgid "Start additional instance as new process (Not Recommended)"
-msgstr ""
-
-#: source/gx/tilix/application.d:693
-msgid ""
-"Set the window size; for example: 80x24, or 80x24+200+200 (COLSxROWS+X+Y)"
-msgstr ""
-
-#: source/gx/tilix/application.d:693
-msgid "GEOMETRY"
-msgstr ""
-
-#: source/gx/tilix/application.d:694
-msgid ""
-"Opens a window in quake mode or toggles existing quake mode window visibility"
-msgstr ""
-
-#: source/gx/tilix/application.d:695
-msgid "Show the Tilix and dependent component versions"
-msgstr ""
-
-#: source/gx/tilix/application.d:696
-msgid "Show the Tilix preferences dialog directly"
-msgstr ""
-
-#: source/gx/tilix/application.d:697
-msgid ""
-"Group tilix instances into different processes (Experimental, not "
-"recommended)"
-msgstr ""
-
-#: source/gx/tilix/application.d:697
-msgid "GROUP_NAME"
-msgstr ""
-
-#: source/gx/tilix/application.d:700
-msgid "Hidden argument to pass terminal UUID"
-msgstr ""
-
-#: source/gx/tilix/application.d:700
-msgid "TERMINAL_UUID"
-msgstr ""
-
-#: source/gx/tilix/application.d:717
-#, c-format
-msgid "The application ID %s is not valid"
-msgstr ""
-
-#: source/gx/tilix/application.d:883
-msgid ""
-"There appears to be an issue with the configuration of the terminal.\n"
-"This issue is not serious, but correcting it will improve your experience.\n"
-"Click the link below for more information:"
-msgstr ""
-
-#: source/gx/tilix/application.d:884
-msgid "Configuration Issue Detected"
-msgstr ""
-
-#: source/gx/tilix/application.d:896
-msgid "Do not show this message again"
-msgstr ""
-
-#: source/gx/tilix/colorschemes.d:188
-#, c-format
-msgid "File %s is not a color scheme compliant JSON file"
-msgstr ""
-
-#: source/gx/tilix/colorschemes.d:251
-msgid "Color scheme palette requires 16 colors"
-msgstr ""
-
-#: source/gx/tilix/appwindow.d:324
-msgid "Create a new session"
-msgstr ""
-
-#: source/gx/tilix/appwindow.d:338
-msgid "View session sidebar"
-msgstr ""
-
-#: source/gx/tilix/appwindow.d:373
-msgid "Add terminal right"
-msgstr ""
-
-#: source/gx/tilix/appwindow.d:377
-msgid "Add terminal down"
-msgstr ""
-
-#: source/gx/tilix/appwindow.d:383
-msgid "Find text in terminal"
-msgstr ""
-
-#: source/gx/tilix/appwindow.d:606
-msgid "Enter a new name for the session"
-msgstr ""
-
-#: source/gx/tilix/appwindow.d:608
-msgid "Change Session Name"
-msgstr ""
-
-#: source/gx/tilix/appwindow.d:689
-msgid "Open…"
-msgstr ""
-
-#: source/gx/tilix/appwindow.d:691
-msgid "Save As…"
-msgstr ""
-
-#: source/gx/tilix/appwindow.d:697
-msgid "Name…"
-msgstr ""
-
-#: source/gx/tilix/appwindow.d:698
-msgid "Synchronize Input"
-msgstr ""
-
-#: source/gx/tilix/appwindow.d:703
-msgid "Keyboard Shortcuts"
-msgstr ""
-
-#: source/gx/tilix/appwindow.d:704
-msgid "About Tilix"
-msgstr ""
-
-#: source/gx/tilix/appwindow.d:711
-msgid "GC"
-msgstr ""
-
-#: source/gx/tilix/appwindow.d:1197
-msgid "There are multiple sessions open, close anyway?"
-msgstr ""
-
-#: source/gx/tilix/appwindow.d:1474
-#, c-format
-msgid "Filename '%s' does not exist"
-msgstr ""
-
-#: source/gx/tilix/appwindow.d:1506
-msgid "Load Session"
-msgstr ""
-
-#: source/gx/tilix/appwindow.d:1509
-msgid "Open"
-msgstr ""
-
-#: source/gx/tilix/appwindow.d:1532
-msgid "Could not load session due to unexpected error."
-msgstr ""
-
-#: source/gx/tilix/appwindow.d:1532
-msgid "Error Loading Session"
-msgstr ""
-
-#: source/gx/tilix/appwindow.d:1555
-msgid "Save Session"
-msgstr ""
-
-#: source/gx/tilix/appwindow.d:1590 source/gx/tilix/appwindow.d:1609
-msgid "Could not save session due to unexpected error."
-msgstr ""
-
-#: source/gx/tilix/appwindow.d:1590 source/gx/tilix/appwindow.d:1609
-msgid "Error Saving Session"
-msgstr ""
-
-#: source/gx/tilix/appwindow.d:1723
-msgid "Quake mode is not supported under Wayland, running as normal window"
-msgstr ""
-
-#: source/gx/tilix/appwindow.d:1725
-msgid "Quake Mode Not Supported"
-msgstr ""
-
-#: source/gx/tilix/appwindow.d:2200
-msgid "New output displayed"
-msgstr ""
-
-#: source/gx/tilix/appwindow.d:2208
-msgid "Close session"
-msgstr ""
-
-#: source/gx/tilix/constants.d:72
-msgid "A VTE based terminal emulator for Linux"
-msgstr ""
-
-#: source/gx/tilix/constants.d:73
-msgid ""
-"This Source Code Form is subject to the terms of the Mozilla Public License, "
-"v. 2.0. If a copy of the MPL was not distributed with this file, You can "
-"obtain one at http://mozilla.org/MPL/2.0/."
-msgstr ""
-
-#: source/gx/tilix/constants.d:78
-msgid "GTK VTE widget team, Tilix would not be possible without their work"
-msgstr ""
-
-#: source/gx/tilix/constants.d:79
-msgid "GtkD for providing such an excellent GTK wrapper"
-msgstr ""
-
-#: source/gx/tilix/constants.d:80
-msgid "Dlang.org for such an excellent language, D"
-msgstr ""
-
-#: source/gx/tilix/constants.d:153
-msgid "Icon title"
-msgstr ""
-
-#: source/gx/tilix/constants.d:154 source/gx/tilix/terminal/password.d:140
-msgid "ID"
-msgstr ""
-
-#: source/gx/tilix/constants.d:155
-msgid "Directory"
-msgstr ""
-
-#: source/gx/tilix/constants.d:156
-msgid "Hostname"
-msgstr ""
-
-#: source/gx/tilix/constants.d:157
-msgid "Username"
-msgstr ""
-
-#: source/gx/tilix/constants.d:158
-msgid "Columns"
-msgstr ""
-
-#: source/gx/tilix/constants.d:159
-msgid "Rows"
-msgstr ""
-
-#: source/gx/tilix/constants.d:160
-msgid "Process"
-msgstr ""
-
-#: source/gx/tilix/constants.d:161
-msgid "Status.Read-Only"
-msgstr ""
-
-#: source/gx/tilix/constants.d:162
-msgid "Status.Silence"
-msgstr ""
-
-#: source/gx/tilix/constants.d:163
-msgid "Status.Input-Sync"
-msgstr ""
-
-#: source/gx/tilix/constants.d:178
-msgid "Terminal count"
-msgstr ""
-
-#: source/gx/tilix/constants.d:179
-msgid "Terminal number"
-msgstr ""
-
-#: source/gx/tilix/constants.d:180
-msgid "Active terminal title"
-msgstr ""
-
-#: source/gx/tilix/constants.d:197
-msgid "Application name"
-msgstr ""
-
-#: source/gx/tilix/constants.d:198
-msgid "Session name"
-msgstr ""
-
-#: source/gx/tilix/constants.d:199
-msgid "Session number"
-msgstr ""
-
-#: source/gx/tilix/constants.d:200
-msgid "Session count"
-msgstr ""
-
-#: source/gx/tilix/bookmark/bmtreeview.d:73
-#: source/gx/tilix/bookmark/bmeditor.d:231
-#: source/gx/tilix/terminal/password.d:137
-#: source/gx/tilix/terminal/password.d:431 source/gx/tilix/session.d:1572
-msgid "Name"
-msgstr ""
-
-#: source/gx/tilix/bookmark/bmeditor.d:68
-#: source/gx/tilix/bookmark/bmchooser.d:126
-msgid "Select Folder"
-msgstr ""
-
-#: source/gx/tilix/bookmark/bmeditor.d:74
-msgid "Select folder"
-msgstr ""
-
-#: source/gx/tilix/bookmark/bmeditor.d:86
-msgid "Clear folder"
-msgstr ""
-
-#: source/gx/tilix/bookmark/bmeditor.d:150
-msgid "Add Bookmark"
-msgstr ""
-
-#: source/gx/tilix/bookmark/bmeditor.d:150
-msgid "Edit Bookmark"
-msgstr ""
-
-#: source/gx/tilix/bookmark/bmeditor.d:292
-#: source/gx/tilix/bookmark/manager.d:687
-msgid "Path"
-msgstr ""
-
-#: source/gx/tilix/bookmark/bmeditor.d:294
-msgid "Select Path"
-msgstr ""
-
-#: source/gx/tilix/bookmark/bmeditor.d:382
-msgid "Protocol"
-msgstr ""
-
-#: source/gx/tilix/bookmark/bmeditor.d:398
-msgid "Host"
-msgstr ""
-
-#: source/gx/tilix/bookmark/bmeditor.d:414
-msgid "User"
-msgstr ""
-
-#: source/gx/tilix/bookmark/bmeditor.d:421
-msgid "Parameters"
-msgstr ""
-
-#: source/gx/tilix/bookmark/manager.d:233
-msgid "Error deserializing bookmark"
-msgstr ""
-
-#: source/gx/tilix/bookmark/manager.d:537
-msgid "Root"
-msgstr ""
-
-#: source/gx/tilix/bookmark/manager.d:615
-msgid "Could not load bookmarks due to unexpected error"
-msgstr ""
-
-#: source/gx/tilix/bookmark/manager.d:687
-msgid "Folder"
-msgstr ""
-
-#: source/gx/tilix/bookmark/manager.d:687
-msgid "Remote"
-msgstr ""
-
-#: source/gx/tilix/bookmark/bmchooser.d:79
-msgid "Include return character with bookmark"
-msgstr ""
-
-#: source/gx/tilix/bookmark/bmchooser.d:126
-msgid "Select Bookmark"
-msgstr ""
-
-#: source/gx/tilix/preferences.d:256
-msgid "UpdateState"
-msgstr ""
-
-#: source/gx/tilix/preferences.d:257
-msgid "ExecuteCommand"
-msgstr ""
-
-#: source/gx/tilix/preferences.d:258
-msgid "SendNotification"
-msgstr ""
-
-#: source/gx/tilix/preferences.d:259
-msgid "UpdateTitle"
-msgstr ""
-
-#: source/gx/tilix/preferences.d:260
-msgid "PlayBell"
-msgstr ""
-
-#: source/gx/tilix/preferences.d:261
-msgid "SendText"
-msgstr ""
-
-#: source/gx/tilix/preferences.d:262
-msgid "InsertPassword"
-msgstr ""
-
-#: source/gx/tilix/preferences.d:263
-msgid "UpdateBadge"
-msgstr ""
-
-#: source/gx/tilix/preferences.d:264
-msgid "RunProcess"
-msgstr ""
-
-#: source/gx/tilix/preferences.d:374
-#, c-format
-msgid "%s (Copy)"
-msgstr ""
-
-#: source/gx/tilix/terminal/layout.d:33
-msgid "Layout Options"
-msgstr ""
-
-#: source/gx/tilix/terminal/layout.d:48
-msgid "Active"
-msgstr ""
-
-#: source/gx/tilix/terminal/layout.d:82
-msgid "Session Load"
-msgstr ""
-
-#: source/gx/tilix/terminal/layout.d:98
-msgid ""
-"Active options are always in effect and apply immediately.\n"
-"Session Load options only apply when loading a session file."
-msgstr ""
-
-#: source/gx/tilix/terminal/password.d:161
-msgid "New"
-msgstr ""
-
-#: source/gx/tilix/terminal/password.d:235
-msgid "Include return character with password"
-msgstr ""
-
-#: source/gx/tilix/terminal/password.d:371
-msgid "Insert Password"
-msgstr ""
-
-#: source/gx/tilix/terminal/password.d:441
-msgid "Password"
-msgstr ""
-
-#: source/gx/tilix/terminal/password.d:451
-msgid "Confirm Password"
-msgstr ""
-
-#: source/gx/tilix/terminal/password.d:499
-msgid "Add Password"
-msgstr ""
-
-#: source/gx/tilix/terminal/password.d:504
-msgid "Edit Password"
-msgstr ""
-
-#: source/gx/tilix/terminal/advpaste.d:33
-msgid "This command is asking for Administrative access to your computer"
-msgstr ""
-
-#: source/gx/tilix/terminal/advpaste.d:34
-msgid "Copying commands from the internet can be dangerous. "
-msgstr ""
-
-#: source/gx/tilix/terminal/advpaste.d:35
-msgid "Be sure you understand what each part of this command does."
-msgstr ""
-
-#: source/gx/tilix/terminal/advpaste.d:96
-msgid "Transform"
-msgstr ""
-
-#: source/gx/tilix/terminal/advpaste.d:104
-msgid "Convert spaces to tabs"
-msgstr ""
-
-#: source/gx/tilix/terminal/advpaste.d:115
-msgid "Convert CRLF and CR to LF"
-msgstr ""
-
-#: source/gx/tilix/terminal/advpaste.d:137
-msgid "Advanced Paste"
-msgstr ""
-
-#: source/gx/tilix/terminal/advpaste.d:137
-#: source/gx/tilix/terminal/terminal.d:1825
-#: source/gx/tilix/terminal/terminal.d:1843
-msgid "Paste"
-msgstr ""
-
-#: source/gx/tilix/terminal/search.d:128
-msgid "Search Options"
-msgstr ""
-
-#: source/gx/tilix/terminal/search.d:141
-msgid "Find next"
-msgstr ""
-
-#: source/gx/tilix/terminal/search.d:147
-msgid "Find previous"
-msgstr ""
-
-#: source/gx/tilix/terminal/search.d:155
-msgid "Close search box"
-msgstr ""
-
-#: source/gx/tilix/terminal/search.d:205
-msgid "Match case"
-msgstr ""
-
-#: source/gx/tilix/terminal/search.d:206
-msgid "Match entire word only"
-msgstr ""
-
-#: source/gx/tilix/terminal/search.d:207
-msgid "Wrap around"
-msgstr ""
-
-#: source/gx/tilix/terminal/search.d:208
-msgid "Match as regular expression"
-msgstr ""
-
-#: source/gx/tilix/terminal/search.d:243
-#, c-format
-msgid ""
-"Search '%s' is not a valid regex\n"
-"%s"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:391
-#: source/gx/tilix/terminal/terminal.d:1349
-#: source/gx/tilix/terminal/terminal.d:1860
-msgid "Maximize"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:401
-#: source/gx/tilix/terminal/terminal.d:692
-msgid "Disable input synchronization for this terminal"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:410
-#: source/gx/tilix/terminal/terminal.d:829
-msgid "Read-Only"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:416
-msgid "New output"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:467
-msgid "Edit Profile"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:485
-msgid "Edit Encodings"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:694
-msgid "Enable input synchronization for this terminal"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:729
-#, c-format
-msgid ""
-"The library %s could not be loaded, password functionality is unavailable."
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:729
-msgid "Library Not Loaded"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:828
-msgid "Find…"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:835
-msgid "Password..."
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:836
-msgid "Bookmark..."
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:837
-msgid "Add Bookmark..."
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:841
-msgid "Assistants"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:848
-msgid "Show File Browser..."
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:852
-msgid "Save Output…"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:854
-msgid "Reset and Clear"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:859
-msgid "Layout Options…"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:863
-msgid "Monitor Silence"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:866
-msgid "Other"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:875
-msgid "Add Right"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:879
-msgid "Add Down"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:989
-msgid "Terminal Activity"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:1325
-msgid "Not Enabled"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:1346
-#: source/gx/tilix/terminal/terminal.d:1860
-msgid "Restore"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:1709
-msgid "Tilix Custom Notification"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:1810
-msgid "Open Link"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:1811
-msgid "Copy Link Address"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:1821
-#: source/gx/tilix/terminal/terminal.d:1831
-msgid "Copy"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:1823
-#: source/gx/tilix/terminal/terminal.d:1837
-msgid "Copy as HTML"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:1826
-#: source/gx/tilix/terminal/terminal.d:1848
-msgid "Select All"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:1865
-msgid "Synchronize input"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:2018
-#, c-format
-msgid "Could not check file '%s' due to error '%s'"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:2025
-#, c-format
-msgid ""
-"Remote file URIs are not supported with hyperlinks.\n"
-"URI was '%s'"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:2026
-msgid "Remote File URI Unsupported"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:2059
-#: source/gx/tilix/terminal/terminal.d:2613
-#, c-format
-msgid "Custom link regex '%s' has an error, ignoring"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:2060
-msgid "Regular Expression Error"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:2073
-#, c-format
-msgid "Could not open match '%s'"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:2074
-msgid "Error Opening Match"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:2573
-#, c-format
-msgid "Unexpected error occurred when adding link regex: %s"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:2773
-msgid "Unexpected error occurred, no additional information available"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:2783
-#, c-format
-msgid "Unexpected error occurred: %s"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:3662
-msgid "Save Terminal Output"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:3671
-msgid "All Text Files"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:4001
-msgid "Unknown"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:4265
-#, c-format
-msgid "The child process exited normally with status %d"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:4266
-#, c-format
-msgid "The child process was aborted by signal %d."
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:4267
-msgid "The child process was aborted."
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:4273
-msgid "Relaunch"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:4340
-msgid "Don't Paste"
-msgstr ""
-
-#: source/gx/tilix/terminal/terminal.d:4341
-msgid "Paste Anyway"
-msgstr ""
-
-#: source/gx/tilix/terminal/monitor.d:112
-msgid "Process monitoring is not enabled, this should never be called"
-msgstr ""
-
-#: source/gx/tilix/session.d:568
-msgid "Could not locate dropped terminal"
-msgstr ""
-
-#: source/gx/tilix/session.d:573
-msgid "Could not locate session for dropped terminal"
-msgstr ""
-
-#: source/gx/tilix/cmdparams.d:119 source/gx/tilix/cmdparams.d:123
-#, c-format
-msgid "Ignoring as '%s' is not a directory"
-msgstr ""
-
-#: source/gx/tilix/cmdparams.d:152
-#, c-format
-msgid "Geometry string '%s' is invalid and could not be parsed"
-msgstr ""
-
-#: source/gx/tilix/cmdparams.d:186
-msgid ""
-"You cannot load a session and set a profile/working directory/execute "
-"command option, please choose one or the other"
-msgstr ""
-
-#: source/gx/tilix/cmdparams.d:193
-msgid "You can only use the action parameter within Tilix"
-msgstr ""
-
-#: source/gx/tilix/cmdparams.d:215
-msgid ""
-"You cannot use the quake mode with maximize, minimize or geometry parameters"
-msgstr ""
-
-#: source/app.d:140
-#, c-format
-msgid "Your GTK version is too old, you need at least GTK %d.%d.%d!"
-msgstr ""
-
-#: source/app.d:150
-#, c-format
-msgid "Your VTE version is too old, you need at least VTE %d.%d!"
-msgstr ""
-
-#: source/app.d:166
-msgid "Unexpected exception occurred"
-msgstr ""
-
-#: source/app.d:167
-msgid "Error: "
-msgstr ""
-
-#: source/app.d:177
-msgid "Versions"
-msgstr ""
-
-#: source/app.d:178
-#, c-format
-msgid "Tilix version: %s"
-msgstr ""
-
-#: source/app.d:179
-#, c-format
-msgid "VTE version: %s"
-msgstr ""
-
-#: source/app.d:180
-#, c-format
-msgid "GTK Version: %d.%d.%d"
-msgstr ""
-
-#: source/app.d:181
-msgid "Tilix Special Features"
-msgstr ""
-
-#: source/app.d:182
-msgid "Notifications enabled=%b"
-msgstr ""
-
-#: source/app.d:183
-msgid "Triggers enabled=%b"
-msgstr ""
-
-#: source/app.d:184
-msgid "Badges enabled=%b"
-msgstr ""
-
-#: data/nautilus/open-tilix.py:119
-msgid "Open Remote Tilix"
-msgstr ""
-
-#: data/nautilus/open-tilix.py:120
-msgid "Open Remote Tilix In {}"
-msgstr ""
-
-#: data/nautilus/open-tilix.py:126
-msgid "Open In Tilix"
-msgstr ""
-
-#: data/nautilus/open-tilix.py:127
-msgid "Open Tilix In {}"
-msgstr ""
-
-#: data/nautilus/open-tilix.py:138
-msgid "Open Remote Tilix Here"
-msgstr ""
-
-#: data/nautilus/open-tilix.py:139
-msgid "Open Remote Tilix In This Directory"
-msgstr ""
-
-#: data/nautilus/open-tilix.py:144
-msgid "Open Tilix Here"
-msgstr ""
-
-#: data/nautilus/open-tilix.py:145
-msgid "Open Tilix In This Directory"
+#: data/pkg/desktop/io.github.gwelr.ttyx.desktop.in:24
+#: source/gx/ttyx/appwindow.d:702 source/gx/ttyx/prefeditor/prefdialog.d:263
+#: source/gx/ttyx/prefeditor/prefdialog.d:414
+msgid "Preferences"
 msgstr ""
 
 #: data/resources/ui/shortcuts.ui:10 data/resources/ui/shortcuts.ui:15
@@ -2640,12 +870,12 @@ msgstr ""
 
 #: data/resources/ui/shortcuts.ui:539
 msgctxt "shortcut window"
-msgid "Reset the terminal"
+msgid "Refresh terminal"
 msgstr ""
 
 #: data/resources/ui/shortcuts.ui:545
 msgctxt "shortcut window"
-msgid "Reset and clear the terminal"
+msgid "Secure Clear"
 msgstr ""
 
 #: data/resources/ui/shortcuts.ui:551
@@ -2715,7 +945,7 @@ msgstr ""
 
 #: data/resources/ui/shortcuts.ui:631
 msgctxt "shortcut window"
-msgid "Open in Tilix"
+msgid "Open in ttyx"
 msgstr ""
 
 #: data/resources/ui/shortcuts.ui:642 data/resources/ui/shortcuts.ui:647
@@ -2723,257 +953,2307 @@ msgctxt "shortcut window"
 msgid "Profile"
 msgstr ""
 
-#: data/pkg/desktop/com.gexperts.Tilix.desktop.in:5
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:5
-msgid "A tiling terminal for GNOME"
+#: source/app.d:198
+#, c-format
+msgid "Your GTK version is too old, you need at least GTK %d.%d.%d!"
 msgstr ""
 
-#: data/pkg/desktop/com.gexperts.Tilix.desktop.in:6
-msgid "shell;prompt;command;commandline;cmd;"
+#: source/app.d:208
+#, c-format
+msgid "Your VTE version is too old, you need at least VTE %d.%d!"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:9
-msgid "Tilix is a tiling terminal emulator."
+#: source/app.d:224
+msgid "Unexpected exception occurred"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:12
-msgid "It lets you:"
+#: source/app.d:225
+msgid "Error: "
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:14
+#: source/app.d:235
+msgid "Versions"
+msgstr ""
+
+#: source/app.d:236
+#, c-format
+msgid "ttyx_ version: %s"
+msgstr ""
+
+#: source/app.d:237
+#, c-format
+msgid "VTE version: %s"
+msgstr ""
+
+#: source/app.d:238
+#, c-format
+msgid "GTK Version: %d.%d.%d"
+msgstr ""
+
+#: source/app.d:239
+msgid "ttyx_ Special Features"
+msgstr ""
+
+#: source/app.d:240
+#, c-format
+msgid "Notifications enabled=%b"
+msgstr ""
+
+#: source/app.d:241
+#, c-format
+msgid "Triggers enabled=%b"
+msgstr ""
+
+#: source/app.d:242
+#, c-format
+msgid "Badges enabled=%b"
+msgstr ""
+
+#: source/gx/gtk/actions.d:25
+msgid "disabled"
+msgstr "pole kasutusel"
+
+#: source/gx/gtk/dialog.d:89 source/gx/ttyx/closedialog.d:143
+msgid "Do not show this again"
+msgstr "Ära näita seda teadet uuesti"
+
+#. TRANSLATORS: Please add your name to the list of translators if you want to be credited for the translations you have done.
+#: source/gx/ttyx/application.d:277
+msgid "translator-credits"
+msgstr "Priit Jõerüüt 2025"
+
+#: source/gx/ttyx/application.d:286
+msgid "Credits"
+msgstr "Tänuavaldused"
+
+#: source/gx/ttyx/application.d:701
+msgid "DIRECTORY"
+msgstr ""
+
+#: source/gx/ttyx/application.d:701
+msgid "Set the working directory of the terminal"
+msgstr ""
+
+#: source/gx/ttyx/application.d:702
+msgid "PROFILE_NAME"
+msgstr ""
+
+#: source/gx/ttyx/application.d:702
+msgid "Set the starting profile"
+msgstr ""
+
+#: source/gx/ttyx/application.d:703
+msgid "Set the title of the new terminal"
+msgstr ""
+
+#: source/gx/ttyx/application.d:703
+msgid "TITLE"
+msgstr ""
+
+#: source/gx/ttyx/application.d:704
+msgid "Open the specified session"
+msgstr ""
+
+#: source/gx/ttyx/application.d:704
+msgid "SESSION_NAME"
+msgstr ""
+
+#: source/gx/ttyx/application.d:706
+msgid "ACTION_NAME"
+msgstr ""
+
+#: source/gx/ttyx/application.d:706
+msgid "Send an action to current ttyx_ instance"
+msgstr ""
+
+#: source/gx/ttyx/application.d:708
+msgid "COMMAND"
+msgstr ""
+
+#: source/gx/ttyx/application.d:708
+msgid "Execute the parameter as a command"
+msgstr ""
+
+#: source/gx/ttyx/application.d:709
+msgid "Maximize the terminal window"
+msgstr ""
+
+#: source/gx/ttyx/application.d:710
+msgid "Minimize the terminal window"
+msgstr ""
+
+#: source/gx/ttyx/application.d:711
 msgid ""
-"Layout terminals in any fashion by splitting them horizontally or vertically"
+"Override the preferred window style to use, one of: normal,disable-"
+"csd,disable-csd-hide-toolbar,borderless"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:15
+#: source/gx/ttyx/application.d:711
+msgid "WINDOW_STYLE"
+msgstr ""
+
+#: source/gx/ttyx/application.d:712
+msgid "Full-screen the terminal window"
+msgstr ""
+
+#: source/gx/ttyx/application.d:713
+msgid "Focus the existing window"
+msgstr ""
+
+#: source/gx/ttyx/application.d:714
+msgid "Start additional instance as new process (Not Recommended)"
+msgstr ""
+
+#: source/gx/ttyx/application.d:715
+msgid "GEOMETRY"
+msgstr ""
+
+#: source/gx/ttyx/application.d:715
 msgid ""
-"Terminals can be re-arranged using drag and drop both within and between "
-"windows"
+"Set the window size; for example: 80x24, or 80x24+200+200 (COLSxROWS+X+Y)"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:16
-msgid "Terminals can be detached into a new window via drag and drop"
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:17
+#: source/gx/ttyx/application.d:716
 msgid ""
-"Input can be synchronized between terminals so commands typed in one "
-"terminal are replicated to the others"
+"Opens a window in quake mode or toggles existing quake mode window visibility"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:18
-msgid "The grouping of terminals can be saved and loaded from disk"
+#: source/gx/ttyx/application.d:717
+msgid "Show ttyx_ and dependent component versions"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:19
-msgid "Terminals support custom titles"
+#: source/gx/ttyx/application.d:718
+msgid "Show the ttyx_ preferences dialog directly"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:20
+#: source/gx/ttyx/application.d:719
+msgid "GROUP_NAME"
+msgstr ""
+
+#: source/gx/ttyx/application.d:719
 msgid ""
-"Color schemes are stored in files and custom color schemes can be created by "
-"simply creating a new file"
+"Group ttyx_ instances into different processes (Experimental, not "
+"recommended)"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:21
-msgid "Transparent background"
+#: source/gx/ttyx/application.d:722
+msgid "Hidden argument to pass terminal UUID"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:22
-msgid "Supports notifications when processes are completed out of view"
+#: source/gx/ttyx/application.d:722
+msgid "TERMINAL_UUID"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:24
+#: source/gx/ttyx/application.d:739
+#, c-format
+msgid "The application ID %s is not valid"
+msgstr ""
+
+#: source/gx/ttyx/application.d:915
 msgid ""
-"The application was written using GTK 3 and an effort was made to conform to "
-"GNOME Human Interface Guidelines (HIG). As a result, it does use client-side-"
-"decorations, though it can be disabled if necessary."
+"There appears to be an issue with the configuration of the terminal.\n"
+"This issue is not serious, but correcting it will improve your experience.\n"
+"Click the link below for more information:"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:28
-msgid "Tilix has been tested with GNOME and with Unity."
+#: source/gx/ttyx/application.d:916
+msgid "Configuration Issue Detected"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:58
-msgid "Tilix is still looking for a new maintainer!"
+#: source/gx/ttyx/application.d:928
+msgid "Do not show this message again"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:59
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:85
-msgid "This release adds the following features:"
+#: source/gx/ttyx/appwindow.d:324
+msgid "Create a new session"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:61
-msgid "Disable advanced paste when there is no linebreak like iTerm2"
+#: source/gx/ttyx/appwindow.d:338
+msgid "View session sidebar"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:62
-msgid "Add environment variable when in quake mode"
+#: source/gx/ttyx/appwindow.d:373
+msgid "Add terminal right"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:63
-msgid "Add possibility to configure always enabled regex"
+#: source/gx/ttyx/appwindow.d:377
+msgid "Add terminal down"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:65
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:91
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:120
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:130
-msgid "This release fixes the following bugs:"
+#: source/gx/ttyx/appwindow.d:383
+msgid "Find text in terminal"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:67
-msgid "More appdata -&gt; metainfo move"
+#: source/gx/ttyx/appwindow.d:606
+msgid "Enter a new name for the session"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:68
-msgid "Add meson target for man page translations"
+#: source/gx/ttyx/appwindow.d:608
+msgid "Change Session Name"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:69
-msgid "Update flatpak manifest"
+#: source/gx/ttyx/appwindow.d:689
+msgid "Open…"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:70
-msgid "meson: drop unused argument for i18n.merge_file()"
+#: source/gx/ttyx/appwindow.d:690 source/gx/ttyx/appwindow.d:1559
+#: source/gx/ttyx/prefeditor/profileeditor.d:948
+#: source/gx/ttyx/terminal/terminal.d:3013
+msgid "Save"
+msgstr "Salvesta"
+
+#: source/gx/ttyx/appwindow.d:691
+msgid "Save As…"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:71
-msgid "Stop using deprecated Meson features"
+#: source/gx/ttyx/appwindow.d:697
+msgid "Name…"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:72
+#: source/gx/ttyx/appwindow.d:698
+msgid "Synchronize Input"
+msgstr ""
+
+#: source/gx/ttyx/appwindow.d:703
+msgid "Keyboard Shortcuts"
+msgstr ""
+
+#: source/gx/ttyx/appwindow.d:704
+msgid "About ttyx_"
+msgstr ""
+
+#: source/gx/ttyx/appwindow.d:711
+msgid "GC"
+msgstr ""
+
+#: source/gx/ttyx/appwindow.d:1089 source/gx/ttyx/prefeditor/prefdialog.d:1201
+#: source/gx/ttyx/session.d:1289
+msgid "Default"
+msgstr ""
+
+#: source/gx/ttyx/appwindow.d:1198
+msgid "There are multiple sessions open, close anyway?"
+msgstr ""
+
+#: source/gx/ttyx/appwindow.d:1462
+#: source/gx/ttyx/prefeditor/profileeditor.d:961
+msgid "All JSON Files"
+msgstr "Kõik JSON-failid"
+
+#: source/gx/ttyx/appwindow.d:1466 source/gx/ttyx/prefeditor/prefdialog.d:1219
+#: source/gx/ttyx/prefeditor/profileeditor.d:965
+#: source/gx/ttyx/terminal/terminal.d:3023
+msgid "All Files"
+msgstr "Kõik failid"
+
+#: source/gx/ttyx/appwindow.d:1475
+#, c-format
+msgid "Filename '%s' does not exist"
+msgstr ""
+
+#: source/gx/ttyx/appwindow.d:1507
+msgid "Load Session"
+msgstr ""
+
+#: source/gx/ttyx/appwindow.d:1510 source/gx/ttyx/appwindow.d:1559
+#: source/gx/ttyx/bookmark/bmchooser.d:127
+#: source/gx/ttyx/bookmark/bmeditor.d:151 source/gx/ttyx/closedialog.d:202
+#: source/gx/ttyx/prefeditor/advdialog.d:197
+#: source/gx/ttyx/prefeditor/advdialog.d:372
+#: source/gx/ttyx/prefeditor/profileeditor.d:948
+#: source/gx/ttyx/terminal/advpaste.d:138 source/gx/ttyx/terminal/layout.d:33
+#: source/gx/ttyx/terminal/password.d:432
+#: source/gx/ttyx/terminal/password.d:557
+#: source/gx/ttyx/terminal/terminal.d:3013
+msgid "Cancel"
+msgstr "Katkesta"
+
+#: source/gx/ttyx/appwindow.d:1510
+msgid "Open"
+msgstr ""
+
+#: source/gx/ttyx/appwindow.d:1533
+msgid "Could not load session due to unexpected error."
+msgstr ""
+
+#: source/gx/ttyx/appwindow.d:1533
+msgid "Error Loading Session"
+msgstr ""
+
+#: source/gx/ttyx/appwindow.d:1556
+msgid "Save Session"
+msgstr ""
+
+#: source/gx/ttyx/appwindow.d:1591 source/gx/ttyx/appwindow.d:1610
+msgid "Could not save session due to unexpected error."
+msgstr ""
+
+#: source/gx/ttyx/appwindow.d:1591 source/gx/ttyx/appwindow.d:1610
+msgid "Error Saving Session"
+msgstr ""
+
+#: source/gx/ttyx/appwindow.d:1724
+msgid "Quake mode is not supported under Wayland, running as normal window"
+msgstr ""
+
+#: source/gx/ttyx/appwindow.d:1726
+msgid "Quake Mode Not Supported"
+msgstr ""
+
+#: source/gx/ttyx/appwindow.d:2201
+msgid "New output displayed"
+msgstr ""
+
+#: source/gx/ttyx/appwindow.d:2209
+msgid "Close session"
+msgstr ""
+
+#: source/gx/ttyx/bookmark/bmchooser.d:79
+msgid "Include return character with bookmark"
+msgstr ""
+
+#: source/gx/ttyx/bookmark/bmchooser.d:126
+msgid "Select Bookmark"
+msgstr ""
+
+#: source/gx/ttyx/bookmark/bmchooser.d:126
+#: source/gx/ttyx/bookmark/bmeditor.d:68
+msgid "Select Folder"
+msgstr ""
+
+#: source/gx/ttyx/bookmark/bmchooser.d:127
+#: source/gx/ttyx/bookmark/bmeditor.d:151 source/gx/ttyx/closedialog.d:202
+#: source/gx/ttyx/terminal/layout.d:33 source/gx/ttyx/terminal/password.d:557
+msgid "OK"
+msgstr "Sobib"
+
+#: source/gx/ttyx/bookmark/bmeditor.d:74
+msgid "Select folder"
+msgstr ""
+
+#: source/gx/ttyx/bookmark/bmeditor.d:86
+msgid "Clear folder"
+msgstr ""
+
+#: source/gx/ttyx/bookmark/bmeditor.d:150
+msgid "Add Bookmark"
+msgstr ""
+
+#: source/gx/ttyx/bookmark/bmeditor.d:150
+msgid "Edit Bookmark"
+msgstr ""
+
+#: source/gx/ttyx/bookmark/bmeditor.d:231
+#: source/gx/ttyx/bookmark/bmtreeview.d:73 source/gx/ttyx/session.d:1639
+#: source/gx/ttyx/terminal/password.d:179
+#: source/gx/ttyx/terminal/password.d:495
+msgid "Name"
+msgstr ""
+
+#: source/gx/ttyx/bookmark/bmeditor.d:292 source/gx/ttyx/bookmark/manager.d:687
+msgid "Path"
+msgstr ""
+
+#: source/gx/ttyx/bookmark/bmeditor.d:294
+msgid "Select Path"
+msgstr ""
+
+#: source/gx/ttyx/bookmark/bmeditor.d:333
+#: source/gx/ttyx/bookmark/bmeditor.d:428 source/gx/ttyx/bookmark/manager.d:687
+#: source/gx/ttyx/prefeditor/advdialog.d:111
+#: source/gx/ttyx/prefeditor/profileeditor.d:98
+#: source/gx/ttyx/prefeditor/profileeditor.d:1134
+#: source/gx/ttyx/terminal/layout.d:89
+msgid "Command"
+msgstr "Käsk"
+
+#: source/gx/ttyx/bookmark/bmeditor.d:382
+msgid "Protocol"
+msgstr ""
+
+#: source/gx/ttyx/bookmark/bmeditor.d:398
+msgid "Host"
+msgstr ""
+
+#: source/gx/ttyx/bookmark/bmeditor.d:414
+msgid "User"
+msgstr ""
+
+#: source/gx/ttyx/bookmark/bmeditor.d:421
+msgid "Parameters"
+msgstr ""
+
+#: source/gx/ttyx/bookmark/bmtreeview.d:70 source/gx/ttyx/closedialog.d:129
+#: source/gx/ttyx/prefeditor/profileeditor.d:447
+msgid "Icon"
+msgstr "Ikoon"
+
+#: source/gx/ttyx/bookmark/manager.d:233
+msgid "Error deserializing bookmark"
+msgstr ""
+
+#: source/gx/ttyx/bookmark/manager.d:537
+msgid "Root"
+msgstr ""
+
+#: source/gx/ttyx/bookmark/manager.d:615
+msgid "Could not load bookmarks due to unexpected error"
+msgstr ""
+
+#: source/gx/ttyx/bookmark/manager.d:687
+msgid "Folder"
+msgstr ""
+
+#: source/gx/ttyx/bookmark/manager.d:687
+msgid "Remote"
+msgstr ""
+
+#: source/gx/ttyx/closedialog.d:123 source/gx/ttyx/constants.d:147
+#: source/gx/ttyx/terminal/layout.d:54
+msgid "Title"
+msgstr "Pealkiri"
+
+#: source/gx/ttyx/closedialog.d:170
+#, c-format
+msgid "Window (%s)"
+msgstr "Aken (%s)"
+
+#: source/gx/ttyx/closedialog.d:173
+#, c-format
+msgid "Session (%s)"
+msgstr "Sessioon (%s)"
+
+#: source/gx/ttyx/closedialog.d:189
+msgid "Close Application"
+msgstr "Sulge rakendus"
+
+#: source/gx/ttyx/closedialog.d:191
+msgid "Close Window"
+msgstr "Sulge aken"
+
+#: source/gx/ttyx/closedialog.d:193 source/gx/ttyx/closedialog.d:195
+msgid "Close Session"
+msgstr "Sulge sessioon"
+
+#: source/gx/ttyx/cmdparams.d:120 source/gx/ttyx/cmdparams.d:124
+#, c-format
+msgid "Ignoring as '%s' is not a directory"
+msgstr ""
+
+#: source/gx/ttyx/cmdparams.d:153
+#, c-format
+msgid "Geometry string '%s' is invalid and could not be parsed"
+msgstr ""
+
+#: source/gx/ttyx/cmdparams.d:187
 msgid ""
-"Keep quake window open if focus is restored before timeout has been reached"
+"You cannot load a session and set a profile/working directory/execute "
+"command option, please choose one or the other"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:73
-msgid "Don't check GtkDragResult"
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:74
-msgid "Don't add application/x-rootwindow-drop to dragSourceSet targets"
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:76
-msgid "With contributions from:"
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:77
+#: source/gx/ttyx/cmdparams.d:198
 msgid ""
-"Alan Scherger, Antoine Belvire, David King, Jan Beich, kohnish, luk1337, "
-"matishadow, Winston Hoy, Matthias Klumpp"
+"No ttyx_ instance registered on the session bus to receive the action. "
+"(Instances started with --new-process are not bus-registered.)"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:83
+#: source/gx/ttyx/cmdparams.d:220
 msgid ""
-"Tilix is looking for maintainers! At the moment, only very minimal "
-"maintenance is done, no new features will be implemented and pull-requests "
-"may be reviewed very slowly."
+"You cannot use the quake mode with maximize, minimize or geometry parameters"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:84
-msgid "If you are interested in helping Tilix, please chime in!"
+#: source/gx/ttyx/colorschemes.d:199
+#, c-format
+msgid "File %s is not a color scheme compliant JSON file"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:87
-msgid "Actually install Yaru color scheme"
+#: source/gx/ttyx/colorschemes.d:262
+msgid "Color scheme palette requires 16 colors"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:88
-msgid "Give every tab the ${title}"
+#: source/gx/ttyx/constants.d:66
+msgid "A tiling terminal emulator for Linux, forked from Tilix"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:89
-msgid "Add option to strip trailing whitespace on paste"
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:93
-msgid "Fix saving of already saved session"
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:94
-msgid "Add shortcut to \"Unselect all\""
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:95
-msgid "Many Meson buildsystem fixes"
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:96
-msgid "Avoid missing the previous command exit code when encoding URLs"
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:97
-msgid "Resolve some D deprecation messages"
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:98
-msgid "Mention powerline/fonts in README"
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:99
-msgid "Avoid calling `values()` on a shared object"
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:100
-msgid "Update metainfo data"
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:101
-msgid "Drop compat code for older D frontend versions"
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:102
-msgid "Bump minimum VTE version to 0.46"
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:103
-msgid "Remove deprecated Autotools support"
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:104
-msgid "Add release notes, NEWS file, automatic metainfo update"
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:105
-msgid "Update to GtkD 3.9.0"
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:107
-msgid "This release updates translations."
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:112
-msgid "This release fixes the following bug:"
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:114
+#: source/gx/ttyx/constants.d:67
 msgid ""
-"Fixes a problem with the session sidebar getting out of sync after having "
-"deleted a session. See issues #1680, #1637 and #1699."
+"This Source Code Form is subject to the terms of the Mozilla Public License, "
+"v. 2.0. If a copy of the MPL was not distributed with this file, You can "
+"obtain one at http://mozilla.org/MPL/2.0/."
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:122
-msgid "Remove app menu for gnome 3.32"
+#: source/gx/ttyx/constants.d:72
+msgid "Gerald Nunn and the Tilix contributors, whose work ttyx_ is built upon"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:123
-msgid "Update icon"
+#: source/gx/ttyx/constants.d:73
+msgid "GTK VTE widget team, ttyx_ would not be possible without their work"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:124
-msgid "Minor fixes"
+#: source/gx/ttyx/constants.d:74
+msgid "GtkD for providing such an excellent GTK wrapper"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:132
-msgid "Small release to update localizations"
+#: source/gx/ttyx/constants.d:75
+msgid "Dlang.org for such an excellent language, D"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:133
-msgid "Update to GtkD 3.8.5 to fix library name in GtkD."
+#: source/gx/ttyx/constants.d:148
+msgid "Icon title"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:139
-msgid "Some new features and bug fixes."
+#: source/gx/ttyx/constants.d:149 source/gx/ttyx/terminal/password.d:182
+msgid "ID"
 msgstr ""
+
+#: source/gx/ttyx/constants.d:150
+msgid "Directory"
+msgstr ""
+
+#: source/gx/ttyx/constants.d:151
+msgid "Hostname"
+msgstr ""
+
+#: source/gx/ttyx/constants.d:152
+msgid "Username"
+msgstr ""
+
+#: source/gx/ttyx/constants.d:153
+msgid "Columns"
+msgstr ""
+
+#: source/gx/ttyx/constants.d:154
+msgid "Rows"
+msgstr ""
+
+#: source/gx/ttyx/constants.d:155
+msgid "Process"
+msgstr ""
+
+#: source/gx/ttyx/constants.d:156
+msgid "Status.Read-Only"
+msgstr ""
+
+#: source/gx/ttyx/constants.d:157
+msgid "Status.Silence"
+msgstr ""
+
+#: source/gx/ttyx/constants.d:158
+msgid "Status.Input-Sync"
+msgstr ""
+
+#: source/gx/ttyx/constants.d:173
+msgid "Terminal count"
+msgstr ""
+
+#: source/gx/ttyx/constants.d:174
+msgid "Terminal number"
+msgstr ""
+
+#: source/gx/ttyx/constants.d:175
+msgid "Active terminal title"
+msgstr ""
+
+#: source/gx/ttyx/constants.d:192
+msgid "Application name"
+msgstr ""
+
+#: source/gx/ttyx/constants.d:193
+msgid "Session name"
+msgstr ""
+
+#: source/gx/ttyx/constants.d:194
+msgid "Session number"
+msgstr ""
+
+#: source/gx/ttyx/constants.d:195
+msgid "Session count"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:18 source/gx/ttyx/encoding.d:31
+#: source/gx/ttyx/encoding.d:45 source/gx/ttyx/encoding.d:67
+#: source/gx/ttyx/encoding.d:78
+msgid "Western"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:19 source/gx/ttyx/encoding.d:46
+#: source/gx/ttyx/encoding.d:57 source/gx/ttyx/encoding.d:76
+msgid "Central European"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:20
+msgid "South European"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:21 source/gx/ttyx/encoding.d:29
+#: source/gx/ttyx/encoding.d:83
+msgid "Baltic"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:22 source/gx/ttyx/encoding.d:47
+#: source/gx/ttyx/encoding.d:53 source/gx/ttyx/encoding.d:54
+#: source/gx/ttyx/encoding.d:59 source/gx/ttyx/encoding.d:77
+msgid "Cyrillic"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:23 source/gx/ttyx/encoding.d:50
+#: source/gx/ttyx/encoding.d:56 source/gx/ttyx/encoding.d:82
+msgid "Arabic"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:24 source/gx/ttyx/encoding.d:62
+#: source/gx/ttyx/encoding.d:79
+msgid "Greek"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:25
+msgid "Hebrew Visual"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:26 source/gx/ttyx/encoding.d:49
+#: source/gx/ttyx/encoding.d:65 source/gx/ttyx/encoding.d:81
+msgid "Hebrew"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:27 source/gx/ttyx/encoding.d:48
+#: source/gx/ttyx/encoding.d:69 source/gx/ttyx/encoding.d:80
+msgid "Turkish"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:28
+msgid "Nordic"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:30
+msgid "Celtic"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:32 source/gx/ttyx/encoding.d:68
+msgid "Romanian"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:33
+msgid "Unicode"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:34
+msgid "Armenian"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:35 source/gx/ttyx/encoding.d:36
+#: source/gx/ttyx/encoding.d:40
+msgid "Chinese Traditional"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:37
+msgid "Cyrillic/Russian"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:38 source/gx/ttyx/encoding.d:51
+#: source/gx/ttyx/encoding.d:71
+msgid "Japanese"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:39 source/gx/ttyx/encoding.d:52
+#: source/gx/ttyx/encoding.d:74
+msgid "Korean"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:41 source/gx/ttyx/encoding.d:42
+#: source/gx/ttyx/encoding.d:43
+msgid "Chinese Simplified"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:44
+msgid "Georgian"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:55 source/gx/ttyx/encoding.d:70
+msgid "Cyrillic/Ukrainian"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:58
+msgid "Croatian"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:60
+msgid "Hindi"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:61
+msgid "Persian"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:63
+msgid "Gujarati"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:64
+msgid "Gurmukhi"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:66
+msgid "Icelandic"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:72 source/gx/ttyx/encoding.d:75
+#: source/gx/ttyx/encoding.d:84
+msgid "Vietnamese"
+msgstr ""
+
+#: source/gx/ttyx/encoding.d:73
+msgid "Thai"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/advdialog.d:63
+msgid "Warning: clicked links execute shell commands with captured text "
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/advdialog.d:99
+#: source/gx/ttyx/prefeditor/advdialog.d:271
+msgid "Regex"
+msgstr "Regulaaravaldis"
+
+#: source/gx/ttyx/prefeditor/advdialog.d:123
+msgid "Case Insensitive"
+msgstr "Pole tõstutundlik"
+
+#: source/gx/ttyx/prefeditor/advdialog.d:139
+#: source/gx/ttyx/prefeditor/advdialog.d:323
+#: source/gx/ttyx/prefeditor/profileeditor.d:1301
+msgid "Add"
+msgstr "Lisa"
+
+#: source/gx/ttyx/prefeditor/advdialog.d:146
+#: source/gx/ttyx/prefeditor/advdialog.d:329
+#: source/gx/ttyx/prefeditor/prefdialog.d:556
+#: source/gx/ttyx/prefeditor/profileeditor.d:1338
+#: source/gx/ttyx/terminal/password.d:255
+msgid "Delete"
+msgstr "Kustuta"
+
+#: source/gx/ttyx/prefeditor/advdialog.d:156
+msgid "Move up"
+msgstr "Liiguta ülespoole"
+
+#: source/gx/ttyx/prefeditor/advdialog.d:167
+msgid "Move down"
+msgstr "Liiguta allapoole"
+
+#: source/gx/ttyx/prefeditor/advdialog.d:197
+#: source/gx/ttyx/prefeditor/advdialog.d:372
+#: source/gx/ttyx/terminal/password.d:432
+msgid "Apply"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/advdialog.d:197
+msgid "Edit Custom Links"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/advdialog.d:240
+msgid "Warning: ExecuteCommand and RunProcess actions run shell commands "
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/advdialog.d:297
+#: source/gx/ttyx/prefeditor/prefdialog.d:765
+msgid "Action"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/advdialog.d:309
+msgid "Parameter"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/advdialog.d:347
+msgid "Limit number of lines for trigger processing to:"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/advdialog.d:372
+msgid "Edit Triggers"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/advdialog.d:425
+#, c-format
+msgid "Row %d: "
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/bookmarkeditor.d:62
+msgid "Add bookmark"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/bookmarkeditor.d:67
+msgid "Edit bookmark"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/bookmarkeditor.d:72
+msgid "Delete bookmark"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/bookmarkeditor.d:77
+msgid "Unselect bookmark"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/common.d:37
+msgid "Custom Links"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/common.d:43
+msgid ""
+"A list of user defined links that can be clicked on in the terminal based on "
+"regular expression definitions. Warning: clicked links execute shell "
+"commands with captured text substituted in. Under SSH or any remote session "
+"that text is attacker-controlled — only configure custom links for hosts you "
+"trust, and review templates for unquoted match-group substitutions."
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/common.d:46 source/gx/ttyx/prefeditor/common.d:77
+#: source/gx/ttyx/prefeditor/profileeditor.d:1319
+#: source/gx/ttyx/terminal/password.d:226
+msgid "Edit"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/common.d:67
+msgid "Triggers"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/common.d:74
+msgid ""
+"Triggers are regular expressions that are used to check against output text "
+"in the terminal. When a match is detected the configured action is executed. "
+"Warning: ExecuteCommand and RunProcess actions run shell commands with "
+"captured groups substituted in. Under SSH or any remote session terminal "
+"output is attacker-controlled — only configure these actions for hosts you "
+"trust."
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:123
+msgid "ttyx_ Preferences"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:140
+#: source/gx/ttyx/prefeditor/prefdialog.d:141
+#: source/gx/ttyx/prefeditor/prefdialog.d:219
+msgid "Global"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:144
+#: source/gx/ttyx/prefeditor/prefdialog.d:145
+msgid "Appearance"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:150
+#: source/gx/ttyx/prefeditor/prefdialog.d:151
+msgid "Quake"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:155
+#: source/gx/ttyx/prefeditor/prefdialog.d:156
+msgid "Bookmarks"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:162
+#: source/gx/ttyx/prefeditor/prefdialog.d:163
+#: source/gx/ttyx/prefeditor/prefdialog.d:299
+msgid "Shortcuts"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:166
+#: source/gx/ttyx/prefeditor/prefdialog.d:167
+#: source/gx/ttyx/prefeditor/prefdialog.d:463
+#: source/gx/ttyx/prefeditor/prefdialog.d:681
+#: source/gx/ttyx/prefeditor/profileeditor.d:1085
+#: source/gx/ttyx/terminal/terminal.d:878
+msgid "Encoding"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:170
+#: source/gx/ttyx/prefeditor/prefdialog.d:171
+#: source/gx/ttyx/prefeditor/profileeditor.d:105
+#: source/gx/ttyx/prefeditor/profileeditor.d:575
+msgid "Advanced"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:176 source/gx/ttyx/session.d:1650
+msgid "Profile"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:189
+msgid "Add profile"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:194
+msgid "Delete profile"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:283
+#: source/gx/ttyx/terminal/terminal.d:862
+msgid "Profiles"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:312
+#: source/gx/ttyx/prefeditor/prefdialog.d:320
+#, c-format
+msgid "Profile: %s"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:366
+#, c-format
+msgid "Are you sure you want to delete '%s'?"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:557
+msgid "Clone"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:561
+msgid "Use for new terminals"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:637
+msgid "Encodings showing in menu:"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:679
+msgid "Enabled"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:789
+msgid "Shortcut Key"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:801
+msgid "Enable shortcuts"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:805
+msgid "Restore default shortcut for this action"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:916
+msgid "Overwrite Existing Shortcut"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:917
+#, c-format
+msgid ""
+"The shortcut %s is already assigned to %s.\n"
+"Disable the shortcut for the other action and assign here instead?"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1172
+msgid "Window style"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1174
+msgid "Borderless"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1174
+msgid "Disable CSD"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1174
+msgid "Disable CSD, hide toolbar"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1174
+#: source/gx/ttyx/prefeditor/prefdialog.d:1188
+msgid "Normal"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1178
+msgid "Window restart required"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1187
+msgid "Terminal title style"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1188
+#: source/gx/ttyx/prefeditor/profileeditor.d:447
+msgid "None"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1188
+msgid "Small"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1193
+#: source/gx/ttyx/prefeditor/prefdialog.d:1392
+msgid "Tab position"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1194
+#: source/gx/ttyx/prefeditor/prefdialog.d:1393
+#: source/gx/ttyx/prefeditor/prefdialog.d:1400
+msgid "Bottom"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1194
+#: source/gx/ttyx/prefeditor/prefdialog.d:1386
+#: source/gx/ttyx/prefeditor/prefdialog.d:1393
+msgid "Left"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1194
+#: source/gx/ttyx/prefeditor/prefdialog.d:1386
+#: source/gx/ttyx/prefeditor/prefdialog.d:1393
+msgid "Right"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1194
+#: source/gx/ttyx/prefeditor/prefdialog.d:1393
+#: source/gx/ttyx/prefeditor/prefdialog.d:1400
+msgid "Top"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1200
+msgid "Theme variant"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1201
+msgid "Dark"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1201
+msgid "Light"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1207
+msgid "Background image"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1209
+msgid "Select Image"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1212
+msgid "All Image Files"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1233
+msgid "Reset background image"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1239
+#: source/gx/ttyx/prefeditor/prefdialog.d:1386
+msgid "Center"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1239
+msgid "Scale"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1239
+msgid "Stretch"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1239
+msgid "Tile"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1258
+msgid "Default session name"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1273
+msgid "Application title"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1291
+msgid "Enable transparency, requires re-start"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1297
+msgid "Use a wide handle for splitters"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1302
+msgid "Equalize panes on split and close"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1303
+msgid ""
+"When enabled, splitting or closing a terminal re-equalizes all same-"
+"orientation panes (e.g. three vertical splits become 33/33/33 instead of "
+"50/25/25). Overwrites any manual drag within the chain."
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1307
+msgid "Place the sidebar on the right"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1311
+msgid "Show the terminal title even if it's the only terminal"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1316
+msgid "Use overlay scrollbars (Application restart required)"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1321
+msgid "Use tabs instead of sidebar (Application restart required)"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1353
+msgid "Size"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1364
+msgid "Height percent"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1375
+msgid "Width percent"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1385
+msgid "Alignment"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1399
+msgid "Window position"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1408
+#: source/gx/ttyx/prefeditor/profileeditor.d:556
+msgid "Options"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1416
+msgid "Show terminal on all workspaces"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1428
+msgid "Hide window when focus is lost"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1432
+msgid "Delay hiding window by (ms)"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1445
+msgid "Hide the toolbar of the window"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1460
+msgid "Keep window always on top"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1465
+msgid "Display terminal on active monitor"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1472
+msgid "Display on specific monitor"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1475
+msgid "Primary Monitor"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1478
+msgid "Monitor "
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1538
+msgid "Behavior"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1544
+msgid "Prompt when creating a new session"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1549
+msgid "Focus a terminal when the mouse moves over it"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1554
+msgid "Autohide the mouse pointer when typing"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1559
+msgid "Close terminal by clicking middle mouse button on title"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1564
+msgid "Zoom the terminal using <Control> and scroll wheel"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1569
+msgid "Require the <Control> modifier to edit title on click"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1574
+msgid "Close window when last session is closed"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1579
+msgid "Save and restore window state"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1584
+msgid "Always search using regular expressions"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1590
+msgid "Send desktop notification on process complete"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1598
+msgid "On new instance"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1601
+msgid "Focus Window"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1601
+msgid "Split Down"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1601
+msgid "Split Right"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1607
+#: source/gx/ttyx/terminal/terminal.d:1813
+msgid "Clipboard"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1613
+msgid "Always use advanced paste dialog"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1618
+msgid "Strip first character of paste if comment or variable declaration"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1623
+msgid "Strip trailing whitespaces and linebreak characters on paste"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1628
+msgid "Strip trailing whitespace on copy"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1633
+msgid "Automatically copy text to clipboard when selecting"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1670
+msgid "Security"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1678
+msgid ""
+"Paste protection detects dangerous commands (sudo, rm -rf, curl|bash, etc.) "
+"and escape sequence injection attacks. Multi-line paste review lets you "
+"inspect content before it is sent to the shell."
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1681
+msgid "Warn when pasting dangerous commands"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1687
+msgid "Show review dialog for multi-line paste"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1693
+msgid ""
+"Clipboard auto-clear removes copied content after a timeout to prevent "
+"sensitive data (passwords, tokens) from lingering in the clipboard."
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1696
+msgid "Automatically clear clipboard after timeout"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1703
+msgid "Clear clipboard after (seconds)"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1714
+msgid ""
+"Visual indicators highlight when a terminal session is running with elevated "
+"privileges or connected to a remote host."
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1717
+msgid "Show visual indicator when running as root"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1723
+msgid "Show visual indicator for SSH sessions"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1729
+msgid ""
+"Core dump protection prevents debuggers and other processes from reading "
+"terminal memory. Disable this if you need to debug ttyx_ with GDB or "
+"generate core dumps."
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1732
+msgid "Protect against memory dumps (disable core dumps)"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:97
+msgid "General"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:99
+msgid "Color"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:100
+msgid "Scrolling"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:101
+msgid "Compatibility"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:103
+#: source/gx/ttyx/prefeditor/profileeditor.d:693
+#: source/gx/ttyx/prefeditor/profileeditor.d:1173
+#: source/gx/ttyx/terminal/layout.d:68
+msgid "Badge"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:217
+msgid "Profile name"
+msgstr "Profiili nimi"
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:241
+msgid "Terminal title"
+msgstr "Terminali pealkiri"
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:254
+msgid "Text Appearance"
+msgstr "Teksti välimus"
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:262
+msgid "Terminal size"
+msgstr "Terminali suurus"
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:272
+msgid "columns"
+msgstr "veerge"
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:281
+msgid "rows"
+msgstr "ridu"
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:289
+#: source/gx/ttyx/prefeditor/profileeditor.d:328
+msgid "Reset"
+msgstr "Lähtesta"
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:301
+msgid "Cell spacing"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:311
+msgid "width"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:320
+msgid "height"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:347
+msgid "Margin"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:358
+msgid "Text blink mode"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:361
+msgid "Always"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:361
+msgid "Focused"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:361
+msgid "Never"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:361
+msgid "Unfocused"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:380
+#: source/gx/ttyx/prefeditor/profileeditor.d:1197
+msgid "Custom font"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:392
+msgid "Choose A Terminal Font"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:401
+msgid "Word-wise select chars"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:409
+#: source/gx/ttyx/prefeditor/profileeditor.d:417
+#: source/gx/ttyx/prefeditor/profileeditor.d:659
+msgid "Cursor"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:420
+msgid "Block"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:420
+msgid "IBeam"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:420
+msgid "Underline"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:428
+msgid "Cursor blink mode"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:431
+msgid "Off"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:431
+msgid "On"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:431
+msgid "System"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:436
+msgid "Notification"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:444
+#: source/gx/ttyx/terminal/terminal.d:441
+msgid "Terminal bell"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:447
+msgid "Icon and sound"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:447
+msgid "Sound"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:465
+#, c-format
+msgid "ID: %s"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:513
+msgid "Color scheme"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:523
+#: source/gx/ttyx/prefeditor/profileeditor.d:988
+msgid "Custom"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:536
+msgid "Export"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:548
+msgid "Color palette"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:570
+msgid "Use theme colors for foreground/background"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:580
+msgid "Show bold text in bright colors"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:592
+msgid "Transparency"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:606
+msgid "Unfocused dim"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:654
+msgid "Text"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:655
+#: source/gx/ttyx/prefeditor/profileeditor.d:757
+msgid "Background"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:664
+msgid "Select Cursor Foreground Color"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:666
+msgid "Select Cursor Background Color"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:671
+msgid "Highlight"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:676
+msgid "Select Highlight Foreground Color"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:678
+msgid "Select Highlight Background Color"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:683
+msgid "Bold"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:688
+msgid "Select Bold Color"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:697
+msgid "Select Badge Color"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:746
+msgid "Select Background Color"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:762
+#: source/gx/ttyx/prefeditor/profileeditor.d:778
+msgid "Select Foreground Color"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:777
+msgid "Foreground"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:781
+msgid "Black"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:781
+msgid "Blue"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:781
+msgid "Green"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:781
+msgid "Grey"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:781
+msgid "Orange"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:781
+msgid "Purple"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:781
+msgid "Red"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:781
+msgid "Turquoise"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:787
+#, c-format
+msgid "Select %s Color"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:794
+#, c-format
+msgid "Select %s Light Color"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:945
+msgid "Export Color Scheme"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1022
+msgid "Show scrollbar"
+msgstr "Näita kerimisriba"
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1026
+msgid "Scroll on output"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1030
+msgid "Scroll on keystroke"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1034
+msgid "Scrollback lines:"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1067
+msgid "Backspace key generates"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1070
+#: source/gx/ttyx/prefeditor/profileeditor.d:1079
+msgid "ASCII DEL"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1070
+#: source/gx/ttyx/prefeditor/profileeditor.d:1079
+msgid "Automatic"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1070
+#: source/gx/ttyx/prefeditor/profileeditor.d:1079
+msgid "Control-H"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1070
+#: source/gx/ttyx/prefeditor/profileeditor.d:1079
+msgid "Escape sequence"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1070
+#: source/gx/ttyx/prefeditor/profileeditor.d:1079
+msgid "TTY"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1076
+msgid "Delete key generates"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1100
+msgid "Ambiguous-width characters"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1103
+msgid "Narrow"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1103
+msgid "Wide"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1124
+msgid "Run command as a login shell"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1128
+msgid "Run a custom command instead of my shell"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1145
+msgid "When command exits"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1147
+msgid "Exit the terminal"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1147
+msgid "Hold the terminal open"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1147
+msgid "Restart the command"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1187
+msgid "Badge position"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1191
+msgid "Northeast"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1191
+msgid "Northwest"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1191
+msgid "Southeast"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1191
+msgid "Southwest"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1209
+msgid "Choose A Badge Font"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1247
+msgid "Notify New Activity"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1254
+msgid ""
+"A notification can be raised when new activity occurs after a specified "
+"period of silence."
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1267
+msgid "Automatic Profile Switching"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1276
+msgid ""
+"Profiles are automatically selected based on the values entered here.\n"
+"Values are entered using a <i>username@hostname:directory</i> format. Either "
+"the hostname or directory can be omitted but the colon must be present. "
+"Entries with neither hostname or directory are not permitted."
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1278
+msgid ""
+"Profiles are automatically selected based on the values entered here.\n"
+"Values are entered using a <i>hostname:directory</i> format. Either the "
+"hostname or directory can be omitted but the colon must be present. Entries "
+"with neither hostname or directory are not permitted."
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1290
+msgid "Match"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1305
+msgid "Enter username@hostname:directory to match"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1307
+msgid "Enter hostname:directory to match"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1309
+msgid "Add New Match"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1326
+msgid "Edit username@hostname:directory to match"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1328
+msgid "Edit hostname:directory to match"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1330
+msgid "Edit Match"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1361
+msgid "Enable by default"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1370
+msgid "Threshold for continuous silence"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:1379
+msgid "(seconds)"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/titleeditor.d:105
+#: source/gx/ttyx/terminal/terminal.d:338
+#: source/gx/ttyx/terminal/terminal.d:1330
+msgid "Terminal"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/titleeditor.d:110
+msgid "Session"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/titleeditor.d:116
+msgid "Window"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/titleeditor.d:126
+#: source/gx/ttyx/prefeditor/titleeditor.d:127
+msgid "Help"
+msgstr ""
+
+#: source/gx/ttyx/preferences.d:274
+msgid "UpdateState"
+msgstr ""
+
+#: source/gx/ttyx/preferences.d:275
+msgid "ExecuteCommand"
+msgstr ""
+
+#: source/gx/ttyx/preferences.d:276
+msgid "SendNotification"
+msgstr ""
+
+#: source/gx/ttyx/preferences.d:277
+msgid "UpdateTitle"
+msgstr ""
+
+#: source/gx/ttyx/preferences.d:278
+msgid "PlayBell"
+msgstr ""
+
+#: source/gx/ttyx/preferences.d:279
+msgid "SendText"
+msgstr ""
+
+#: source/gx/ttyx/preferences.d:280
+msgid "InsertPassword"
+msgstr ""
+
+#: source/gx/ttyx/preferences.d:281
+msgid "UpdateBadge"
+msgstr ""
+
+#: source/gx/ttyx/preferences.d:282
+msgid "RunProcess"
+msgstr ""
+
+#: source/gx/ttyx/preferences.d:392
+#, c-format
+msgid "%s (Copy)"
+msgstr ""
+
+#: source/gx/ttyx/session.d:626
+msgid "Could not locate dropped terminal"
+msgstr ""
+
+#: source/gx/ttyx/session.d:631
+msgid "Could not locate session for dropped terminal"
+msgstr ""
+
+#: source/gx/ttyx/sidebar.d:546 source/gx/ttyx/terminal/terminal.d:373
+#: source/gx/ttyx/terminal/terminal.d:1827
+msgid "Close"
+msgstr "Sulge"
+
+#: source/gx/ttyx/terminal/advpaste.d:33
+msgid "This command is asking for Administrative access to your computer"
+msgstr ""
+
+#: source/gx/ttyx/terminal/advpaste.d:34
+msgid "Copying commands from the internet can be dangerous. "
+msgstr ""
+
+#: source/gx/ttyx/terminal/advpaste.d:35
+msgid "Be sure you understand what each part of this command does."
+msgstr ""
+
+#: source/gx/ttyx/terminal/advpaste.d:96
+msgid "Transform"
+msgstr ""
+
+#: source/gx/ttyx/terminal/advpaste.d:104
+msgid "Convert spaces to tabs"
+msgstr ""
+
+#: source/gx/ttyx/terminal/advpaste.d:115
+msgid "Convert CRLF and CR to LF"
+msgstr ""
+
+#: source/gx/ttyx/terminal/advpaste.d:137
+msgid "Review Paste"
+msgstr ""
+
+#: source/gx/ttyx/terminal/advpaste.d:137
+msgid "Unsafe Paste"
+msgstr ""
+
+#: source/gx/ttyx/terminal/advpaste.d:138
+#: source/gx/ttyx/terminal/terminal.d:1787
+#: source/gx/ttyx/terminal/terminal.d:1805
+msgid "Paste"
+msgstr ""
+
+#: source/gx/ttyx/terminal/clipboard.d:425
+msgid "Don't Paste"
+msgstr ""
+
+#: source/gx/ttyx/terminal/clipboard.d:426
+msgid "Paste Anyway"
+msgstr ""
+
+#: source/gx/ttyx/terminal/layout.d:33
+msgid "Layout Options"
+msgstr ""
+
+#: source/gx/ttyx/terminal/layout.d:48
+msgid "Active"
+msgstr ""
+
+#: source/gx/ttyx/terminal/layout.d:82
+msgid "Session Load"
+msgstr ""
+
+#: source/gx/ttyx/terminal/layout.d:98
+msgid ""
+"Active options are always in effect and apply immediately.\n"
+"Session Load options only apply when loading a session file."
+msgstr ""
+
+#: source/gx/ttyx/terminal/monitor.d:141
+msgid "Process monitoring is not enabled, this should never be called"
+msgstr ""
+
+#: source/gx/ttyx/terminal/password.d:203
+msgid "New"
+msgstr ""
+
+#: source/gx/ttyx/terminal/password.d:278
+#: source/gx/ttyx/terminal/password.d:284
+#, fuzzy
+msgid "Delete failed"
+msgstr "Kustuta"
+
+#: source/gx/ttyx/terminal/password.d:278
+msgid "Failed to delete password: "
+msgstr ""
+
+#: source/gx/ttyx/terminal/password.d:284
+msgid "Password entry could not be deleted from the keyring."
+msgstr ""
+
+#: source/gx/ttyx/terminal/password.d:296
+msgid "Include return character with password"
+msgstr ""
+
+#: source/gx/ttyx/terminal/password.d:432
+msgid "Insert Password"
+msgstr ""
+
+#: source/gx/ttyx/terminal/password.d:505
+msgid "Password"
+msgstr ""
+
+#: source/gx/ttyx/terminal/password.d:515
+msgid "Confirm Password"
+msgstr ""
+
+#: source/gx/ttyx/terminal/password.d:563
+msgid "Add Password"
+msgstr ""
+
+#: source/gx/ttyx/terminal/password.d:568
+msgid "Edit Password"
+msgstr ""
+
+#: source/gx/ttyx/terminal/process.d:118 source/gx/ttyx/terminal/process.d:120
+msgid "Unknown"
+msgstr ""
+
+#: source/gx/ttyx/terminal/search.d:128
+msgid "Search Options"
+msgstr ""
+
+#: source/gx/ttyx/terminal/search.d:141
+msgid "Find next"
+msgstr ""
+
+#: source/gx/ttyx/terminal/search.d:147
+msgid "Find previous"
+msgstr ""
+
+#: source/gx/ttyx/terminal/search.d:155
+msgid "Close search box"
+msgstr ""
+
+#: source/gx/ttyx/terminal/search.d:205
+msgid "Match case"
+msgstr ""
+
+#: source/gx/ttyx/terminal/search.d:206
+msgid "Match entire word only"
+msgstr ""
+
+#: source/gx/ttyx/terminal/search.d:207
+msgid "Wrap around"
+msgstr ""
+
+#: source/gx/ttyx/terminal/search.d:208
+msgid "Match as regular expression"
+msgstr ""
+
+#: source/gx/ttyx/terminal/search.d:243
+#, c-format
+msgid ""
+"Search '%s' is not a valid regex\n"
+"%s"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:381
+#: source/gx/ttyx/terminal/terminal.d:1385
+#: source/gx/ttyx/terminal/terminal.d:1826
+msgid "Maximize"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:391
+#: source/gx/ttyx/terminal/terminal.d:712
+msgid "Disable input synchronization for this terminal"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:400
+#: source/gx/ttyx/terminal/terminal.d:849
+msgid "Read-Only"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:406
+msgid "New output"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:421
+msgid "as root"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:422
+msgid "Running as root"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:433
+msgid "ssh"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:434
+msgid "Connected via SSH"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:486
+msgid "Edit Profile"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:504
+msgid "Edit Encodings"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:714
+msgid "Enable input synchronization for this terminal"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:749
+msgid "Library Not Loaded"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:749
+#, c-format
+msgid ""
+"The library %s could not be loaded, password functionality is unavailable."
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:848
+msgid "Find…"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:855
+msgid "Password..."
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:856
+msgid "Bookmark..."
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:857
+msgid "Add Bookmark..."
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:861
+msgid "Assistants"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:868
+msgid "Show File Browser..."
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:872
+msgid "Save Output…"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:873
+msgid "Refresh"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:874
+#: source/gx/ttyx/terminal/terminal.d:1820
+msgid "Secure Clear"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:879
+msgid "Layout Options…"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:883
+msgid "Monitor Silence"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:886
+msgid "Other"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:895
+msgid "Add Right"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:899
+msgid "Add Down"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:1009
+msgid "Terminal Activity"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:1346
+msgid "Not Enabled"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:1382
+#: source/gx/ttyx/terminal/terminal.d:1826
+msgid "Restore"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:1669
+msgid "ttyx_ Custom Notification"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:1772
+msgid "Open Link"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:1773
+msgid "Copy Link Address"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:1783
+#: source/gx/ttyx/terminal/terminal.d:1793
+msgid "Copy"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:1785
+#: source/gx/ttyx/terminal/terminal.d:1799
+msgid "Copy as HTML"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:1788
+#: source/gx/ttyx/terminal/terminal.d:1810
+msgid "Select All"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:1831
+msgid "Synchronize input"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:1984
+#, c-format
+msgid "Could not check file '%s' due to error '%s'"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:1991
+#, c-format
+msgid ""
+"Remote file URIs are not supported with hyperlinks.\n"
+"URI was '%s'"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:1992
+msgid "Remote File URI Unsupported"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:2026
+#: source/gx/ttyx/terminal/terminal.d:2406
+#, c-format
+msgid "Custom link regex '%s' has an error, ignoring"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:2027
+msgid "Regular Expression Error"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:2050
+#, c-format
+msgid ""
+"Refusing to open link with a disallowed scheme.\n"
+"URI was '%s'"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:2051
+msgid "Link Scheme Not Allowed"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:2059
+#, c-format
+msgid "Could not open match '%s'"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:2060
+msgid "Error Opening Match"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:2362
+#, c-format
+msgid "Unexpected error occurred when adding link regex: %s"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:2574
+msgid "Unexpected error occurred, no additional information available"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:2584
+#, c-format
+msgid "Unexpected error occurred: %s"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:3010
+msgid "Save Terminal Output"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:3019
+msgid "All Text Files"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:3211
+msgid "This session wants to run a command:"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:3217
+msgid "Run session command?"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:3229
+msgid "Open Shell"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:3230
+#, fuzzy
+msgid "Run Command"
+msgstr "Käsk"
+
+#: source/gx/ttyx/terminal/terminal.d:3696
+#, c-format
+msgid "The child process exited normally with status %d"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:3697
+#, c-format
+msgid "The child process was aborted by signal %d."
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:3698
+msgid "The child process was aborted."
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:3704
+msgid "Relaunch"
+msgstr ""
+
+#~ msgid "Tilix"
+#~ msgstr "Tilix"

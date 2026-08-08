@@ -4,7 +4,9 @@ All notable changes to **ttyx_** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.2.0] — 2026-08-08
+
+Security-focused GA release of the 1.2.0 line. All changes from 1.2.0-beta.1 plus the security and crash fixes below.
 
 ### Security
 - **Confirmation prompt before a restored session runs an embedded command** — a session file's per-terminal `overrideCommand` was executed as the terminal's child process the moment the session loaded, with no prompt, so opening a crafted or shared `.json` (via Open Session or `--session`) silently ran an attacker-chosen command in an attacker-chosen directory. Restoring a session that carries an embedded command now shows a modal confirmation naming the command, defaulting to the safe choice; declining opens a normal shell. Only the session-restore path prompts — CLI (`-e`/`-x`) and profile custom commands are trusted and unaffected. The command is shown as plain text so it cannot inject Pango markup into the dialog.

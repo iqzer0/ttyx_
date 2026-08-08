@@ -111,7 +111,8 @@ flatpak install --user ttyx-X.Y.Z_x86_64.flatpak
 
 ## Notes
 
-- All commits and tags are GPG-signed (key: `2CAAD12074F3C056`)
+- Release tags from v1.2.0 on are GPG-signed with key `A63B62EC0FB924FC`
+  (releases up to v1.2.0-beta.1 were signed with `2CAAD12074F3C056`)
 - CI Actions are pinned to commit SHAs (not mutable tags)
 - Never create a release then try to add assets — always include them at creation time
 - Flatpak builds require GNOME 48 SDK; see `flatpak/README.md` for details
