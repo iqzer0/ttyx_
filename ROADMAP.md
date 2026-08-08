@@ -117,3 +117,11 @@ A potential security-hardened fork for enterprise/compliance use cases:
 **ttyx_ wins on:** tiling + security, for sysadmins who SSH into production all day and want their terminal to actively protect them.
 
 **Ptyxis wins on:** GNOME integration, container support, modern stack. But Hergert maintains 5+ major GNOME projects — focused effort on ttyx_ can outpace Ptyxis on specific features.
+
+## Known issues
+
+- Titlebar shows a literal `${title}` (no substitution) when a session is
+  loaded via `--session` in a new process; interactive loads are fine.
+  Found during the v1.3.0-beta.1 GUI smoke pass (2026-08-08). Cosmetic —
+  likely the app-title template refresh isn't triggered after session
+  deserialization on the command-line load path.

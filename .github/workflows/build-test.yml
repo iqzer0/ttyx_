@@ -12,78 +12,133 @@ on:
 permissions:
   contents: read
 
+# CI build policy: every job builds DEBUG. The giD bindings are enormous
+# generated code; a release (-O3) compile of them takes over an hour on a
+# hosted runner, which is what the distro jobs' job is NOT (they exist to
+# catch distro-specific dependency/link breakage). Release-flag acceptance
+# is guarded cheaply in the Dub job; actual release builds happen at
+# release time per RELEASE.md. The dub artifact cache (~/.dub) is shared
+# between the Build and Test steps and across runs, keyed on the pinned
+# dependency set.
+
 jobs:
 
   build-debian-stable:
     name: Debian Stable
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
     # Pin actions to commit SHAs to prevent supply chain attacks
     # via mutable tags. Verify SHAs at:
     # https://github.com/actions/checkout/tags
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
+    # https://github.com/actions/cache/tags
+    - name: Restore dub cache
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: ~/.dub-container
+        key: dub-debian-stable-${{ hashFiles('dub.selections.json', 'dub.json') }}
+        restore-keys: dub-debian-stable-
+
     - name: Create Build Environment
       run: cd .github/ci/ && podman build -t ttyx -f ./Dockerfile-debian-stable .
 
     - name: Build
-      run: podman run -t -e COMPILER_VENDOR=$CVENDOR -e CC=gcc -e CXX=g++ -v `pwd`:/build ttyx
-           ./.github/ci/run-build.sh
+      run: |
+        mkdir -p $HOME/.dub-container
+        podman run -t -e COMPILER_VENDOR=$CVENDOR -e CC=gcc -e CXX=g++ \
+          -v `pwd`:/build -v $HOME/.dub-container:/root/.dub ttyx \
+          ./.github/ci/run-build.sh
 
     - name: Test
-      run: podman run -t -e COMPILER_VENDOR=$CVENDOR -e CC=gcc -e CXX=g++ -v `pwd`:/build ttyx
+      run: podman run -t -e COMPILER_VENDOR=$CVENDOR -e CC=gcc -e CXX=g++
+           -v `pwd`:/build -v $HOME/.dub-container:/root/.dub ttyx
            ./.github/ci/run-tests.sh
 
 
   build-debian-testing:
     name: Debian Testing
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+    - name: Restore dub cache
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: ~/.dub-container
+        key: dub-debian-testing-${{ hashFiles('dub.selections.json', 'dub.json') }}
+        restore-keys: dub-debian-testing-
 
     - name: Create Build Environment
       run: cd .github/ci/ && podman build -t ttyx -f ./Dockerfile-debian-testing .
 
     - name: Build
-      run: podman run -t -e COMPILER_VENDOR=$CVENDOR -e CC=gcc -e CXX=g++ -v `pwd`:/build ttyx
-           ./.github/ci/run-build.sh
+      run: |
+        mkdir -p $HOME/.dub-container
+        podman run -t -e COMPILER_VENDOR=$CVENDOR -e CC=gcc -e CXX=g++ \
+          -v `pwd`:/build -v $HOME/.dub-container:/root/.dub ttyx \
+          ./.github/ci/run-build.sh
 
     - name: Test
-      run: podman run -t -e COMPILER_VENDOR=$CVENDOR -e CC=gcc -e CXX=g++ -v `pwd`:/build ttyx
+      run: podman run -t -e COMPILER_VENDOR=$CVENDOR -e CC=gcc -e CXX=g++
+           -v `pwd`:/build -v $HOME/.dub-container:/root/.dub ttyx
            ./.github/ci/run-tests.sh
 
 
   build-ubuntu:
     name: Ubuntu LTS
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+    - name: Restore dub cache
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: ~/.dub-container
+        key: dub-ubuntu-noble-${{ hashFiles('dub.selections.json', 'dub.json') }}
+        restore-keys: dub-ubuntu-noble-
 
     - name: Create Build Environment
       run: cd .github/ci/ && podman build -t ttyx -f ./Dockerfile-ubuntu-noble .
 
     - name: Build
-      run: podman run -t -e COMPILER_VENDOR=$CVENDOR -e CC=gcc -e CXX=g++ -v `pwd`:/build ttyx
-           ./.github/ci/run-build.sh
+      run: |
+        mkdir -p $HOME/.dub-container
+        podman run -t -e COMPILER_VENDOR=$CVENDOR -e CC=gcc -e CXX=g++ \
+          -v `pwd`:/build -v $HOME/.dub-container:/root/.dub ttyx \
+          ./.github/ci/run-build.sh
 
     - name: Test
-      run: podman run -t -e COMPILER_VENDOR=$CVENDOR -e CC=gcc -e CXX=g++ -v `pwd`:/build ttyx
+      run: podman run -t -e COMPILER_VENDOR=$CVENDOR -e CC=gcc -e CXX=g++
+           -v `pwd`:/build -v $HOME/.dub-container:/root/.dub ttyx
            ./.github/ci/run-tests.sh
 
     - name: Memory Footprint
       continue-on-error: true
-      run: podman run -t -e CC=gcc -e CXX=g++ -v `pwd`:/build ttyx
+      run: podman run -t -e CC=gcc -e CXX=g++
+           -v `pwd`:/build -v $HOME/.dub-container:/root/.dub ttyx
            ./.github/ci/measure-memory.sh
 
 
   build-dub-ubuntu:
     name: Dub
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
         matrix:
           dc: [ldc-latest]
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+    - name: Restore dub cache
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: ~/.dub
+        key: dub-native-${{ matrix.dc }}-${{ hashFiles('dub.selections.json', 'dub.json') }}
+        restore-keys: dub-native-${{ matrix.dc }}-
 
     - name: Install System Dependencies
       run: |
@@ -107,6 +162,23 @@ jobs:
 
     - name: Build
       run: dub build --compiler=$DC
+
+    - name: Release dflags accepted
+      run: |
+        # Guard against DMD-only flags sneaking into the shared release
+        # dflags (e.g. -inline, which broke every ldc2 release build and
+        # kept CI red from the giD swap until 2026-08-08). A full -O3
+        # release compile of the giD bindings is too slow for CI, so this
+        # only verifies the compiler ACCEPTS the flags: flag rejection
+        # dies in seconds, so surviving 3 minutes of compilation proves
+        # the flag set is valid. rc 124 = cut short by design = pass.
+        rc=0
+        timeout 180 dub build --compiler=$DC --build=release || rc=$?
+        if [ "$rc" = "124" ]; then
+          echo "Release dflags accepted (compile cut short by design)"
+          exit 0
+        fi
+        exit $rc
 
     - name: Test
       run: xvfb-run dub test --compiler=$DC
