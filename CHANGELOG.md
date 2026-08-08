@@ -4,7 +4,9 @@ All notable changes to **ttyx_** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.3.0-beta.1] — 2026-08-08
+
+First beta of the 1.3.0 line — the giD build. Runtime behaviour is intended to be identical to 1.2.0; this beta's validation period exists to prove exactly that.
 
 ### Changed
 - **The shipping build swapped from GtkD to giD** — the `ttyx` binary is now built on [giD](https://github.com/Kymorphia/gid) (`gid:gtk3` / `gid:vte2` / `gid:pangocairo1` / `gid:secret1`, v0.9.13) instead of the unmaintained GtkD bindings, completing ROADMAP Phase 2a. All 44 GtkD-coupled modules were ported; the GtkD-free logic carried over unchanged. The vendored libsecret bindings (`source/secret/`, `source/secretc/`) are deleted in favour of `gid:secret1`; the vendored `source/x11/` stays (giD's xlib2 lacks the raw event types it needs). A giD signal-marshal bug is worked around in `gx/gtk/events.d` (upstream: Kymorphia/gid#52). Dub is now the single build system — Meson is retired (giD publishes no pkg-config packages). Runtime behaviour is intended to be unchanged; this release is a beta to validate exactly that.
@@ -12,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Unsafe-paste alert now ships default-off** — the dangerous-command warning dialog (sudo / `rm -rf` / `curl|bash` patterns in pasted text) interrupted legitimate admin pastes often enough that default-on was more annoyance than protection. It is now opt-in under Preferences → Global → Clipboard. The always-on protections stand: bracketed-paste escape stripping (no setting) and the multi-line paste review (still default-on), so hidden-newline and paste-mode-breakout attacks remain covered by default; only the command-pattern heuristic is opt-in.
 
 ### Fixed
+- **Release builds with plain `ldc2` failed on the `-inline` dflag** — dub.json's release build type carried DMD-only `-inline` in the compiler-agnostic `dflags`, so `dub build --build=release --compiler=ldc2` (the CI and RELEASE.md invocation) failed with `Unknown command line argument` on every LDC tested. Every post-swap CI run was red because of this. The flag moved to `dflags-dmd`; LDC's `-O3` already enables inlining.
 - **Remote `ttyx -a <action>` invocations hung instead of exiting** — the second instance executed its action on the primary but the caller never returned. GtkD's command-line handler took a `Scoped!ApplicationCommandLine` whose scope-exit unref signalled the remote to exit; the giD port's wrapper held its GObject ref until GC finalization, so the remote hung. The wrapper is now destroyed explicitly at handler exit, restoring the eager-unref semantics.
 
 ## [1.2.0] — 2026-08-08

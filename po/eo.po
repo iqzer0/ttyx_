@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: tilix\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-11-08 21:52+0100\n"
+"POT-Creation-Date: 2026-08-08 22:38+0800\n"
 "PO-Revision-Date: 2021-04-13 01:26+0000\n"
 "Last-Translator: phlostically <phlostically@mailinator.com>\n"
 "Language-Team: Esperanto <https://hosted.weblate.org/projects/tilix/"
@@ -18,31 +18,33 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 "X-Generator: Weblate 4.6-dev\n"
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:4
-#: data/pkg/desktop/com.gexperts.Tilix.desktop.in:4
-#: source/gx/tilix/application.d:321 source/gx/tilix/appwindow.d:1694
-msgid "Tilix"
-msgstr "Tilix"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:4
+#: data/pkg/desktop/io.github.gwelr.ttyx.desktop.in:3
+#: source/gx/ttyx/application.d:370 source/gx/ttyx/appwindow.d:1769
+msgid "ttyx_"
+msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:5
-#: data/pkg/desktop/com.gexperts.Tilix.desktop.in:5
-msgid "A tiling terminal for GNOME"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:5
+#: data/pkg/desktop/io.github.gwelr.ttyx.desktop.in:4
+#, fuzzy
+msgid "A tiling terminal for Linux, forked from Tilix"
 msgstr "Kaheliga terminalo por GNOME"
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:9
-msgid "Tilix is a tiling terminal emulator."
-msgstr "Tilix estas kaheliga terminalimitilo."
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:9
+msgid ""
+"ttyx_ is an actively maintained fork of Tilix, the tiling terminal emulator."
+msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:12
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:12
 msgid "It lets you:"
 msgstr "Jen ĝiaj funkcioj:"
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:14
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:14
 msgid ""
 "Layout terminals in any fashion by splitting them horizontally or vertically"
 msgstr "Aranĝu terminalojn iel ajn, dividante ilin horizontale aŭ vertikale"
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:15
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:15
 msgid ""
 "Terminals can be re-arranged using drag and drop both within and between "
 "windows"
@@ -50,11 +52,11 @@ msgstr ""
 "Terminaloj estas rearanĝeblaj per ŝovo-demeto kaj en fenestroj kaj inter "
 "fenestroj"
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:16
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:16
 msgid "Terminals can be detached into a new window via drag and drop"
 msgstr "Terminaloj estas disigeblaj en novan fenestron per ŝovo-demeto"
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:17
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:17
 msgid ""
 "Input can be synchronized between terminals so commands typed in one "
 "terminal are replicated to the others"
@@ -62,15 +64,15 @@ msgstr ""
 "Enigo povas esti sinkronigita inter terminaloj, tiel ke komandoj tajpitaj en "
 "unu terminalo estas ripetitaj en la aliaj"
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:18
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:18
 msgid "The grouping of terminals can be saved and loaded from disk"
 msgstr "La grupo de terminaloj estas konservebla al kaj ŝargebla de disko"
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:19
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:19
 msgid "Terminals support custom titles"
 msgstr "Terminaloj subtenas agordeblajn titolojn"
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:20
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:20
 msgid ""
 "Color schemes are stored in files and custom color schemes can be created by "
 "simply creating a new file"
@@ -78,272 +80,428 @@ msgstr ""
 "Koloraroj estas konservitaj en dosieroj, kaj novaj koloraroj estas simple "
 "kreeblaj per kreado de nova dosiero"
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:21
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:21
 msgid "Transparent background"
 msgstr "Travidebla fono"
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:22
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:22
 msgid "Supports notifications when processes are completed out of view"
 msgstr "Subtenas sciigojn kiam procezoj kompletiĝas"
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:24
-msgid ""
-"The application was written using GTK 3 and an effort was made to conform to "
-"GNOME Human Interface Guidelines (HIG). As a result, it does use client-side-"
-"decorations, though it can be disabled if necessary."
-msgstr ""
-"La programo uzas version 3 de GTK kaj klopodas konformi al la Gvidnormoj pri "
-"Fasadoj de GNOME (HIG). Tial, ĝi uzas klientflankajn ornamaĵojn, kvankam ili "
-"estas malŝalteblaj."
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:28
-msgid "Tilix has been tested with GNOME and with Unity."
-msgstr "Tilix estas elprovita kun GNOME kaj kun Unity."
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:58
-#, fuzzy
-msgid "Tilix is still looking for a new maintainer!"
-msgstr "Tilix estas kaheliga terminalimitilo."
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:59
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:85
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:42
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:61
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:89
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:111
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:135
 msgid "This release adds the following features:"
 msgstr "Ĉi tiu versio aldonas la jenajn funkciojn:"
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:61
-msgid "Disable advanced paste when there is no linebreak like iTerm2"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:44
+msgid ""
+"The application is now built on the actively-maintained giD bindings "
+"(gid:gtk3 / gid:vte2) instead of the unmaintained GtkD, completing ROADMAP "
+"Phase 2a; runtime behaviour is intended to be identical, and this beta's "
+"validation period exists to prove exactly that"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:62
-msgid "Add environment variable when in quake mode"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:45
+msgid ""
+"The unsafe-paste alert (dangerous-command patterns in pasted text) now ships "
+"default-off — it interrupted legitimate admin pastes more than it protected; "
+"enable it under Preferences -> Global -> Clipboard. The always-on "
+"protections stand: bracketed-paste escape stripping and the multi-line paste "
+"review remain enabled by default"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:63
-msgid "Add possibility to configure always enabled regex"
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:65
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:91
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:120
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:130
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:47
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:69
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:101
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:117
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:150
 msgid "This release fixes the following bugs:"
 msgstr "Ĉi tiu versio korektas la jenajn cimojn:"
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:67
-msgid "More appdata -&gt; metainfo move"
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:68
-msgid "Add meson target for man page translations"
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:69
-msgid "Update flatpak manifest"
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:70
-msgid "meson: drop unused argument for i18n.merge_file()"
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:71
-msgid "Stop using deprecated Meson features"
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:72
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:49
 msgid ""
-"Keep quake window open if focus is restored before timeout has been reached"
+"Remote 'ttyx -a <action>' invocations executed their action but hung instead "
+"of exiting immediately"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:73
-msgid "Don't check GtkDragResult"
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:74
-msgid "Don't add application/x-rootwindow-drop to dragSourceSet targets"
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:76
-msgid "With contributions from:"
-msgstr ""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:77
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:50
 msgid ""
-"Alan Scherger, Antoine Belvire, David King, Jan Beich, kohnish, luk1337, "
-"matishadow, Winston Hoy, Matthias Klumpp"
+"Release builds with plain ldc2 failed on a DMD-only -inline flag; this also "
+"kept CI red since the build swap"
 msgstr ""
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:83
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:52
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:79
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:123
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:156
+#, fuzzy
+msgid "This release includes the following changes:"
+msgstr "Ĉi tiu versio korektas la jenajn cimojn:"
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:54
+msgid "Dub is now the single build system; Meson is retired"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:55
 msgid ""
-"Tilix is looking for maintainers! At the moment, only very minimal "
-"maintenance is done, no new features will be implemented and pull-requests "
-"may be reviewed very slowly."
+"Flatpak packaging dropped — building from source is the supported "
+"distribution channel"
 msgstr ""
-"Tilix serĉas prizorgantojn! Nuntempe, nur minimumo da prizorgado estas "
-"farata; neniom da novaj funkcioj estos efektivigita; tirpetoj reviziiĝas "
-"malrapidege."
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:84
-msgid "If you are interested in helping Tilix, please chime in!"
-msgstr "Se vi volas helpi Tilix, bonvolu partopreni!"
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:87
-msgid "Actually install Yaru color scheme"
-msgstr "Efektive instali koloraron Yaru"
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:88
-msgid "Give every tab the ${title}"
-msgstr "Doni al ĉiu langeto '${title}'"
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:89
-msgid "Add option to strip trailing whitespace on paste"
-msgstr ""
-"Aldoni opcion por forigi finajn spacetojn kaj linifinojn antaŭ algluado"
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:93
-msgid "Fix saving of already saved session"
-msgstr "Korekti konservadon de jam konservita seanco"
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:94
-msgid "Add shortcut to \"Unselect all\""
-msgstr "Aldoni fulmoklavon por \"Malelekti ĉion\""
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:95
-msgid "Many Meson buildsystem fixes"
-msgstr "Multaj korektoj pri la tradukadministrilo Meson"
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:96
-msgid "Avoid missing the previous command exit code when encoding URLs"
-msgstr ""
-"Eviti ignoradon de la elirkodo de la antaŭa komando dum enkodigo de URL-oj"
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:97
-msgid "Resolve some D deprecation messages"
-msgstr "Solvi kelkajn mesaĝojn de D pri evitindeco"
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:98
-msgid "Mention powerline/fonts in README"
-msgstr "Mencii tiparojn por Powerline en la dosiero README"
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:99
-msgid "Avoid calling `values()` on a shared object"
-msgstr "Eviti alvokon de la metodo `values()` de komuna objekto"
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:100
-msgid "Update metainfo data"
-msgstr "Ĝisdatigi metainformajn datenojn"
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:101
-msgid "Drop compat code for older D frontend versions"
-msgstr "Forigi kodon por malnovaj versioj de D"
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:102
-msgid "Bump minimum VTE version to 0.46"
-msgstr "Postuli minimuman version 0.46 de VTE"
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:103
-msgid "Remove deprecated Autotools support"
-msgstr "Forigi evitindan subtenon de Autotools"
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:104
-msgid "Add release notes, NEWS file, automatic metainfo update"
-msgstr ""
-"Aldoni notojn pri versioj kaj la dosieron NEWS, kaj aŭtomate ĝisdatigi "
-"metainformojn"
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:105
-msgid "Update to GtkD 3.9.0"
-msgstr "Ĝisdatigi GtkD al versio 3.9.0"
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:107
-msgid "This release updates translations."
-msgstr "Ĉi tiu versio ĝisdatigas tradukojn."
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:112
-msgid "This release fixes the following bug:"
-msgstr "Ĉi tiu versio korektas la jenan cimon:"
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:114
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:63
 msgid ""
-"Fixes a problem with the session sidebar getting out of sync after having "
-"deleted a session. See issues #1680, #1637 and #1699."
+"OSC 11 dynamic background color — apps like neovim and theme-switching "
+"scripts can now change the terminal background at runtime via the OSC 11 "
+"escape sequence; reset with OSC 111"
 msgstr ""
-"Ripari problemon pri la nesinkroniĝo de la seanca flankpanelo post forigo de "
-"seanco. Vidu la cimojn 1680, 1637 kaj 1699."
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:122
-msgid "Remove app menu for gnome 3.32"
-msgstr "Forigi programmenuon por GNOME 3.32"
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:123
-msgid "Update icon"
-msgstr "Ĝisdatigi ikonon"
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:124
-msgid "Minor fixes"
-msgstr "Etaj korektoj"
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:132
-msgid "Small release to update localizations"
-msgstr "Eta versio por ĝisdatigi tradukojn"
-
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:133
-msgid "Update to GtkD 3.8.5 to fix library name in GtkD."
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:64
+msgid ""
+"enable-wide-handle defaults to true so the splitter between split terminals "
+"is easier to see and grab on dark themes and HiDPI displays"
 msgstr ""
-"Ĝisdatigi GtkD al versio 3.8.5 por korekti nomon de biblioteko en GtkD."
 
-#: data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in:139
-msgid "Some new features and bug fixes."
-msgstr "Kelke da novaj funkcioj kaj korektoj de cimoj."
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:65
+msgid "Auto-equalize panes on split and close, sway-style"
+msgstr ""
 
-#: data/nautilus/open-tilix.py:119
-msgid "Open Remote Tilix"
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:66
+msgid "Documentation site at https://gwelr.github.io/ttyx_/"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:67
+msgid ""
+"Sensitive values redaction: passwords, tokens and proxy credentials are "
+"stripped from trace logs, command-line argv and hyperlink click events "
+"before reaching any log sink"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:71
+msgid ""
+"Maximized terminal now correctly restores when loading a saved session; "
+"fixes a long-standing bug pre-existing since the upstream Tilix 2017 "
+"implementation"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:72
+msgid ""
+"Trigger templates: $0 now correctly substitutes the whole match (was shifted "
+"by one due to a size_t underflow); user templates relying on the bugged "
+"behaviour need indices shifted up by one"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:73
+msgid ""
+"Triggers with an unrecognised action name are now skipped with a warning "
+"instead of silently rewritten to UpdateState"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:74
+msgid ""
+"Paste hardening: strip OSC, DCS, APC and PM escape sequences from clipboard "
+"content before paste"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:75
+msgid "Robust /proc/[pid]/stat parser with bounds validation"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:76
+msgid ""
+"Password manager delete now correctly reports keyring failures and handles "
+"legacy Tilix-schema entries"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:77
+msgid ""
+"Proxy URL builder: percent-encode userinfo and drop the redundant leading @; "
+"HTTPS proxy now receives credentials when configured"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:81
+msgid "First beta of the 1.2.0 release; validation period before GA"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:82
+msgid ""
+"Internal refactors using D SumType for compile-time exhaustiveness: "
+"TerminalRegex (BuiltinRegex/CustomRegex), SyncInputEvent, and a typed "
+"TerminalSnapshot struct as the single source of truth for session "
+"serialisation"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:83
+msgid ""
+"CI: install LDC from the upstream tarball; build GtkD from source on Debian "
+"Testing where the apt package was removed"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:91
+msgid ""
+"Security: restored sessions now ask for confirmation before running an "
+"embedded per-terminal command, instead of executing it silently on load"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:92
+msgid ""
+"Security: custom-link and trigger commands shell-quote all substituted match "
+"tokens and terminal variables, closing a shell-injection hole in values "
+"drawn from terminal output or remote-settable OSC variables"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:93
+msgid ""
+"Security: paste sanitization is now applied on every paste path; the default "
+"path previously fell through to pasting the raw clipboard text"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:94
+msgid ""
+"Security: bracketed-paste escape stripping loops to a fixed point so split "
+"or overlapping markers cannot reassemble after removal"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:95
+msgid ""
+"Security: carriage return now counts as a command submitter in the paste "
+"safety checks, matching newline handling"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:96
+msgid ""
+"Security: OSC 8 hyperlinks are restricted to an allow-listed set of URI "
+"schemes before being handed to the desktop URI handler"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:97
+msgid ""
+"Security: trigger regex matching input is bounded as defense-in-depth "
+"against catastrophic-backtracking UI hangs on adversarial output"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:98
+msgid ""
+"Security: spawn-failure logs redact proxy credentials; log redaction covers "
+"more sensitive key names and strips URL userinfo from all values"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:99
+msgid "Security: retrieved keyring passwords are kept in non-pageable memory"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:103
+msgid "Crash reading the host shell from a malformed passwd entry (Flatpak)"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:104
+msgid "Crash loading a session file with a corrupt paned orientation value"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:105
+msgid "Crash reading a child process name from a malformed /proc stat entry"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:113
+msgid ""
+"Automatic config migration from Tilix — on first run, ~/.config/tilix/ is "
+"copied to ~/.config/ttyx/ with the original kept as backup"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:114
+msgid ""
+"Password manager reads legacy com.gexperts.tilix.Password schema for "
+"backwards compatibility; new passwords are saved under the ttyx schema"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:115
+msgid ""
+"TTYX_ID environment variable set in shells alongside TILIX_ID for backwards "
+"compatibility with existing shell integrations"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:119
+msgid ""
+"Color scheme loader no longer shows duplicates; user config now wins over "
+"system defaults when a scheme filename exists in both"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:120
+msgid ""
+"Post-install script writes a minimal index.theme at the install prefix so "
+"gtk-update-icon-cache can generate a valid icon cache"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:121
+msgid "AppStream metadata no longer includes stale Tilix release entries"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:125
+msgid ""
+"Rename user-visible Tilix references: Nautilus menu, shortcuts window, "
+"GSettings descriptions, icon filenames, log and temp paths"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:126
+msgid ""
+"Rewrite man page under ttyx_ identity; drop 30 stale translations that "
+"referenced Tilix-branded msgids"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:127
+msgid ""
+"Release process simplified: drop hand-assembled binary tarball, ship only "
+"Flatpak bundle with signed checksums"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:128
+msgid "Add Troubleshooting section to README (stale icon cache, Wayland Quake)"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:129
+msgid "Add ROADMAP.md documenting vision and phase plan"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:137
+msgid "Security: enforce in-memory-only scrollback, capped at 256-999999 lines"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:138
+msgid "Security: core dump protection via prctl PR_SET_DUMPABLE"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:139
+msgid "Security: Secure Clear action (Ctrl+Shift+L) to wipe scrollback buffer"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:140
+msgid ""
+"Security: SSH session detection indicator for ssh, scp, sftp, mosh, sshfs"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:141
+msgid "Security: clipboard auto-clear after configurable timeout"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:142
+msgid "Security: strip bracketed paste escape sequences to prevent injection"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:143
+msgid "Security: multi-line paste review dialog before execution"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:144
+msgid ""
+"Security: expanded dangerous command detection (sudo, rm -rf, curl|bash, "
+"etc.)"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:145
+msgid "Security: per-paste unsafe warning (no longer permanently dismissed)"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:146
+msgid ""
+"Security: all options consolidated in Advanced preferences with descriptions"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:147
+msgid "Flatpak packaging with GNOME 48 SDK and bundled LDC compiler"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:148
+msgid "ProcessMonitor optimization: idle CPU reduced from 1.4% to 0.1%"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:152
+msgid "Fix GC crash when opening preferences on GLib 2.84+"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:153
+msgid "Fix SSH and root indicators not clearing when process exits"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:154
+msgid "Fix color scheme test when schemes not installed in XDG paths"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:158
+msgid "Major terminal.d decomposition into extracted components"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:159
+msgid "Replace applyPreference switch with PreferenceRegistry pattern"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:160
+msgid "119 unit tests covering security, clipboard, rendering, and monitoring"
+msgstr ""
+
+#: data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in:161
+msgid "CI: add xvfb support for GTK integration tests"
+msgstr ""
+
+#: data/nautilus/open-ttyx.py:119
+#, fuzzy
+msgid "Open Remote ttyx"
 msgstr "Malfermi Foran Tilix"
 
-#: data/nautilus/open-tilix.py:120
-msgid "Open Remote Tilix In {}"
+#: data/nautilus/open-ttyx.py:120
+#, fuzzy, python-brace-format
+msgid "Open Remote ttyx In {}"
 msgstr "Malfermi Foran Tilix ĉe {}"
 
-#: data/nautilus/open-tilix.py:126
-msgid "Open In Tilix"
+#: data/nautilus/open-ttyx.py:126
+#, fuzzy
+msgid "Open In ttyx"
 msgstr "Malfermi per Tilix"
 
-#: data/nautilus/open-tilix.py:127
-msgid "Open Tilix In {}"
+#: data/nautilus/open-ttyx.py:127
+#, fuzzy, python-brace-format
+msgid "Open ttyx In {}"
 msgstr "Malfermi Tilix ĉe {}"
 
-#: data/nautilus/open-tilix.py:138
-msgid "Open Remote Tilix Here"
+#: data/nautilus/open-ttyx.py:138
+#, fuzzy
+msgid "Open Remote ttyx Here"
 msgstr "Malfermi Foran Tilix Ĉi Tie"
 
-#: data/nautilus/open-tilix.py:139
-msgid "Open Remote Tilix In This Directory"
+#: data/nautilus/open-ttyx.py:139
+#, fuzzy
+msgid "Open Remote ttyx In This Directory"
 msgstr "Malfermi Foran Tilix ĉe Ĉi Tiu Dosierujo"
 
-#: data/nautilus/open-tilix.py:144
-msgid "Open Tilix Here"
+#: data/nautilus/open-ttyx.py:144
+#, fuzzy
+msgid "Open ttyx Here"
 msgstr "Malfermi Tilix Ĉi Tie"
 
-#: data/nautilus/open-tilix.py:145
-msgid "Open Tilix In This Directory"
+#: data/nautilus/open-ttyx.py:145
+#, fuzzy
+msgid "Open ttyx In This Directory"
 msgstr "Malfermi Tilix ĉe Ĉi Tiu Dosierujo"
 
-#: data/pkg/desktop/com.gexperts.Tilix.desktop.in:6
-msgid "shell;prompt;command;commandline;cmd;"
+#: data/pkg/desktop/io.github.gwelr.ttyx.desktop.in:5
+#, fuzzy
+msgid "shell;prompt;command;commandline;cmd;terminal;tiling;"
 msgstr "ŝelo;komando;komandlinio;terminalo;terminalimitilo;"
 
-#: data/pkg/desktop/com.gexperts.Tilix.desktop.in:17
-#: source/gx/tilix/appwindow.d:685 source/gx/tilix/prefeditor/prefdialog.d:1596
+#: data/pkg/desktop/io.github.gwelr.ttyx.desktop.in:16
+#: source/gx/ttyx/appwindow.d:750 source/gx/ttyx/prefeditor/prefdialog.d:1649
 msgid "New Window"
 msgstr "Nova Fenestro"
 
-#: data/pkg/desktop/com.gexperts.Tilix.desktop.in:21
-#: source/gx/tilix/prefeditor/prefdialog.d:1596 source/gx/tilix/session.d:1606
+#: data/pkg/desktop/io.github.gwelr.ttyx.desktop.in:20
+#: source/gx/ttyx/prefeditor/prefdialog.d:1649 source/gx/ttyx/session.d:1720
 msgid "New Session"
 msgstr "Nova Seanco"
 
-#: data/pkg/desktop/com.gexperts.Tilix.desktop.in:25
-#: source/gx/tilix/appwindow.d:702 source/gx/tilix/prefeditor/prefdialog.d:263
-#: source/gx/tilix/prefeditor/prefdialog.d:414
+#: data/pkg/desktop/io.github.gwelr.ttyx.desktop.in:24
+#: source/gx/ttyx/appwindow.d:767 source/gx/ttyx/prefeditor/prefdialog.d:334
+#: source/gx/ttyx/prefeditor/prefdialog.d:486
 msgid "Preferences"
 msgstr "Agordoj"
 
@@ -769,14 +927,15 @@ msgid "Current profile preferences"
 msgstr "Agordoj de la aktuala profilo"
 
 #: data/resources/ui/shortcuts.ui:539
+#, fuzzy
 msgctxt "shortcut window"
-msgid "Reset the terminal"
+msgid "Refresh terminal"
 msgstr "Reimplicitigi la terminalon"
 
 #: data/resources/ui/shortcuts.ui:545
 msgctxt "shortcut window"
-msgid "Reset and clear the terminal"
-msgstr "Reimplicitigi kaj forviŝi la terminalon"
+msgid "Secure Clear"
+msgstr ""
 
 #: data/resources/ui/shortcuts.ui:551
 msgctxt "shortcut window"
@@ -844,8 +1003,9 @@ msgid "Open"
 msgstr "Malfermi"
 
 #: data/resources/ui/shortcuts.ui:631
+#, fuzzy
 msgctxt "shortcut window"
-msgid "Open in Tilix"
+msgid "Open in ttyx"
 msgstr "Malfermi per Tilix"
 
 #: data/resources/ui/shortcuts.ui:642 data/resources/ui/shortcuts.ui:647
@@ -853,207 +1013,226 @@ msgctxt "shortcut window"
 msgid "Profile"
 msgstr "Profilo"
 
-#: source/app.d:140
+#: source/app.d:133 source/gx/gtk/dialog.d:48 source/gx/gtk/dialog.d:68
+#: source/gx/gtk/dialog.d:112 source/gx/ttyx/application.d:972
+#, fuzzy
+msgid "_OK"
+msgstr "Bone"
+
+#: source/app.d:259
 #, c-format
 msgid "Your GTK version is too old, you need at least GTK %d.%d.%d!"
 msgstr "Via versio de GTK estas malnova, vi bezonas minimume version %d.%d.%d!"
 
-#: source/app.d:150
+#: source/app.d:269
 #, c-format
 msgid "Your VTE version is too old, you need at least VTE %d.%d!"
 msgstr "Via versio de VTE estas malnova, vi bezonas minimume version %d.%d!"
 
-#: source/app.d:166
+#: source/app.d:285
 msgid "Unexpected exception occurred"
 msgstr "Okazis neatendita escepto"
 
-#: source/app.d:167
+#: source/app.d:286
 msgid "Error: "
 msgstr "Eraro: "
 
-#: source/app.d:177
+#: source/app.d:295
 msgid "Versions"
 msgstr "Versioj"
 
-#: source/app.d:178
-#, c-format
-msgid "Tilix version: %s"
+#: source/app.d:296
+#, fuzzy, c-format
+msgid "ttyx_ version: %s"
 msgstr "Versio de Tilix: %s"
 
-#: source/app.d:179
+#: source/app.d:297
 #, c-format
 msgid "VTE version: %s"
 msgstr "Versio de VTE: %s"
 
-#: source/app.d:180
+#: source/app.d:298
 #, c-format
 msgid "GTK Version: %d.%d.%d"
 msgstr "Versio de GTK: %d.%d.%d"
 
-#: source/app.d:181
-msgid "Tilix Special Features"
+#: source/app.d:299
+#, fuzzy
+msgid "ttyx_ Special Features"
 msgstr "Specialaj Ebloj de Tilix"
 
-#: source/app.d:182
+#: source/app.d:300
+#, c-format
 msgid "Notifications enabled=%b"
 msgstr "Sciigoj ŝaltitaj=%b"
 
-#: source/app.d:183
+#: source/app.d:301
+#, c-format
 msgid "Triggers enabled=%b"
 msgstr "Ekagigiloj ŝaltitaj=%b"
 
-#: source/app.d:184
+#: source/app.d:302
+#, c-format
 msgid "Badges enabled=%b"
 msgstr "Ŝildoj ŝaltitaj=%b"
 
-#: source/gx/gtk/actions.d:25
+#: source/gx/gtk/actions.d:42
 msgid "disabled"
 msgstr "malŝaltite"
 
-#: source/gx/gtk/dialog.d:89 source/gx/tilix/closedialog.d:143
+#: source/gx/gtk/dialog.d:69 source/gx/gtk/dialog.d:113
+#, fuzzy
+msgid "_Cancel"
+msgstr "Nuligi"
+
+#: source/gx/gtk/dialog.d:116 source/gx/ttyx/closedialog.d:193
 msgid "Do not show this again"
 msgstr "Ne montri ĉi tion denove"
 
 #. TRANSLATORS: Please add your name to the list of translators if you want to be credited for the translations you have done.
-#: source/gx/tilix/application.d:273
+#: source/gx/ttyx/application.d:322
 msgid "translator-credits"
 msgstr "phlostically"
 
-#: source/gx/tilix/application.d:282
+#: source/gx/ttyx/application.d:331
 msgid "Credits"
 msgstr "Kontribuintoj"
 
-#: source/gx/tilix/application.d:679
+#: source/gx/ttyx/application.d:739
 msgid "DIRECTORY"
 msgstr "DOSIERUJO"
 
-#: source/gx/tilix/application.d:679
+#: source/gx/ttyx/application.d:739
 msgid "Set the working directory of the terminal"
 msgstr "Agordi la labordosierujon de la terminalo"
 
-#: source/gx/tilix/application.d:680
+#: source/gx/ttyx/application.d:740
 msgid "PROFILE_NAME"
 msgstr "NOMO_DE_PROFILO"
 
-#: source/gx/tilix/application.d:680
+#: source/gx/ttyx/application.d:740
 msgid "Set the starting profile"
 msgstr "Agordi la implicitan profilon"
 
-#: source/gx/tilix/application.d:681
+#: source/gx/ttyx/application.d:741
 msgid "Set the title of the new terminal"
 msgstr "Agordi la titolon de la nova terminalo"
 
-#: source/gx/tilix/application.d:681
+#: source/gx/ttyx/application.d:741
 msgid "TITLE"
 msgstr "TITOLO"
 
-#: source/gx/tilix/application.d:682
+#: source/gx/ttyx/application.d:742
 msgid "Open the specified session"
 msgstr "Malfermi la specifitan seancon"
 
-#: source/gx/tilix/application.d:682
+#: source/gx/ttyx/application.d:742
 msgid "SESSION_NAME"
 msgstr "NOMO_DE_SEANCO"
 
-#: source/gx/tilix/application.d:684
+#: source/gx/ttyx/application.d:744
 msgid "ACTION_NAME"
 msgstr "NOMO_DE_AGO"
 
-#: source/gx/tilix/application.d:684
-msgid "Send an action to current Tilix instance"
+#: source/gx/ttyx/application.d:744
+#, fuzzy
+msgid "Send an action to current ttyx_ instance"
 msgstr "Sendi agon al ruliĝanta programo Tilix"
 
-#: source/gx/tilix/application.d:686
+#: source/gx/ttyx/application.d:746
 msgid "COMMAND"
 msgstr "KOMANDO"
 
-#: source/gx/tilix/application.d:686
+#: source/gx/ttyx/application.d:746
 msgid "Execute the parameter as a command"
 msgstr "Ruli la parametron kiel komandon"
 
-#: source/gx/tilix/application.d:687
+#: source/gx/ttyx/application.d:747
 msgid "Maximize the terminal window"
 msgstr "Maksimumigi la terminalan fenestron"
 
-#: source/gx/tilix/application.d:688
+#: source/gx/ttyx/application.d:748
 msgid "Minimize the terminal window"
 msgstr "Minimumigi la terminalan fenestron"
 
-#: source/gx/tilix/application.d:689
+#: source/gx/ttyx/application.d:749
 msgid ""
-"Override the preferred window style to use, one of: normal,disable-csd,"
-"disable-csd-hide-toolbar,borderless"
+"Override the preferred window style to use, one of: normal,disable-"
+"csd,disable-csd-hide-toolbar,borderless"
 msgstr ""
-"Devigi la fenestran stilon; unu el: \"normal\" (normala), \"disable-"
-"csd\" (sen klientflankaj ornamaĵoj), \"disable-csd-hide-toolbar\" (sen "
+"Devigi la fenestran stilon; unu el: \"normal\" (normala), \"disable-csd\" "
+"(sen klientflankaj ornamaĵoj), \"disable-csd-hide-toolbar\" (sen "
 "klientflankaj ornamaĵoj kaj ilobreto), \"borderless\" (sen borderoj)"
 
-#: source/gx/tilix/application.d:689
+#: source/gx/ttyx/application.d:749
 msgid "WINDOW_STYLE"
 msgstr "FENESTRA_STILO"
 
-#: source/gx/tilix/application.d:690
+#: source/gx/ttyx/application.d:750
 msgid "Full-screen the terminal window"
 msgstr "Plenekranigi la terminalan fenestron"
 
-#: source/gx/tilix/application.d:691
+#: source/gx/ttyx/application.d:751
 msgid "Focus the existing window"
 msgstr "Enfokusigi ekzistantan fenestron"
 
-#: source/gx/tilix/application.d:692
+#: source/gx/ttyx/application.d:752
 msgid "Start additional instance as new process (Not Recommended)"
 msgstr "Lanĉi novan procezon de Tilix (Ne Rekomendata)"
 
-#: source/gx/tilix/application.d:693
+#: source/gx/ttyx/application.d:753
 msgid "GEOMETRY"
 msgstr "GEOMETRIO"
 
-#: source/gx/tilix/application.d:693
+#: source/gx/ttyx/application.d:753
 msgid ""
 "Set the window size; for example: 80x24, or 80x24+200+200 (COLSxROWS+X+Y)"
 msgstr ""
 "Agordi la dimensiojn de la fenestro, ekzemple: 80x24, aŭ 80x24+200+200 "
 "(KOLUMNOJxVICOJ+X+Y)"
 
-#: source/gx/tilix/application.d:694
+#: source/gx/ttyx/application.d:754
 msgid ""
 "Opens a window in quake mode or toggles existing quake mode window visibility"
 msgstr ""
 "Malfermi fenestron en reĝimo de fulmoklava lanĉado, aŭ baskuligi videblecon "
 "de ekzistanta fenestro de tiu reĝimo"
 
-#: source/gx/tilix/application.d:695
-msgid "Show the Tilix and dependent component versions"
+#: source/gx/ttyx/application.d:755
+#, fuzzy
+msgid "Show ttyx_ and dependent component versions"
 msgstr "Montri la versiojn de Tilix kaj ĝiaj dependaj komponantoj"
 
-#: source/gx/tilix/application.d:696
-msgid "Show the Tilix preferences dialog directly"
+#: source/gx/ttyx/application.d:756
+#, fuzzy
+msgid "Show the ttyx_ preferences dialog directly"
 msgstr "Rekte montri la dialogon pri agordoj de Tilix"
 
-#: source/gx/tilix/application.d:697
+#: source/gx/ttyx/application.d:757
 msgid "GROUP_NAME"
 msgstr "NOMO_DE_GRUPO"
 
-#: source/gx/tilix/application.d:697
+#: source/gx/ttyx/application.d:757
+#, fuzzy
 msgid ""
-"Group tilix instances into different processes (Experimental, not "
+"Group ttyx_ instances into different processes (Experimental, not "
 "recommended)"
 msgstr "Grupigi en plurajn procezojn (Eksperimenta, ne rekomendata)"
 
-#: source/gx/tilix/application.d:700
+#: source/gx/ttyx/application.d:760
 msgid "Hidden argument to pass terminal UUID"
 msgstr "Kaŝita argumento por doni terminalan UUID"
 
-#: source/gx/tilix/application.d:700
+#: source/gx/ttyx/application.d:760
 msgid "TERMINAL_UUID"
 msgstr "TERMINALA_UUID"
 
-#: source/gx/tilix/application.d:717
+#: source/gx/ttyx/application.d:776
 #, c-format
 msgid "The application ID %s is not valid"
 msgstr "La programidentigilo %s ne validas"
 
-#: source/gx/tilix/application.d:883
+#: source/gx/ttyx/application.d:963
 msgid ""
 "There appears to be an issue with the configuration of the terminal.\n"
 "This issue is not serious, but correcting it will improve your experience.\n"
@@ -1063,301 +1242,299 @@ msgstr ""
 "La problemo ne estas serioza, sed korekti ĝin plibonigos vian sperton.\n"
 "Alklaku la jenan ligon por pliaj informoj:"
 
-#: source/gx/tilix/application.d:884
+#: source/gx/ttyx/application.d:964
 msgid "Configuration Issue Detected"
 msgstr "Troviĝis Problemo pri Agordoj"
 
-#: source/gx/tilix/application.d:896
+#: source/gx/ttyx/application.d:981
 msgid "Do not show this message again"
 msgstr "Ne montri ĉi tiun mesaĝon denove"
 
-#: source/gx/tilix/appwindow.d:324
+#: source/gx/ttyx/appwindow.d:381
 msgid "Create a new session"
 msgstr "Krei novan seancon"
 
-#: source/gx/tilix/appwindow.d:338
+#: source/gx/ttyx/appwindow.d:395
 msgid "View session sidebar"
 msgstr "Vidi seancan flankpanelon"
 
-#: source/gx/tilix/appwindow.d:373
+#: source/gx/ttyx/appwindow.d:429
 msgid "Add terminal right"
 msgstr "Aldoni terminalon dekstren"
 
-#: source/gx/tilix/appwindow.d:377
+#: source/gx/ttyx/appwindow.d:433
 msgid "Add terminal down"
 msgstr "Aldoni terminalon suben"
 
-#: source/gx/tilix/appwindow.d:383
+#: source/gx/ttyx/appwindow.d:439
 msgid "Find text in terminal"
 msgstr "Serĉi tekston en terminalo"
 
-#: source/gx/tilix/appwindow.d:606
+#: source/gx/ttyx/appwindow.d:669
 msgid "Enter a new name for the session"
 msgstr "Enigu novan nomon por seanco"
 
-#: source/gx/tilix/appwindow.d:608
+#: source/gx/ttyx/appwindow.d:672
 msgid "Change Session Name"
 msgstr "Ŝanĝi nomon de seanco"
 
-#: source/gx/tilix/appwindow.d:689
+#: source/gx/ttyx/appwindow.d:754
 msgid "Open…"
 msgstr "Malfermi…"
 
-#: source/gx/tilix/appwindow.d:690 source/gx/tilix/appwindow.d:1558
-#: source/gx/tilix/prefeditor/profileeditor.d:948
-#: source/gx/tilix/terminal/terminal.d:3665
+#: source/gx/ttyx/appwindow.d:755 source/gx/ttyx/appwindow.d:1633
+#: source/gx/ttyx/prefeditor/profileeditor.d:1005
+#: source/gx/ttyx/terminal/terminal.d:3170
 msgid "Save"
 msgstr "Konservi"
 
-#: source/gx/tilix/appwindow.d:691
+#: source/gx/ttyx/appwindow.d:756
 msgid "Save As…"
 msgstr "Konservi Kiel…"
 
-#: source/gx/tilix/appwindow.d:697
+#: source/gx/ttyx/appwindow.d:762
 msgid "Name…"
 msgstr "Nomo…"
 
-#: source/gx/tilix/appwindow.d:698
+#: source/gx/ttyx/appwindow.d:763
 msgid "Synchronize Input"
 msgstr "Sinkronigi Enigon"
 
-#: source/gx/tilix/appwindow.d:703
+#: source/gx/ttyx/appwindow.d:768
 msgid "Keyboard Shortcuts"
 msgstr "Fulmoklavoj"
 
-#: source/gx/tilix/appwindow.d:704
-msgid "About Tilix"
+#: source/gx/ttyx/appwindow.d:769
+#, fuzzy
+msgid "About ttyx_"
 msgstr "Pri Tilix"
 
-#: source/gx/tilix/appwindow.d:711
+#: source/gx/ttyx/appwindow.d:776
 msgid "GC"
 msgstr "Senrubigo"
 
-#: source/gx/tilix/appwindow.d:1088
-#: source/gx/tilix/prefeditor/prefdialog.d:1201 source/gx/tilix/session.d:1222
+#: source/gx/ttyx/appwindow.d:1154 source/gx/ttyx/prefeditor/prefdialog.d:1250
+#: source/gx/ttyx/session.d:1320
 msgid "Default"
 msgstr "Implicita"
 
-#: source/gx/tilix/appwindow.d:1197
+#: source/gx/ttyx/appwindow.d:1263
 msgid "There are multiple sessions open, close anyway?"
 msgstr "Pluraj seancoj estas malfermitaj, ja fermi ĉiukaze?"
 
-#: source/gx/tilix/appwindow.d:1461
-#: source/gx/tilix/prefeditor/profileeditor.d:961
+#: source/gx/ttyx/appwindow.d:1527
+#: source/gx/ttyx/prefeditor/profileeditor.d:1019
 msgid "All JSON Files"
 msgstr "Ĉiuj dosieroj JSON"
 
-#: source/gx/tilix/appwindow.d:1465
-#: source/gx/tilix/prefeditor/prefdialog.d:1219
-#: source/gx/tilix/prefeditor/profileeditor.d:965
-#: source/gx/tilix/terminal/terminal.d:3675
+#: source/gx/ttyx/appwindow.d:1531 source/gx/ttyx/prefeditor/prefdialog.d:1268
+#: source/gx/ttyx/prefeditor/profileeditor.d:1023
+#: source/gx/ttyx/terminal/terminal.d:3181
 msgid "All Files"
 msgstr "Ĉiuj Dosieroj"
 
-#: source/gx/tilix/appwindow.d:1474
+#: source/gx/ttyx/appwindow.d:1540
 #, c-format
 msgid "Filename '%s' does not exist"
 msgstr "Dosiernomo '%s' ne ekzistas"
 
-#: source/gx/tilix/appwindow.d:1506
-msgid "Load Session"
-msgstr "Ŝargi Seancon"
-
-#: source/gx/tilix/appwindow.d:1509 source/gx/tilix/appwindow.d:1558
-#: source/gx/tilix/bookmark/bmchooser.d:127
-#: source/gx/tilix/bookmark/bmeditor.d:151 source/gx/tilix/closedialog.d:202
-#: source/gx/tilix/prefeditor/advdialog.d:192
-#: source/gx/tilix/prefeditor/advdialog.d:362
-#: source/gx/tilix/prefeditor/profileeditor.d:948
-#: source/gx/tilix/terminal/advpaste.d:137 source/gx/tilix/terminal/layout.d:33
-#: source/gx/tilix/terminal/password.d:371
-#: source/gx/tilix/terminal/password.d:493
-#: source/gx/tilix/terminal/terminal.d:3665
+#: source/gx/ttyx/appwindow.d:1580 source/gx/ttyx/bookmark/bmchooser.d:165
+#: source/gx/ttyx/bookmark/bmeditor.d:186 source/gx/ttyx/closedialog.d:261
+#: source/gx/ttyx/prefeditor/advdialog.d:255
+#: source/gx/ttyx/prefeditor/advdialog.d:444
+#: source/gx/ttyx/prefeditor/profileeditor.d:1006 source/gx/ttyx/session.d:1723
+#: source/gx/ttyx/terminal/advpaste.d:178 source/gx/ttyx/terminal/layout.d:72
+#: source/gx/ttyx/terminal/password.d:482
+#: source/gx/ttyx/terminal/password.d:606
+#: source/gx/ttyx/terminal/terminal.d:3171
 msgid "Cancel"
 msgstr "Nuligi"
 
-#: source/gx/tilix/appwindow.d:1509
+#: source/gx/ttyx/appwindow.d:1588
+msgid "Load Session"
+msgstr "Ŝargi Seancon"
+
+#: source/gx/ttyx/appwindow.d:1588
 msgid "Open"
 msgstr "Malfermi"
 
-#: source/gx/tilix/appwindow.d:1532
+#: source/gx/ttyx/appwindow.d:1611
 msgid "Could not load session due to unexpected error."
 msgstr "Ne eblis ŝargi seancon pro neatendita eraro."
 
-#: source/gx/tilix/appwindow.d:1532
+#: source/gx/ttyx/appwindow.d:1611
 msgid "Error Loading Session"
 msgstr "Eraro je Ŝargado de Seanco"
 
-#: source/gx/tilix/appwindow.d:1555
+#: source/gx/ttyx/appwindow.d:1633
 msgid "Save Session"
 msgstr "Konservi Seancon"
 
-#: source/gx/tilix/appwindow.d:1590 source/gx/tilix/appwindow.d:1609
+#: source/gx/ttyx/appwindow.d:1665 source/gx/ttyx/appwindow.d:1684
 msgid "Could not save session due to unexpected error."
 msgstr "Ne eblis konservi seancon pro neatendita eraro."
 
-#: source/gx/tilix/appwindow.d:1590 source/gx/tilix/appwindow.d:1609
+#: source/gx/ttyx/appwindow.d:1665 source/gx/ttyx/appwindow.d:1684
 msgid "Error Saving Session"
 msgstr "Eraro pri Konservado de Seanco"
 
-#: source/gx/tilix/appwindow.d:1723
+#: source/gx/ttyx/appwindow.d:1798
 msgid "Quake mode is not supported under Wayland, running as normal window"
 msgstr ""
 "La reĝimo de fulmoklava lanĉado ne estas subtenata sub Wayland; ruliĝante "
 "kiel ordinara fenestro"
 
-#: source/gx/tilix/appwindow.d:1725
+#: source/gx/ttyx/appwindow.d:1800
 msgid "Quake Mode Not Supported"
 msgstr "Reĝimo de fulmoklava lanĉado ne estas subtenata"
 
-#: source/gx/tilix/appwindow.d:2200
+#: source/gx/ttyx/appwindow.d:2273
 msgid "New output displayed"
 msgstr "Nova eligo montrata"
 
-#: source/gx/tilix/appwindow.d:2208
+#: source/gx/ttyx/appwindow.d:2281
 msgid "Close session"
 msgstr "Fermi seancon"
 
-#: source/gx/tilix/bookmark/bmchooser.d:79
+#: source/gx/ttyx/bookmark/bmchooser.d:112
 msgid "Include return character with bookmark"
 msgstr "Inkluzivi linifinon en legosigno"
 
-#: source/gx/tilix/bookmark/bmchooser.d:126
+#: source/gx/ttyx/bookmark/bmchooser.d:160
 msgid "Select Bookmark"
 msgstr "Elekti Legosignon"
 
-#: source/gx/tilix/bookmark/bmchooser.d:126
-#: source/gx/tilix/bookmark/bmeditor.d:68
+#: source/gx/ttyx/bookmark/bmchooser.d:160
+#: source/gx/ttyx/bookmark/bmeditor.d:96
 msgid "Select Folder"
 msgstr "Elekti Legosignujon"
 
-#: source/gx/tilix/bookmark/bmchooser.d:127
-#: source/gx/tilix/bookmark/bmeditor.d:151 source/gx/tilix/closedialog.d:202
-#: source/gx/tilix/terminal/layout.d:33 source/gx/tilix/terminal/password.d:493
+#: source/gx/ttyx/bookmark/bmchooser.d:164
+#: source/gx/ttyx/bookmark/bmeditor.d:185 source/gx/ttyx/closedialog.d:260
+#: source/gx/ttyx/session.d:1724 source/gx/ttyx/terminal/layout.d:71
+#: source/gx/ttyx/terminal/password.d:605
 msgid "OK"
 msgstr "Bone"
 
-#: source/gx/tilix/bookmark/bmeditor.d:74
+#: source/gx/ttyx/bookmark/bmeditor.d:102
 msgid "Select folder"
 msgstr "Elekti legosignujon"
 
-#: source/gx/tilix/bookmark/bmeditor.d:86
+#: source/gx/ttyx/bookmark/bmeditor.d:114
 msgid "Clear folder"
 msgstr "Malplenigi legosignujon"
 
-#: source/gx/tilix/bookmark/bmeditor.d:150
+#: source/gx/ttyx/bookmark/bmeditor.d:182
 msgid "Add Bookmark"
 msgstr "Aldoni Legosignon"
 
-#: source/gx/tilix/bookmark/bmeditor.d:150
+#: source/gx/ttyx/bookmark/bmeditor.d:182
 msgid "Edit Bookmark"
 msgstr "Redakti Legosignon"
 
-#: source/gx/tilix/bookmark/bmeditor.d:231
-#: source/gx/tilix/bookmark/bmtreeview.d:73 source/gx/tilix/session.d:1572
-#: source/gx/tilix/terminal/password.d:137
-#: source/gx/tilix/terminal/password.d:431
+#: source/gx/ttyx/bookmark/bmeditor.d:271
+#: source/gx/ttyx/bookmark/bmtreeview.d:124 source/gx/ttyx/session.d:1682
+#: source/gx/ttyx/terminal/password.d:246
+#: source/gx/ttyx/terminal/password.d:538
 msgid "Name"
 msgstr "Nomo"
 
-#: source/gx/tilix/bookmark/bmeditor.d:292
-#: source/gx/tilix/bookmark/manager.d:687
+#: source/gx/ttyx/bookmark/bmeditor.d:332 source/gx/ttyx/bookmark/manager.d:713
 msgid "Path"
 msgstr "Dosierujo"
 
-#: source/gx/tilix/bookmark/bmeditor.d:294
+#: source/gx/ttyx/bookmark/bmeditor.d:334
 msgid "Select Path"
 msgstr "Elekti Dosierujon"
 
-#: source/gx/tilix/bookmark/bmeditor.d:333
-#: source/gx/tilix/bookmark/bmeditor.d:428
-#: source/gx/tilix/bookmark/manager.d:687
-#: source/gx/tilix/prefeditor/advdialog.d:106
-#: source/gx/tilix/prefeditor/profileeditor.d:98
-#: source/gx/tilix/prefeditor/profileeditor.d:1136
-#: source/gx/tilix/terminal/layout.d:89
+#: source/gx/ttyx/bookmark/bmeditor.d:373
+#: source/gx/ttyx/bookmark/bmeditor.d:468 source/gx/ttyx/bookmark/manager.d:713
+#: source/gx/ttyx/prefeditor/advdialog.d:159
+#: source/gx/ttyx/prefeditor/profileeditor.d:150
+#: source/gx/ttyx/prefeditor/profileeditor.d:1191
+#: source/gx/ttyx/terminal/layout.d:128
 msgid "Command"
 msgstr "Komando"
 
-#: source/gx/tilix/bookmark/bmeditor.d:382
+#: source/gx/ttyx/bookmark/bmeditor.d:422
 msgid "Protocol"
 msgstr "Protokolo"
 
-#: source/gx/tilix/bookmark/bmeditor.d:398
+#: source/gx/ttyx/bookmark/bmeditor.d:438
 msgid "Host"
 msgstr "Gastiganto"
 
-#: source/gx/tilix/bookmark/bmeditor.d:414
+#: source/gx/ttyx/bookmark/bmeditor.d:454
 msgid "User"
 msgstr "Uzanto"
 
-#: source/gx/tilix/bookmark/bmeditor.d:421
+#: source/gx/ttyx/bookmark/bmeditor.d:461
 msgid "Parameters"
 msgstr "Parametroj"
 
-#: source/gx/tilix/bookmark/bmtreeview.d:70 source/gx/tilix/closedialog.d:129
-#: source/gx/tilix/prefeditor/profileeditor.d:447
+#: source/gx/ttyx/bookmark/bmtreeview.d:121 source/gx/ttyx/closedialog.d:176
+#: source/gx/ttyx/prefeditor/profileeditor.d:499
 msgid "Icon"
 msgstr "Ikono"
 
-#: source/gx/tilix/bookmark/manager.d:233
+#: source/gx/ttyx/bookmark/manager.d:255
 msgid "Error deserializing bookmark"
 msgstr "Eraro pri ŝargado de legosigno"
 
-#: source/gx/tilix/bookmark/manager.d:537
+#: source/gx/ttyx/bookmark/manager.d:559
 msgid "Root"
 msgstr "Radiko"
 
-#: source/gx/tilix/bookmark/manager.d:615
+#: source/gx/ttyx/bookmark/manager.d:637
 msgid "Could not load bookmarks due to unexpected error"
 msgstr "Malsukcesis ŝargi legosignojn pro neatendita eraro"
 
-#: source/gx/tilix/bookmark/manager.d:687
+#: source/gx/ttyx/bookmark/manager.d:713
 msgid "Folder"
 msgstr "Legosignujo"
 
-#: source/gx/tilix/bookmark/manager.d:687
+#: source/gx/ttyx/bookmark/manager.d:713
 msgid "Remote"
 msgstr "Fora"
 
-#: source/gx/tilix/closedialog.d:123 source/gx/tilix/constants.d:152
-#: source/gx/tilix/terminal/layout.d:54
+#: source/gx/ttyx/closedialog.d:167 source/gx/ttyx/constants.d:147
+#: source/gx/ttyx/terminal/layout.d:93
 msgid "Title"
 msgstr "Titolo"
 
-#: source/gx/tilix/closedialog.d:170
+#: source/gx/ttyx/closedialog.d:221
 #, c-format
 msgid "Window (%s)"
 msgstr "Fenestro (%s)"
 
-#: source/gx/tilix/closedialog.d:173
+#: source/gx/ttyx/closedialog.d:224
 #, c-format
 msgid "Session (%s)"
 msgstr "Seanco (%s)"
 
-#: source/gx/tilix/closedialog.d:189
+#: source/gx/ttyx/closedialog.d:240
 msgid "Close Application"
 msgstr "Fermi Programon"
 
-#: source/gx/tilix/closedialog.d:191
+#: source/gx/ttyx/closedialog.d:242
 msgid "Close Window"
 msgstr "Fermi Fenestron"
 
-#: source/gx/tilix/closedialog.d:193 source/gx/tilix/closedialog.d:195
+#: source/gx/ttyx/closedialog.d:244 source/gx/ttyx/closedialog.d:246
 msgid "Close Session"
 msgstr "Fermi Seancon"
 
-#: source/gx/tilix/cmdparams.d:119 source/gx/tilix/cmdparams.d:123
+#: source/gx/ttyx/cmdparams.d:131 source/gx/ttyx/cmdparams.d:135
 #, c-format
 msgid "Ignoring as '%s' is not a directory"
 msgstr "Ignorante nedosierujon '%s'"
 
-#: source/gx/tilix/cmdparams.d:152
+#: source/gx/ttyx/cmdparams.d:164
 #, c-format
 msgid "Geometry string '%s' is invalid and could not be parsed"
 msgstr "Ne validas la signoĉeno '%s' priskribanta geometrion"
 
-#: source/gx/tilix/cmdparams.d:186
+#: source/gx/ttyx/cmdparams.d:198
 msgid ""
 "You cannot load a session and set a profile/working directory/execute "
 "command option, please choose one or the other"
@@ -1365,31 +1542,34 @@ msgstr ""
 "Vi ne povas kaj ŝargi seancon kaj agordi opcion pri profilo, labordosierujo "
 "aŭ rulota komando; bonvolu elekti unu aŭ la alian, sed ne ambaŭ"
 
-#: source/gx/tilix/cmdparams.d:193
-msgid "You can only use the action parameter within Tilix"
-msgstr "Vi povas nur uzi la ago-parametrojn ene de Tilix"
+#: source/gx/ttyx/cmdparams.d:209
+msgid ""
+"No ttyx_ instance registered on the session bus to receive the action. "
+"(Instances started with --new-process are not bus-registered.)"
+msgstr ""
 
-#: source/gx/tilix/cmdparams.d:215
+#: source/gx/ttyx/cmdparams.d:231
 msgid ""
 "You cannot use the quake mode with maximize, minimize or geometry parameters"
 msgstr ""
 "Vi ne povas uzi reĝimon de fulmoklava lanĉado kun la opcioj maximize, "
 "minimize aŭ geometry"
 
-#: source/gx/tilix/colorschemes.d:188
+#: source/gx/ttyx/colorschemes.d:209
 #, c-format
 msgid "File %s is not a color scheme compliant JSON file"
 msgstr "La dosiero %s ne estas valida JSON-dosiero de koloraro"
 
-#: source/gx/tilix/colorschemes.d:251
+#: source/gx/ttyx/colorschemes.d:272
 msgid "Color scheme palette requires 16 colors"
 msgstr "Koloraro postulas 16 kolorojn"
 
-#: source/gx/tilix/constants.d:72
-msgid "A VTE based terminal emulator for Linux"
+#: source/gx/ttyx/constants.d:66
+#, fuzzy
+msgid "A tiling terminal emulator for Linux, forked from Tilix"
 msgstr "Terminalimitilo per VTE por Linux"
 
-#: source/gx/tilix/constants.d:73
+#: source/gx/ttyx/constants.d:67
 msgid ""
 "This Source Code Form is subject to the terms of the Mozilla Public License, "
 "v. 2.0. If a copy of the MPL was not distributed with this file, You can "
@@ -1399,443 +1579,459 @@ msgstr ""
 "versio 2.0. Se kopio de MPL ne estis distribuita kun ĉi tiu dosiero, vi "
 "povas akiri ĝin ĉe http://mozilla.org/MPL/2.0/."
 
-#: source/gx/tilix/constants.d:78
-msgid "GTK VTE widget team, Tilix would not be possible without their work"
+#: source/gx/ttyx/constants.d:72
+msgid "Gerald Nunn and the Tilix contributors, whose work ttyx_ is built upon"
+msgstr ""
+
+#: source/gx/ttyx/constants.d:73
+#, fuzzy
+msgid "GTK VTE widget team, ttyx_ would not be possible without their work"
 msgstr "La teamo de GTK VTE, sen kies laboro Tilix ne eblus"
 
-#: source/gx/tilix/constants.d:79
+#: source/gx/ttyx/constants.d:74
 msgid "GtkD for providing such an excellent GTK wrapper"
 msgstr "GtkD, la bonega volvaĵo de GTK"
 
-#: source/gx/tilix/constants.d:80
+#: source/gx/ttyx/constants.d:75
 msgid "Dlang.org for such an excellent language, D"
 msgstr "Dlang.org por la bonega programlingvo D"
 
-#: source/gx/tilix/constants.d:153
+#: source/gx/ttyx/constants.d:148
 msgid "Icon title"
 msgstr "Titolo de ikono"
 
-#: source/gx/tilix/constants.d:154 source/gx/tilix/terminal/password.d:140
+#: source/gx/ttyx/constants.d:149 source/gx/ttyx/terminal/password.d:253
 msgid "ID"
 msgstr "Identigilo"
 
-#: source/gx/tilix/constants.d:155
+#: source/gx/ttyx/constants.d:150
 msgid "Directory"
 msgstr "Dosierujo"
 
-#: source/gx/tilix/constants.d:156
+#: source/gx/ttyx/constants.d:151
 msgid "Hostname"
 msgstr "Gastiganto"
 
-#: source/gx/tilix/constants.d:157
+#: source/gx/ttyx/constants.d:152
 msgid "Username"
 msgstr "Salutnomo"
 
-#: source/gx/tilix/constants.d:158
+#: source/gx/ttyx/constants.d:153
 msgid "Columns"
 msgstr "Kolumnoj"
 
-#: source/gx/tilix/constants.d:159
+#: source/gx/ttyx/constants.d:154
 msgid "Rows"
 msgstr "Vicoj"
 
-#: source/gx/tilix/constants.d:160
+#: source/gx/ttyx/constants.d:155
 msgid "Process"
 msgstr "Procezo"
 
-#: source/gx/tilix/constants.d:161
+#: source/gx/ttyx/constants.d:156
 msgid "Status.Read-Only"
 msgstr "Stato Nurlega"
 
-#: source/gx/tilix/constants.d:162
+#: source/gx/ttyx/constants.d:157
 msgid "Status.Silence"
 msgstr "Stato Silenta"
 
-#: source/gx/tilix/constants.d:163
+#: source/gx/ttyx/constants.d:158
 msgid "Status.Input-Sync"
 msgstr "Stato Enigo-Sinkronigo"
 
-#: source/gx/tilix/constants.d:178
+#: source/gx/ttyx/constants.d:173
 msgid "Terminal count"
 msgstr "Nombro de terminaloj"
 
-#: source/gx/tilix/constants.d:179
+#: source/gx/ttyx/constants.d:174
 msgid "Terminal number"
 msgstr "Numero de terminalo"
 
-#: source/gx/tilix/constants.d:180
+#: source/gx/ttyx/constants.d:175
 msgid "Active terminal title"
 msgstr "Titolo de la aktiva terminalo"
 
-#: source/gx/tilix/constants.d:197
+#: source/gx/ttyx/constants.d:192
 msgid "Application name"
 msgstr "Nomo de programo"
 
-#: source/gx/tilix/constants.d:198
+#: source/gx/ttyx/constants.d:193
 msgid "Session name"
 msgstr "Nomo de seanco"
 
-#: source/gx/tilix/constants.d:199
+#: source/gx/ttyx/constants.d:194
 msgid "Session number"
 msgstr "Numero de seanco"
 
-#: source/gx/tilix/constants.d:200
+#: source/gx/ttyx/constants.d:195
 msgid "Session count"
 msgstr "Nombro de seancoj"
 
-#: source/gx/tilix/encoding.d:18 source/gx/tilix/encoding.d:31
-#: source/gx/tilix/encoding.d:45 source/gx/tilix/encoding.d:67
-#: source/gx/tilix/encoding.d:78
+#: source/gx/ttyx/encoding.d:18 source/gx/ttyx/encoding.d:31
+#: source/gx/ttyx/encoding.d:45 source/gx/ttyx/encoding.d:67
+#: source/gx/ttyx/encoding.d:78
 msgid "Western"
 msgstr "Okcident-Eŭropa"
 
-#: source/gx/tilix/encoding.d:19 source/gx/tilix/encoding.d:46
-#: source/gx/tilix/encoding.d:57 source/gx/tilix/encoding.d:76
+#: source/gx/ttyx/encoding.d:19 source/gx/ttyx/encoding.d:46
+#: source/gx/ttyx/encoding.d:57 source/gx/ttyx/encoding.d:76
 msgid "Central European"
 msgstr "Centr-Eŭropa"
 
-#: source/gx/tilix/encoding.d:20
+#: source/gx/ttyx/encoding.d:20
 msgid "South European"
 msgstr "Sud-Eŭropa"
 
-#: source/gx/tilix/encoding.d:21 source/gx/tilix/encoding.d:29
-#: source/gx/tilix/encoding.d:83
+#: source/gx/ttyx/encoding.d:21 source/gx/ttyx/encoding.d:29
+#: source/gx/ttyx/encoding.d:83
 msgid "Baltic"
 msgstr "Balta"
 
-#: source/gx/tilix/encoding.d:22 source/gx/tilix/encoding.d:47
-#: source/gx/tilix/encoding.d:53 source/gx/tilix/encoding.d:54
-#: source/gx/tilix/encoding.d:59 source/gx/tilix/encoding.d:77
+#: source/gx/ttyx/encoding.d:22 source/gx/ttyx/encoding.d:47
+#: source/gx/ttyx/encoding.d:53 source/gx/ttyx/encoding.d:54
+#: source/gx/ttyx/encoding.d:59 source/gx/ttyx/encoding.d:77
 msgid "Cyrillic"
 msgstr "Cirila"
 
-#: source/gx/tilix/encoding.d:23 source/gx/tilix/encoding.d:50
-#: source/gx/tilix/encoding.d:56 source/gx/tilix/encoding.d:82
+#: source/gx/ttyx/encoding.d:23 source/gx/ttyx/encoding.d:50
+#: source/gx/ttyx/encoding.d:56 source/gx/ttyx/encoding.d:82
 msgid "Arabic"
 msgstr "Araba"
 
-#: source/gx/tilix/encoding.d:24 source/gx/tilix/encoding.d:62
-#: source/gx/tilix/encoding.d:79
+#: source/gx/ttyx/encoding.d:24 source/gx/ttyx/encoding.d:62
+#: source/gx/ttyx/encoding.d:79
 msgid "Greek"
 msgstr "Greka"
 
-#: source/gx/tilix/encoding.d:25
+#: source/gx/ttyx/encoding.d:25
 msgid "Hebrew Visual"
 msgstr "Hebrea Laŭvida"
 
-#: source/gx/tilix/encoding.d:26 source/gx/tilix/encoding.d:49
-#: source/gx/tilix/encoding.d:65 source/gx/tilix/encoding.d:81
+#: source/gx/ttyx/encoding.d:26 source/gx/ttyx/encoding.d:49
+#: source/gx/ttyx/encoding.d:65 source/gx/ttyx/encoding.d:81
 msgid "Hebrew"
 msgstr "Hebrea"
 
-#: source/gx/tilix/encoding.d:27 source/gx/tilix/encoding.d:48
-#: source/gx/tilix/encoding.d:69 source/gx/tilix/encoding.d:80
+#: source/gx/ttyx/encoding.d:27 source/gx/ttyx/encoding.d:48
+#: source/gx/ttyx/encoding.d:69 source/gx/ttyx/encoding.d:80
 msgid "Turkish"
 msgstr "Turka"
 
-#: source/gx/tilix/encoding.d:28
+#: source/gx/ttyx/encoding.d:28
 msgid "Nordic"
 msgstr "Nord-Eŭropa"
 
-#: source/gx/tilix/encoding.d:30
+#: source/gx/ttyx/encoding.d:30
 msgid "Celtic"
 msgstr "Kelta"
 
-#: source/gx/tilix/encoding.d:32 source/gx/tilix/encoding.d:68
+#: source/gx/ttyx/encoding.d:32 source/gx/ttyx/encoding.d:68
 msgid "Romanian"
 msgstr "Rumana"
 
-#: source/gx/tilix/encoding.d:33
+#: source/gx/ttyx/encoding.d:33
 msgid "Unicode"
 msgstr "Unikodo"
 
-#: source/gx/tilix/encoding.d:34
+#: source/gx/ttyx/encoding.d:34
 msgid "Armenian"
 msgstr "Armena"
 
-#: source/gx/tilix/encoding.d:35 source/gx/tilix/encoding.d:36
-#: source/gx/tilix/encoding.d:40
+#: source/gx/ttyx/encoding.d:35 source/gx/ttyx/encoding.d:36
+#: source/gx/ttyx/encoding.d:40
 msgid "Chinese Traditional"
 msgstr "Ĉina Tradicia"
 
-#: source/gx/tilix/encoding.d:37
+#: source/gx/ttyx/encoding.d:37
 msgid "Cyrillic/Russian"
 msgstr "Cirila/Rusa"
 
-#: source/gx/tilix/encoding.d:38 source/gx/tilix/encoding.d:51
-#: source/gx/tilix/encoding.d:71
+#: source/gx/ttyx/encoding.d:38 source/gx/ttyx/encoding.d:51
+#: source/gx/ttyx/encoding.d:71
 msgid "Japanese"
 msgstr "Japana"
 
-#: source/gx/tilix/encoding.d:39 source/gx/tilix/encoding.d:52
-#: source/gx/tilix/encoding.d:74
+#: source/gx/ttyx/encoding.d:39 source/gx/ttyx/encoding.d:52
+#: source/gx/ttyx/encoding.d:74
 msgid "Korean"
 msgstr "Korea"
 
-#: source/gx/tilix/encoding.d:41 source/gx/tilix/encoding.d:42
-#: source/gx/tilix/encoding.d:43
+#: source/gx/ttyx/encoding.d:41 source/gx/ttyx/encoding.d:42
+#: source/gx/ttyx/encoding.d:43
 msgid "Chinese Simplified"
 msgstr "Ĉina Simpligita"
 
-#: source/gx/tilix/encoding.d:44
+#: source/gx/ttyx/encoding.d:44
 msgid "Georgian"
 msgstr "Kartvela"
 
-#: source/gx/tilix/encoding.d:55 source/gx/tilix/encoding.d:70
+#: source/gx/ttyx/encoding.d:55 source/gx/ttyx/encoding.d:70
 msgid "Cyrillic/Ukrainian"
 msgstr "Cirila/Ukraina"
 
-#: source/gx/tilix/encoding.d:58
+#: source/gx/ttyx/encoding.d:58
 msgid "Croatian"
 msgstr "Kroata"
 
-#: source/gx/tilix/encoding.d:60
+#: source/gx/ttyx/encoding.d:60
 msgid "Hindi"
 msgstr "Hindia"
 
-#: source/gx/tilix/encoding.d:61
+#: source/gx/ttyx/encoding.d:61
 msgid "Persian"
 msgstr "Persa"
 
-#: source/gx/tilix/encoding.d:63
+#: source/gx/ttyx/encoding.d:63
 msgid "Gujarati"
 msgstr "Guĝarata"
 
-#: source/gx/tilix/encoding.d:64
+#: source/gx/ttyx/encoding.d:64
 msgid "Gurmukhi"
 msgstr "Barata Panĝaba"
 
-#: source/gx/tilix/encoding.d:66
+#: source/gx/ttyx/encoding.d:66
 msgid "Icelandic"
 msgstr "Islanda"
 
-#: source/gx/tilix/encoding.d:72 source/gx/tilix/encoding.d:75
-#: source/gx/tilix/encoding.d:84
+#: source/gx/ttyx/encoding.d:72 source/gx/ttyx/encoding.d:75
+#: source/gx/ttyx/encoding.d:84
 msgid "Vietnamese"
 msgstr "Vjetnama"
 
-#: source/gx/tilix/encoding.d:73
+#: source/gx/ttyx/encoding.d:73
 msgid "Thai"
 msgstr "Taja"
 
-#: source/gx/tilix/prefeditor/advdialog.d:94
-#: source/gx/tilix/prefeditor/advdialog.d:261
+#: source/gx/ttyx/prefeditor/advdialog.d:108
+msgid "Warning: clicked links execute shell commands with captured text "
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/advdialog.d:146
+#: source/gx/ttyx/prefeditor/advdialog.d:334
 msgid "Regex"
 msgstr "Regula esprimo"
 
-#: source/gx/tilix/prefeditor/advdialog.d:118
+#: source/gx/ttyx/prefeditor/advdialog.d:172
 msgid "Case Insensitive"
 msgstr "Usklecoblinde"
 
-#: source/gx/tilix/prefeditor/advdialog.d:134
-#: source/gx/tilix/prefeditor/advdialog.d:313
-#: source/gx/tilix/prefeditor/profileeditor.d:1303
+#: source/gx/ttyx/prefeditor/advdialog.d:189
+#: source/gx/ttyx/prefeditor/advdialog.d:388
+#: source/gx/ttyx/prefeditor/profileeditor.d:1367
 msgid "Add"
 msgstr "Aldoni"
 
-#: source/gx/tilix/prefeditor/advdialog.d:141
-#: source/gx/tilix/prefeditor/advdialog.d:319
-#: source/gx/tilix/prefeditor/prefdialog.d:556
-#: source/gx/tilix/prefeditor/profileeditor.d:1340
-#: source/gx/tilix/terminal/password.d:213
+#: source/gx/ttyx/prefeditor/advdialog.d:197
+#: source/gx/ttyx/prefeditor/advdialog.d:395
+#: source/gx/ttyx/prefeditor/prefdialog.d:631
+#: source/gx/ttyx/prefeditor/profileeditor.d:1405
+#: source/gx/ttyx/terminal/password.d:334
 msgid "Delete"
 msgstr "Forigi"
 
-#: source/gx/tilix/prefeditor/advdialog.d:151
+#: source/gx/ttyx/prefeditor/advdialog.d:207
 msgid "Move up"
 msgstr "Movi supren"
 
-#: source/gx/tilix/prefeditor/advdialog.d:162
+#: source/gx/ttyx/prefeditor/advdialog.d:218
 msgid "Move down"
 msgstr "Movi malsupren"
 
-#: source/gx/tilix/prefeditor/advdialog.d:192
-#: source/gx/tilix/prefeditor/advdialog.d:362
-#: source/gx/tilix/terminal/password.d:371
-msgid "Apply"
-msgstr "Efektivigi"
-
-#: source/gx/tilix/prefeditor/advdialog.d:192
+#: source/gx/ttyx/prefeditor/advdialog.d:252
 msgid "Edit Custom Links"
 msgstr "Redakti Proprajn Ligojn"
 
-#: source/gx/tilix/prefeditor/advdialog.d:287
-#: source/gx/tilix/prefeditor/prefdialog.d:765
+#: source/gx/ttyx/prefeditor/advdialog.d:254
+#: source/gx/ttyx/prefeditor/advdialog.d:443
+#: source/gx/ttyx/terminal/password.d:481
+msgid "Apply"
+msgstr "Efektivigi"
+
+#: source/gx/ttyx/prefeditor/advdialog.d:301
+msgid "Warning: ExecuteCommand and RunProcess actions run shell commands "
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/advdialog.d:360
+#: source/gx/ttyx/prefeditor/prefdialog.d:849
 msgid "Action"
 msgstr "Ago"
 
-#: source/gx/tilix/prefeditor/advdialog.d:299
+#: source/gx/ttyx/prefeditor/advdialog.d:373
 msgid "Parameter"
 msgstr "Parametro"
 
-#: source/gx/tilix/prefeditor/advdialog.d:337
+#: source/gx/ttyx/prefeditor/advdialog.d:413
 msgid "Limit number of lines for trigger processing to:"
 msgstr "Maksimuma nombro de linioj ekagigile traktotaj:"
 
-#: source/gx/tilix/prefeditor/advdialog.d:362
+#: source/gx/ttyx/prefeditor/advdialog.d:441
 msgid "Edit Triggers"
 msgstr "Redakti Ekagigilojn"
 
-#: source/gx/tilix/prefeditor/advdialog.d:405
+#: source/gx/ttyx/prefeditor/advdialog.d:532
 #, c-format
 msgid "Row %d: "
 msgstr "Vico %d: "
 
-#: source/gx/tilix/prefeditor/bookmarkeditor.d:62
+#: source/gx/ttyx/prefeditor/bookmarkeditor.d:86
 msgid "Add bookmark"
 msgstr "Aldoni legosignon"
 
-#: source/gx/tilix/prefeditor/bookmarkeditor.d:67
+#: source/gx/ttyx/prefeditor/bookmarkeditor.d:91
 msgid "Edit bookmark"
 msgstr "Redakti legosignon"
 
-#: source/gx/tilix/prefeditor/bookmarkeditor.d:72
+#: source/gx/ttyx/prefeditor/bookmarkeditor.d:96
 msgid "Delete bookmark"
 msgstr "Forigi legosignon"
 
-#: source/gx/tilix/prefeditor/bookmarkeditor.d:77
+#: source/gx/ttyx/prefeditor/bookmarkeditor.d:101
 msgid "Unselect bookmark"
 msgstr "Malelekti legosignon"
 
-#: source/gx/tilix/prefeditor/common.d:37
+#: source/gx/ttyx/prefeditor/common.d:53
 msgid "Custom Links"
 msgstr "Propraj Ligoj"
 
-#: source/gx/tilix/prefeditor/common.d:43
+#: source/gx/ttyx/prefeditor/common.d:59
 msgid ""
 "A list of user defined links that can be clicked on in the terminal based on "
-"regular expression definitions."
+"regular expression definitions. Warning: clicked links execute shell "
+"commands with captured text substituted in. Under SSH or any remote session "
+"that text is attacker-controlled — only configure custom links for hosts you "
+"trust, and review templates for unquoted match-group substitutions."
 msgstr ""
-"Listo de ligoj alklakeblaj en la terminalo, difinitaj de la uzanto per "
-"regulaj esprimoj."
 
-#: source/gx/tilix/prefeditor/common.d:46
-#: source/gx/tilix/prefeditor/common.d:77
-#: source/gx/tilix/prefeditor/profileeditor.d:1321
-#: source/gx/tilix/terminal/password.d:184
+#: source/gx/ttyx/prefeditor/common.d:62 source/gx/ttyx/prefeditor/common.d:93
+#: source/gx/ttyx/prefeditor/profileeditor.d:1386
+#: source/gx/ttyx/terminal/password.d:306
 msgid "Edit"
 msgstr "Redakti"
 
-#: source/gx/tilix/prefeditor/common.d:67
+#: source/gx/ttyx/prefeditor/common.d:83
 msgid "Triggers"
 msgstr "Ekagigiloj"
 
-#: source/gx/tilix/prefeditor/common.d:74
+#: source/gx/ttyx/prefeditor/common.d:90
 msgid ""
 "Triggers are regular expressions that are used to check against output text "
-"in the terminal. When a match is detected the configured action is executed."
+"in the terminal. When a match is detected the configured action is executed. "
+"Warning: ExecuteCommand and RunProcess actions run shell commands with "
+"captured groups substituted in. Under SSH or any remote session terminal "
+"output is attacker-controlled — only configure these actions for hosts you "
+"trust."
 msgstr ""
-"Ekagigiloj estas regulaj esprimoj uzataj por kontroli eligaĵon en terminalo. "
-"Kiam kongruaĵo troviĝas, la agordita ago ekas."
 
-#: source/gx/tilix/prefeditor/prefdialog.d:123
-msgid "Tilix Preferences"
-msgstr "Preferoj pri Tilix"
+#: source/gx/ttyx/prefeditor/prefdialog.d:192
+#, fuzzy
+msgid "ttyx_ Preferences"
+msgstr "Agordoj"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:140
-#: source/gx/tilix/prefeditor/prefdialog.d:141
-#: source/gx/tilix/prefeditor/prefdialog.d:219
+#: source/gx/ttyx/prefeditor/prefdialog.d:209
+#: source/gx/ttyx/prefeditor/prefdialog.d:210
+#: source/gx/ttyx/prefeditor/prefdialog.d:289
 msgid "Global"
 msgstr "Tutprograma"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:144
-#: source/gx/tilix/prefeditor/prefdialog.d:145
+#: source/gx/ttyx/prefeditor/prefdialog.d:213
+#: source/gx/ttyx/prefeditor/prefdialog.d:214
 msgid "Appearance"
 msgstr "Aspekto"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:150
-#: source/gx/tilix/prefeditor/prefdialog.d:151
+#: source/gx/ttyx/prefeditor/prefdialog.d:219
+#: source/gx/ttyx/prefeditor/prefdialog.d:220
 msgid "Quake"
 msgstr "Fulmoklava lanĉado"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:155
-#: source/gx/tilix/prefeditor/prefdialog.d:156
+#: source/gx/ttyx/prefeditor/prefdialog.d:224
+#: source/gx/ttyx/prefeditor/prefdialog.d:225
 msgid "Bookmarks"
 msgstr "Legosignoj"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:162
-#: source/gx/tilix/prefeditor/prefdialog.d:163
-#: source/gx/tilix/prefeditor/prefdialog.d:299
+#: source/gx/ttyx/prefeditor/prefdialog.d:231
+#: source/gx/ttyx/prefeditor/prefdialog.d:232
+#: source/gx/ttyx/prefeditor/prefdialog.d:371
 msgid "Shortcuts"
 msgstr "Fulmoklavoj"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:166
-#: source/gx/tilix/prefeditor/prefdialog.d:167
-#: source/gx/tilix/prefeditor/prefdialog.d:463
-#: source/gx/tilix/prefeditor/prefdialog.d:681
-#: source/gx/tilix/prefeditor/profileeditor.d:1087
-#: source/gx/tilix/terminal/terminal.d:858
+#: source/gx/ttyx/prefeditor/prefdialog.d:235
+#: source/gx/ttyx/prefeditor/prefdialog.d:236
+#: source/gx/ttyx/prefeditor/prefdialog.d:535
+#: source/gx/ttyx/prefeditor/prefdialog.d:758
+#: source/gx/ttyx/prefeditor/profileeditor.d:1142
+#: source/gx/ttyx/terminal/terminal.d:974
 msgid "Encoding"
 msgstr "Signaro"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:170
-#: source/gx/tilix/prefeditor/prefdialog.d:171
-#: source/gx/tilix/prefeditor/profileeditor.d:105
-#: source/gx/tilix/prefeditor/profileeditor.d:575
+#: source/gx/ttyx/prefeditor/prefdialog.d:239
+#: source/gx/ttyx/prefeditor/prefdialog.d:240
+#: source/gx/ttyx/prefeditor/profileeditor.d:157
+#: source/gx/ttyx/prefeditor/profileeditor.d:627
 msgid "Advanced"
 msgstr "Altnivela"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:176 source/gx/tilix/session.d:1583
+#: source/gx/ttyx/prefeditor/prefdialog.d:245 source/gx/ttyx/session.d:1693
 msgid "Profile"
 msgstr "Profilo"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:189
+#: source/gx/ttyx/prefeditor/prefdialog.d:259
 msgid "Add profile"
 msgstr "Aldoni profilon"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:194
+#: source/gx/ttyx/prefeditor/prefdialog.d:264
 msgid "Delete profile"
 msgstr "Forigi profilon"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:283
-#: source/gx/tilix/terminal/terminal.d:842
+#: source/gx/ttyx/prefeditor/prefdialog.d:355
+#: source/gx/ttyx/terminal/terminal.d:958
 msgid "Profiles"
 msgstr "Profiloj"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:312
-#: source/gx/tilix/prefeditor/prefdialog.d:320
+#: source/gx/ttyx/prefeditor/prefdialog.d:384
+#: source/gx/ttyx/prefeditor/prefdialog.d:392
 #, c-format
 msgid "Profile: %s"
 msgstr "Profilo: %s"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:366
+#: source/gx/ttyx/prefeditor/prefdialog.d:438
 #, c-format
 msgid "Are you sure you want to delete '%s'?"
 msgstr "Ĉu vi certe volas forigi '%s'?"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:557
+#: source/gx/ttyx/prefeditor/prefdialog.d:632
 msgid "Clone"
 msgstr "Kloni"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:561
+#: source/gx/ttyx/prefeditor/prefdialog.d:636
 msgid "Use for new terminals"
 msgstr "Uzi por novaj terminaloj"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:637
+#: source/gx/ttyx/prefeditor/prefdialog.d:713
 msgid "Encodings showing in menu:"
 msgstr "Signaroj montrotaj en menuo:"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:679
+#: source/gx/ttyx/prefeditor/prefdialog.d:756
 msgid "Enabled"
 msgstr "Ŝaltita"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:789
+#: source/gx/ttyx/prefeditor/prefdialog.d:874
 msgid "Shortcut Key"
 msgstr "Fulmoklavo"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:801
+#: source/gx/ttyx/prefeditor/prefdialog.d:887
 msgid "Enable shortcuts"
 msgstr "Ŝalti fulmoklavojn"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:805
+#: source/gx/ttyx/prefeditor/prefdialog.d:891
 msgid "Restore default shortcut for this action"
 msgstr "Uzi kiel impliciton"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:916
+#: source/gx/ttyx/prefeditor/prefdialog.d:1012
 msgid "Overwrite Existing Shortcut"
 msgstr "Superskribi Ekzistantan Fulmoklavon"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:917
+#: source/gx/ttyx/prefeditor/prefdialog.d:1013
 #, c-format
 msgid ""
 "The shortcut %s is already assigned to %s.\n"
@@ -1845,714 +2041,787 @@ msgstr ""
 "Ĉu forigi la asignon al la alia ago kaj asigni la fulmoklavon al ĉi tiu ago "
 "anstataŭe?"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1172
+#: source/gx/ttyx/prefeditor/prefdialog.d:1221
 msgid "Window style"
 msgstr "Fenestra stilo"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1174
+#: source/gx/ttyx/prefeditor/prefdialog.d:1223
 msgid "Borderless"
 msgstr "Senbordera"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1174
+#: source/gx/ttyx/prefeditor/prefdialog.d:1223
 msgid "Disable CSD"
 msgstr "Malŝalti klient-flankajn ornamaĵojn"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1174
+#: source/gx/ttyx/prefeditor/prefdialog.d:1223
 msgid "Disable CSD, hide toolbar"
 msgstr "Malŝalti klient-flankajn ornamaĵojn, kaŝi ilobreton"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1174
-#: source/gx/tilix/prefeditor/prefdialog.d:1188
+#: source/gx/ttyx/prefeditor/prefdialog.d:1223
+#: source/gx/ttyx/prefeditor/prefdialog.d:1237
 msgid "Normal"
 msgstr "Normala"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1178
+#: source/gx/ttyx/prefeditor/prefdialog.d:1227
 msgid "Window restart required"
 msgstr "Fenestro devas relanĉiĝi"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1187
+#: source/gx/ttyx/prefeditor/prefdialog.d:1236
 msgid "Terminal title style"
 msgstr "Stilo de titolo de terminalo"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1188
-#: source/gx/tilix/prefeditor/profileeditor.d:447
+#: source/gx/ttyx/prefeditor/prefdialog.d:1237
+#: source/gx/ttyx/prefeditor/profileeditor.d:499
 msgid "None"
 msgstr "Nenio"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1188
+#: source/gx/ttyx/prefeditor/prefdialog.d:1237
 msgid "Small"
 msgstr "Malgranda"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1193
-#: source/gx/tilix/prefeditor/prefdialog.d:1387
+#: source/gx/ttyx/prefeditor/prefdialog.d:1242
+#: source/gx/ttyx/prefeditor/prefdialog.d:1441
 msgid "Tab position"
 msgstr "Loko de langetoj"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1194
-#: source/gx/tilix/prefeditor/prefdialog.d:1388
-#: source/gx/tilix/prefeditor/prefdialog.d:1395
+#: source/gx/ttyx/prefeditor/prefdialog.d:1243
+#: source/gx/ttyx/prefeditor/prefdialog.d:1442
+#: source/gx/ttyx/prefeditor/prefdialog.d:1449
 msgid "Bottom"
 msgstr "Malsupra"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1194
-#: source/gx/tilix/prefeditor/prefdialog.d:1381
-#: source/gx/tilix/prefeditor/prefdialog.d:1388
+#: source/gx/ttyx/prefeditor/prefdialog.d:1243
+#: source/gx/ttyx/prefeditor/prefdialog.d:1435
+#: source/gx/ttyx/prefeditor/prefdialog.d:1442
 msgid "Left"
 msgstr "Maldekstra"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1194
-#: source/gx/tilix/prefeditor/prefdialog.d:1381
-#: source/gx/tilix/prefeditor/prefdialog.d:1388
+#: source/gx/ttyx/prefeditor/prefdialog.d:1243
+#: source/gx/ttyx/prefeditor/prefdialog.d:1435
+#: source/gx/ttyx/prefeditor/prefdialog.d:1442
 msgid "Right"
 msgstr "Dekstra"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1194
-#: source/gx/tilix/prefeditor/prefdialog.d:1388
-#: source/gx/tilix/prefeditor/prefdialog.d:1395
+#: source/gx/ttyx/prefeditor/prefdialog.d:1243
+#: source/gx/ttyx/prefeditor/prefdialog.d:1442
+#: source/gx/ttyx/prefeditor/prefdialog.d:1449
 msgid "Top"
 msgstr "Supra"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1200
+#: source/gx/ttyx/prefeditor/prefdialog.d:1249
 msgid "Theme variant"
 msgstr "Varianto de etoso"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1201
+#: source/gx/ttyx/prefeditor/prefdialog.d:1250
 msgid "Dark"
 msgstr "Malhela"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1201
+#: source/gx/ttyx/prefeditor/prefdialog.d:1250
 msgid "Light"
 msgstr "Hela"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1207
+#: source/gx/ttyx/prefeditor/prefdialog.d:1256
 msgid "Background image"
 msgstr "Fona bildo"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1209
+#: source/gx/ttyx/prefeditor/prefdialog.d:1258
 msgid "Select Image"
 msgstr "Elekti Bildon"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1212
+#: source/gx/ttyx/prefeditor/prefdialog.d:1261
 msgid "All Image Files"
 msgstr "Ĉiuj Bildaj Dosieroj"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1233
+#: source/gx/ttyx/prefeditor/prefdialog.d:1282
 msgid "Reset background image"
 msgstr "Uzi implicitan fonan bildon"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1239
-#: source/gx/tilix/prefeditor/prefdialog.d:1381
+#: source/gx/ttyx/prefeditor/prefdialog.d:1288
+#: source/gx/ttyx/prefeditor/prefdialog.d:1435
 msgid "Center"
 msgstr "Centrigi"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1239
+#: source/gx/ttyx/prefeditor/prefdialog.d:1288
 msgid "Scale"
 msgstr "Proporcie aligrandigi"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1239
+#: source/gx/ttyx/prefeditor/prefdialog.d:1288
 msgid "Stretch"
 msgstr "Streĉi"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1239
+#: source/gx/ttyx/prefeditor/prefdialog.d:1288
 msgid "Tile"
 msgstr "Kaheligi"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1258
+#: source/gx/ttyx/prefeditor/prefdialog.d:1307
 msgid "Default session name"
 msgstr "Implicita seanca nomo"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1273
+#: source/gx/ttyx/prefeditor/prefdialog.d:1322
 msgid "Application title"
 msgstr "Titolo de programo"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1291
+#: source/gx/ttyx/prefeditor/prefdialog.d:1340
 msgid "Enable transparency, requires re-start"
 msgstr "Travidebligi (postulas relanĉon)"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1297
+#: source/gx/ttyx/prefeditor/prefdialog.d:1346
 msgid "Use a wide handle for splitters"
 msgstr "Uzi larĝan tenilon por dividiloj"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1302
+#: source/gx/ttyx/prefeditor/prefdialog.d:1351
+msgid "Equalize panes on split and close"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1352
+msgid ""
+"When enabled, splitting or closing a terminal re-equalizes all same-"
+"orientation panes (e.g. three vertical splits become 33/33/33 instead of "
+"50/25/25). Overwrites any manual drag within the chain."
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1356
 msgid "Place the sidebar on the right"
 msgstr "Meti flankpanelon dekstre"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1306
+#: source/gx/ttyx/prefeditor/prefdialog.d:1360
 msgid "Show the terminal title even if it's the only terminal"
 msgstr "Montri la terminalan titolon eĉ se ĝi estas la sola terminalo"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1311
+#: source/gx/ttyx/prefeditor/prefdialog.d:1365
 msgid "Use overlay scrollbars (Application restart required)"
 msgstr "Uzi surmetajn rulumilojn (Postulas relanĉon de programo)"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1316
+#: source/gx/ttyx/prefeditor/prefdialog.d:1370
 msgid "Use tabs instead of sidebar (Application restart required)"
 msgstr "Uzi langetojn anstataŭ flankpanelo (Postulas relanĉon de programo)"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1348
+#: source/gx/ttyx/prefeditor/prefdialog.d:1402
 msgid "Size"
 msgstr "Grando"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1359
+#: source/gx/ttyx/prefeditor/prefdialog.d:1413
 msgid "Height percent"
 msgstr "Alto (procento)"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1370
+#: source/gx/ttyx/prefeditor/prefdialog.d:1424
 msgid "Width percent"
 msgstr "Larĝo (procento)"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1380
+#: source/gx/ttyx/prefeditor/prefdialog.d:1434
 msgid "Alignment"
 msgstr "Aranĝo"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1394
+#: source/gx/ttyx/prefeditor/prefdialog.d:1448
 msgid "Window position"
 msgstr "Loko de fenestro"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1403
-#: source/gx/tilix/prefeditor/profileeditor.d:556
+#: source/gx/ttyx/prefeditor/prefdialog.d:1457
+#: source/gx/ttyx/prefeditor/profileeditor.d:608
 msgid "Options"
 msgstr "Opcioj"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1411
+#: source/gx/ttyx/prefeditor/prefdialog.d:1465
 msgid "Show terminal on all workspaces"
 msgstr "Montri terminalon sur ĉiuj laborspacoj"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1423
+#: source/gx/ttyx/prefeditor/prefdialog.d:1477
 msgid "Hide window when focus is lost"
 msgstr "Kaŝi fenestron, kiam la fokuso perdiĝas"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1427
+#: source/gx/ttyx/prefeditor/prefdialog.d:1481
 msgid "Delay hiding window by (ms)"
 msgstr "Prokrasti kaŝi fenestron dum milisekundoj"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1440
+#: source/gx/ttyx/prefeditor/prefdialog.d:1494
 msgid "Hide the toolbar of the window"
 msgstr "Kaŝi la ilobreton de la fenestro"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1455
+#: source/gx/ttyx/prefeditor/prefdialog.d:1509
 msgid "Keep window always on top"
 msgstr "Teni fenestron ĉiam supre"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1460
+#: source/gx/ttyx/prefeditor/prefdialog.d:1514
 msgid "Display terminal on active monitor"
 msgstr "Montri terminalon per aktiva ekrano"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1467
+#: source/gx/ttyx/prefeditor/prefdialog.d:1521
 msgid "Display on specific monitor"
 msgstr "Montri per specifa ekrano"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1470
+#: source/gx/ttyx/prefeditor/prefdialog.d:1524
 msgid "Primary Monitor"
 msgstr "Ĉefekrano"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1473
+#: source/gx/ttyx/prefeditor/prefdialog.d:1527
 msgid "Monitor "
 msgstr "Ekrano "
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1533
+#: source/gx/ttyx/prefeditor/prefdialog.d:1586
 msgid "Behavior"
 msgstr "Konduto"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1539
+#: source/gx/ttyx/prefeditor/prefdialog.d:1592
 msgid "Prompt when creating a new session"
 msgstr "Montri invitilon dum kreo de nova seanco"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1544
+#: source/gx/ttyx/prefeditor/prefdialog.d:1597
 msgid "Focus a terminal when the mouse moves over it"
 msgstr "Enfokusigi terminalon, kiam la musmontrilo moviĝas sur ĝin"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1549
+#: source/gx/ttyx/prefeditor/prefdialog.d:1602
 msgid "Autohide the mouse pointer when typing"
 msgstr "Aŭtomate kaŝi la musmontrilon dum tajpado"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1554
+#: source/gx/ttyx/prefeditor/prefdialog.d:1607
 msgid "Close terminal by clicking middle mouse button on title"
 msgstr "Fermi terminalon per mezmusbutona alklakado sur titolon"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1559
+#: source/gx/ttyx/prefeditor/prefdialog.d:1612
 msgid "Zoom the terminal using <Control> and scroll wheel"
 msgstr "Zomi en la terminalo per stirklavo kaj rulumrado"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1564
+#: source/gx/ttyx/prefeditor/prefdialog.d:1617
 msgid "Require the <Control> modifier to edit title on click"
 msgstr "Postuli stirklavon por modifi titolon per alklako"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1569
+#: source/gx/ttyx/prefeditor/prefdialog.d:1622
 msgid "Close window when last session is closed"
 msgstr "Fermi fenestron post fermo de la lasta seanco"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1574
+#: source/gx/ttyx/prefeditor/prefdialog.d:1627
 msgid "Save and restore window state"
 msgstr "Konservi kaj restaŭri fenestran staton"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1579
+#: source/gx/ttyx/prefeditor/prefdialog.d:1632
 #, fuzzy
 msgid "Always search using regular expressions"
 msgstr "Kongrui kiel regula esprimo"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1585
+#: source/gx/ttyx/prefeditor/prefdialog.d:1638
 msgid "Send desktop notification on process complete"
 msgstr "Sendi labortablan sciigon post kompletiĝo de procezo"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1593
+#: source/gx/ttyx/prefeditor/prefdialog.d:1646
 msgid "On new instance"
 msgstr "Pri nova lanĉo"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1596
+#: source/gx/ttyx/prefeditor/prefdialog.d:1649
 msgid "Focus Window"
 msgstr "Enfokusigi Fenestron"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1596
+#: source/gx/ttyx/prefeditor/prefdialog.d:1649
 msgid "Split Down"
 msgstr "Dividi Suben"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1596
+#: source/gx/ttyx/prefeditor/prefdialog.d:1649
 msgid "Split Right"
 msgstr "Dividi Dekstren"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1602
-#: source/gx/tilix/terminal/terminal.d:1851
+#: source/gx/ttyx/prefeditor/prefdialog.d:1655
+#: source/gx/ttyx/terminal/terminal.d:1933
 msgid "Clipboard"
 msgstr "Tondujo"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1608
+#: source/gx/ttyx/prefeditor/prefdialog.d:1661
 msgid "Always use advanced paste dialog"
 msgstr "Ĉiam uzi altnivelan dialogon por alglui"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1613
-msgid "Warn when attempting unsafe paste"
-msgstr "Averti pri danĝera algluado"
-
-#: source/gx/tilix/prefeditor/prefdialog.d:1618
+#: source/gx/ttyx/prefeditor/prefdialog.d:1666
 msgid "Strip first character of paste if comment or variable declaration"
 msgstr ""
 "Forigi unuan signon de algluotaĵo, se ĝi estas komento aŭ deklaro de variablo"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1623
+#: source/gx/ttyx/prefeditor/prefdialog.d:1671
 msgid "Strip trailing whitespaces and linebreak characters on paste"
 msgstr "Forigi finajn spacetojn kaj linifinojn antaŭ algluado"
 
-#: source/gx/tilix/prefeditor/prefdialog.d:1628
+#: source/gx/ttyx/prefeditor/prefdialog.d:1676
+#, fuzzy
+msgid "Strip trailing whitespace on copy"
+msgstr ""
+"Aldoni opcion por forigi finajn spacetojn kaj linifinojn antaŭ algluado"
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1681
 msgid "Automatically copy text to clipboard when selecting"
 msgstr "Aŭtomate kopii tekston en tondujon dum elektado"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:97
+#: source/gx/ttyx/prefeditor/prefdialog.d:1718
+msgid "Security"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1726
+msgid ""
+"Paste protection detects dangerous commands (sudo, rm -rf, curl|bash, etc.) "
+"and escape sequence injection attacks. Multi-line paste review lets you "
+"inspect content before it is sent to the shell."
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1729
+#, fuzzy
+msgid "Warn when pasting dangerous commands"
+msgstr "Averti pri danĝera algluado"
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1735
+msgid "Show review dialog for multi-line paste"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1741
+msgid ""
+"Clipboard auto-clear removes copied content after a timeout to prevent "
+"sensitive data (passwords, tokens) from lingering in the clipboard."
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1744
+#, fuzzy
+msgid "Automatically clear clipboard after timeout"
+msgstr "Aŭtomate kopii tekston en tondujon dum elektado"
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1751
+msgid "Clear clipboard after (seconds)"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1762
+msgid ""
+"Visual indicators highlight when a terminal session is running with elevated "
+"privileges or connected to a remote host."
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1765
+msgid "Show visual indicator when running as root"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1771
+msgid "Show visual indicator for SSH sessions"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1777
+msgid ""
+"Core dump protection prevents debuggers and other processes from reading "
+"terminal memory. Disable this if you need to debug ttyx_ with GDB or "
+"generate core dumps."
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/prefdialog.d:1780
+msgid "Protect against memory dumps (disable core dumps)"
+msgstr ""
+
+#: source/gx/ttyx/prefeditor/profileeditor.d:149
 msgid "General"
 msgstr "Ĝenerala"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:99
+#: source/gx/ttyx/prefeditor/profileeditor.d:151
 msgid "Color"
 msgstr "Koloro"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:100
+#: source/gx/ttyx/prefeditor/profileeditor.d:152
 msgid "Scrolling"
 msgstr "Rulumado"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:101
+#: source/gx/ttyx/prefeditor/profileeditor.d:153
 msgid "Compatibility"
 msgstr "Kongrueco"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:103
-#: source/gx/tilix/prefeditor/profileeditor.d:693
-#: source/gx/tilix/prefeditor/profileeditor.d:1175
-#: source/gx/tilix/terminal/layout.d:68
+#: source/gx/ttyx/prefeditor/profileeditor.d:155
+#: source/gx/ttyx/prefeditor/profileeditor.d:746
+#: source/gx/ttyx/prefeditor/profileeditor.d:1232
+#: source/gx/ttyx/terminal/layout.d:107
 msgid "Badge"
 msgstr "Ŝildo"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:217
+#: source/gx/ttyx/prefeditor/profileeditor.d:269
 msgid "Profile name"
 msgstr "Nomo de profilo"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:241
+#: source/gx/ttyx/prefeditor/profileeditor.d:292
 msgid "Terminal title"
 msgstr "Titolo de terminalo"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:254
+#: source/gx/ttyx/prefeditor/profileeditor.d:305
 msgid "Text Appearance"
 msgstr "Aspekto de Teksto"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:262
+#: source/gx/ttyx/prefeditor/profileeditor.d:313
 msgid "Terminal size"
 msgstr "Grando de terminalo"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:272
+#: source/gx/ttyx/prefeditor/profileeditor.d:323
 msgid "columns"
 msgstr "kolumnoj"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:281
+#: source/gx/ttyx/prefeditor/profileeditor.d:332
 msgid "rows"
 msgstr "vicoj"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:289
-#: source/gx/tilix/prefeditor/profileeditor.d:328
-#: source/gx/tilix/terminal/terminal.d:853
+#: source/gx/ttyx/prefeditor/profileeditor.d:340
+#: source/gx/ttyx/prefeditor/profileeditor.d:379
 msgid "Reset"
 msgstr "Uzi impliciton"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:301
+#: source/gx/ttyx/prefeditor/profileeditor.d:352
 msgid "Cell spacing"
 msgstr "Spaco de ĉeloj"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:311
+#: source/gx/ttyx/prefeditor/profileeditor.d:362
 msgid "width"
 msgstr "larĝo"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:320
+#: source/gx/ttyx/prefeditor/profileeditor.d:371
 msgid "height"
 msgstr "alto"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:347
+#: source/gx/ttyx/prefeditor/profileeditor.d:398
 msgid "Margin"
 msgstr "Marĝeno"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:358
+#: source/gx/ttyx/prefeditor/profileeditor.d:409
 msgid "Text blink mode"
 msgstr "Blinka reĝimo de teksto"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:361
+#: source/gx/ttyx/prefeditor/profileeditor.d:412
 msgid "Always"
 msgstr "Ĉiam"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:361
+#: source/gx/ttyx/prefeditor/profileeditor.d:412
 msgid "Focused"
 msgstr "Dum fokuso"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:361
+#: source/gx/ttyx/prefeditor/profileeditor.d:412
 msgid "Never"
 msgstr "Neniam"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:361
+#: source/gx/ttyx/prefeditor/profileeditor.d:412
 msgid "Unfocused"
 msgstr "Sen fokuso"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:380
-#: source/gx/tilix/prefeditor/profileeditor.d:1199
+#: source/gx/ttyx/prefeditor/profileeditor.d:431
+#: source/gx/ttyx/prefeditor/profileeditor.d:1256
 msgid "Custom font"
 msgstr "Propra tiparo"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:392
+#: source/gx/ttyx/prefeditor/profileeditor.d:444
 msgid "Choose A Terminal Font"
 msgstr "Elektu Terminalan Tiparon"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:401
+#: source/gx/ttyx/prefeditor/profileeditor.d:453
 msgid "Word-wise select chars"
 msgstr "Elekti signojn povorte"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:409
-#: source/gx/tilix/prefeditor/profileeditor.d:417
-#: source/gx/tilix/prefeditor/profileeditor.d:659
+#: source/gx/ttyx/prefeditor/profileeditor.d:461
+#: source/gx/ttyx/prefeditor/profileeditor.d:469
+#: source/gx/ttyx/prefeditor/profileeditor.d:712
 msgid "Cursor"
 msgstr "Kursoro"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:420
+#: source/gx/ttyx/prefeditor/profileeditor.d:472
 msgid "Block"
 msgstr "Bloko"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:420
+#: source/gx/ttyx/prefeditor/profileeditor.d:472
 msgid "IBeam"
 msgstr "I-Trabo"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:420
+#: source/gx/ttyx/prefeditor/profileeditor.d:472
 msgid "Underline"
 msgstr "Substreko"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:428
+#: source/gx/ttyx/prefeditor/profileeditor.d:480
 msgid "Cursor blink mode"
 msgstr "Blinka reĝimo de kursoro"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:431
+#: source/gx/ttyx/prefeditor/profileeditor.d:483
 msgid "Off"
 msgstr "Malŝaltita"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:431
+#: source/gx/ttyx/prefeditor/profileeditor.d:483
 msgid "On"
 msgstr "Ŝaltita"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:431
+#: source/gx/ttyx/prefeditor/profileeditor.d:483
 msgid "System"
 msgstr "Sistemo"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:436
+#: source/gx/ttyx/prefeditor/profileeditor.d:488
 msgid "Notification"
 msgstr "Sciigo"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:444
-#: source/gx/tilix/terminal/terminal.d:422
+#: source/gx/ttyx/prefeditor/profileeditor.d:496
+#: source/gx/ttyx/terminal/terminal.d:532
 msgid "Terminal bell"
 msgstr "Terminala pepo"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:447
+#: source/gx/ttyx/prefeditor/profileeditor.d:499
 msgid "Icon and sound"
 msgstr "Ikono kaj sono"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:447
+#: source/gx/ttyx/prefeditor/profileeditor.d:499
 msgid "Sound"
 msgstr "Sono"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:465
+#: source/gx/ttyx/prefeditor/profileeditor.d:517
 #, c-format
 msgid "ID: %s"
 msgstr "Identigilo: %s"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:513
+#: source/gx/ttyx/prefeditor/profileeditor.d:565
 msgid "Color scheme"
 msgstr "Koloraro"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:523
-#: source/gx/tilix/prefeditor/profileeditor.d:988
+#: source/gx/ttyx/prefeditor/profileeditor.d:575
+#: source/gx/ttyx/prefeditor/profileeditor.d:1046
 msgid "Custom"
 msgstr "Propra"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:536
+#: source/gx/ttyx/prefeditor/profileeditor.d:588
 msgid "Export"
 msgstr "Elporti"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:548
+#: source/gx/ttyx/prefeditor/profileeditor.d:600
 msgid "Color palette"
 msgstr "Koloraro"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:570
+#: source/gx/ttyx/prefeditor/profileeditor.d:622
 msgid "Use theme colors for foreground/background"
 msgstr "Uzi etosan koloraron por fono/malfono"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:580
+#: source/gx/ttyx/prefeditor/profileeditor.d:632
 msgid "Show bold text in bright colors"
 msgstr "Montri grasan tekston per helaj koloroj"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:592
+#: source/gx/ttyx/prefeditor/profileeditor.d:644
 msgid "Transparency"
 msgstr "Travidebleco"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:606
+#: source/gx/ttyx/prefeditor/profileeditor.d:658
 msgid "Unfocused dim"
 msgstr "Malheligo dum senfokuseco"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:654
+#: source/gx/ttyx/prefeditor/profileeditor.d:707
 msgid "Text"
 msgstr "Teksto"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:655
-#: source/gx/tilix/prefeditor/profileeditor.d:757
+#: source/gx/ttyx/prefeditor/profileeditor.d:708
+#: source/gx/ttyx/prefeditor/profileeditor.d:810
 msgid "Background"
 msgstr "Fono"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:664
+#: source/gx/ttyx/prefeditor/profileeditor.d:717
 msgid "Select Cursor Foreground Color"
 msgstr "Elekti Malfonan Koloron de Kursoro"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:666
+#: source/gx/ttyx/prefeditor/profileeditor.d:719
 msgid "Select Cursor Background Color"
 msgstr "Elekti Fonan Koloron de Kursoro"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:671
+#: source/gx/ttyx/prefeditor/profileeditor.d:724
 msgid "Highlight"
 msgstr "Reliefigo"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:676
+#: source/gx/ttyx/prefeditor/profileeditor.d:729
 msgid "Select Highlight Foreground Color"
 msgstr "Elekti Reliefan Malfonan Koloron"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:678
+#: source/gx/ttyx/prefeditor/profileeditor.d:731
 msgid "Select Highlight Background Color"
 msgstr "Elekti Reliefan Fonan Koloron"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:683
+#: source/gx/ttyx/prefeditor/profileeditor.d:736
 msgid "Bold"
 msgstr "Grasa"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:688
+#: source/gx/ttyx/prefeditor/profileeditor.d:741
 msgid "Select Bold Color"
 msgstr "Elekti Koloron de Grasa Tiparo"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:697
+#: source/gx/ttyx/prefeditor/profileeditor.d:750
 msgid "Select Badge Color"
 msgstr "Elekti Koloron de Ŝildo"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:746
+#: source/gx/ttyx/prefeditor/profileeditor.d:799
 msgid "Select Background Color"
 msgstr "Elekti Fonan Koloron"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:762
-#: source/gx/tilix/prefeditor/profileeditor.d:778
+#: source/gx/ttyx/prefeditor/profileeditor.d:815
+#: source/gx/ttyx/prefeditor/profileeditor.d:831
 msgid "Select Foreground Color"
 msgstr "Elekti Malfonan Koloron"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:777
+#: source/gx/ttyx/prefeditor/profileeditor.d:830
 msgid "Foreground"
 msgstr "Malfono"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:781
+#: source/gx/ttyx/prefeditor/profileeditor.d:834
 msgid "Black"
 msgstr "Nigra"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:781
+#: source/gx/ttyx/prefeditor/profileeditor.d:834
 msgid "Blue"
 msgstr "Blua"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:781
+#: source/gx/ttyx/prefeditor/profileeditor.d:834
 msgid "Green"
 msgstr "Verda"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:781
+#: source/gx/ttyx/prefeditor/profileeditor.d:834
 msgid "Grey"
 msgstr "Griza"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:781
+#: source/gx/ttyx/prefeditor/profileeditor.d:834
 msgid "Orange"
 msgstr "Oranĝa"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:781
+#: source/gx/ttyx/prefeditor/profileeditor.d:834
 msgid "Purple"
 msgstr "Purpura"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:781
+#: source/gx/ttyx/prefeditor/profileeditor.d:834
 msgid "Red"
 msgstr "Ruĝa"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:781
+#: source/gx/ttyx/prefeditor/profileeditor.d:834
 msgid "Turquoise"
 msgstr "Turkisa"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:787
+#: source/gx/ttyx/prefeditor/profileeditor.d:840
 #, c-format
 msgid "Select %s Color"
 msgstr "Elekti koloron: %s"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:794
+#: source/gx/ttyx/prefeditor/profileeditor.d:847
 #, c-format
 msgid "Select %s Light Color"
 msgstr "Elekti helan koloron: %s"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:945
+#: source/gx/ttyx/prefeditor/profileeditor.d:1002
 msgid "Export Color Scheme"
 msgstr "Elporti Koloraron"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1022
+#: source/gx/ttyx/prefeditor/profileeditor.d:1079
 msgid "Show scrollbar"
 msgstr "Montri rulumilon"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1026
+#: source/gx/ttyx/prefeditor/profileeditor.d:1083
 msgid "Scroll on output"
 msgstr "Rulumi laŭ eligo"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1030
+#: source/gx/ttyx/prefeditor/profileeditor.d:1087
 msgid "Scroll on keystroke"
 msgstr "Rulumi post klavopremo"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1034
-msgid "Limit scrollback to:"
-msgstr "Limigi retrorulumon al:"
+#: source/gx/ttyx/prefeditor/profileeditor.d:1091
+#, fuzzy
+msgid "Scrollback lines:"
+msgstr "Rulumado"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1069
+#: source/gx/ttyx/prefeditor/profileeditor.d:1124
 msgid "Backspace key generates"
 msgstr "Retropaŝa klavo enigas"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1072
-#: source/gx/tilix/prefeditor/profileeditor.d:1081
+#: source/gx/ttyx/prefeditor/profileeditor.d:1127
+#: source/gx/ttyx/prefeditor/profileeditor.d:1136
 msgid "ASCII DEL"
 msgstr "Askia forigosigno"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1072
-#: source/gx/tilix/prefeditor/profileeditor.d:1081
+#: source/gx/ttyx/prefeditor/profileeditor.d:1127
+#: source/gx/ttyx/prefeditor/profileeditor.d:1136
 msgid "Automatic"
 msgstr "Aŭtomate"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1072
-#: source/gx/tilix/prefeditor/profileeditor.d:1081
+#: source/gx/ttyx/prefeditor/profileeditor.d:1127
+#: source/gx/ttyx/prefeditor/profileeditor.d:1136
 msgid "Control-H"
 msgstr "Stirsigno-H"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1072
-#: source/gx/tilix/prefeditor/profileeditor.d:1081
+#: source/gx/ttyx/prefeditor/profileeditor.d:1127
+#: source/gx/ttyx/prefeditor/profileeditor.d:1136
 msgid "Escape sequence"
 msgstr "Kodŝanĝa sekvenco"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1072
-#: source/gx/tilix/prefeditor/profileeditor.d:1081
+#: source/gx/ttyx/prefeditor/profileeditor.d:1127
+#: source/gx/ttyx/prefeditor/profileeditor.d:1136
 msgid "TTY"
 msgstr "Teletajpilo"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1078
+#: source/gx/ttyx/prefeditor/profileeditor.d:1133
 msgid "Delete key generates"
 msgstr "Forigoklavo enigas"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1102
+#: source/gx/ttyx/prefeditor/profileeditor.d:1157
 msgid "Ambiguous-width characters"
 msgstr "Signoj de ambigua larĝo"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1105
+#: source/gx/ttyx/prefeditor/profileeditor.d:1160
 msgid "Narrow"
 msgstr "Mallarĝa"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1105
+#: source/gx/ttyx/prefeditor/profileeditor.d:1160
 msgid "Wide"
 msgstr "Larĝa"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1126
+#: source/gx/ttyx/prefeditor/profileeditor.d:1181
 msgid "Run command as a login shell"
 msgstr "Ruli komandon kiel salutŝelon"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1130
+#: source/gx/ttyx/prefeditor/profileeditor.d:1185
 msgid "Run a custom command instead of my shell"
 msgstr "Ruli propran komandon anstataŭ mia ŝelo"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1147
+#: source/gx/ttyx/prefeditor/profileeditor.d:1204
 msgid "When command exits"
 msgstr "Kiam komando finiĝas"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1149
+#: source/gx/ttyx/prefeditor/profileeditor.d:1206
 msgid "Exit the terminal"
 msgstr "Fermi la terminalon"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1149
+#: source/gx/ttyx/prefeditor/profileeditor.d:1206
 msgid "Hold the terminal open"
 msgstr "Lasi la terminalon malfermita"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1149
+#: source/gx/ttyx/prefeditor/profileeditor.d:1206
 msgid "Restart the command"
 msgstr "Reruli la komandon"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1189
+#: source/gx/ttyx/prefeditor/profileeditor.d:1246
 msgid "Badge position"
 msgstr "Loko de ŝildo"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1193
+#: source/gx/ttyx/prefeditor/profileeditor.d:1250
 msgid "Northeast"
 msgstr "Nordorienta"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1193
+#: source/gx/ttyx/prefeditor/profileeditor.d:1250
 msgid "Northwest"
 msgstr "Nordokcidenta"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1193
+#: source/gx/ttyx/prefeditor/profileeditor.d:1250
 msgid "Southeast"
 msgstr "Sudorienta"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1193
+#: source/gx/ttyx/prefeditor/profileeditor.d:1250
 msgid "Southwest"
 msgstr "Sudokcidenta"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1211
+#: source/gx/ttyx/prefeditor/profileeditor.d:1269
 msgid "Choose A Badge Font"
 msgstr "Elektu Tiparon de Ŝildo"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1249
+#: source/gx/ttyx/prefeditor/profileeditor.d:1307
 msgid "Notify New Activity"
 msgstr "Sciigi pri Nova Aktiveco"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1256
+#: source/gx/ttyx/prefeditor/profileeditor.d:1314
 msgid ""
 "A notification can be raised when new activity occurs after a specified "
 "period of silence."
 msgstr ""
 "Sciigo povas okazi, kiam nova aktiveco ekas post specifa daŭro da silento."
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1269
+#: source/gx/ttyx/prefeditor/profileeditor.d:1327
 msgid "Automatic Profile Switching"
 msgstr "Aŭtomata Ŝanĝado de Profiloj"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1278
+#: source/gx/ttyx/prefeditor/profileeditor.d:1336
 msgid ""
 "Profiles are automatically selected based on the values entered here.\n"
 "Values are entered using a <i>username@hostname:directory</i> format. Either "
@@ -2564,7 +2833,7 @@ msgstr ""
 "gastiganto aŭ la dosierujo esti preterlasebla (sed ne ambaŭ samtempe); la "
 "dupunkto devas ĉeesti."
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1280
+#: source/gx/ttyx/prefeditor/profileeditor.d:1338
 msgid ""
 "Profiles are automatically selected based on the values entered here.\n"
 "Values are entered using a <i>hostname:directory</i> format. Either the "
@@ -2576,166 +2845,180 @@ msgstr ""
 "aŭ la dosierujo esti preterlasebla (sed ne ambaŭ samtempe); la dupunkto "
 "devas ĉeesti."
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1292
+#: source/gx/ttyx/prefeditor/profileeditor.d:1352
 msgid "Match"
 msgstr "Kongruaĵo"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1307
+#: source/gx/ttyx/prefeditor/profileeditor.d:1371
 msgid "Enter username@hostname:directory to match"
 msgstr "Tajpu kongruaĵon salutnomo@gastiganto:dosierujo"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1309
+#: source/gx/ttyx/prefeditor/profileeditor.d:1373
 msgid "Enter hostname:directory to match"
 msgstr "Tajpu kongruaĵon gastiganto:dosierujo"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1311
+#: source/gx/ttyx/prefeditor/profileeditor.d:1375
 msgid "Add New Match"
 msgstr "Aldoni Novan Kongruaĵon"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1328
+#: source/gx/ttyx/prefeditor/profileeditor.d:1393
 msgid "Edit username@hostname:directory to match"
 msgstr "Redakti kongruaĵon salutnomo@gastiganto:dosierujo"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1330
+#: source/gx/ttyx/prefeditor/profileeditor.d:1395
 msgid "Edit hostname:directory to match"
 msgstr "Redakti kongruaĵon gastiganto:dosierujo"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1332
+#: source/gx/ttyx/prefeditor/profileeditor.d:1397
 msgid "Edit Match"
 msgstr "Redakti Kongruaĵon"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1363
+#: source/gx/ttyx/prefeditor/profileeditor.d:1428
 msgid "Enable by default"
 msgstr "Ŝalti implicite"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1372
+#: source/gx/ttyx/prefeditor/profileeditor.d:1437
 msgid "Threshold for continuous silence"
 msgstr "Sojlo de kontinua silento"
 
-#: source/gx/tilix/prefeditor/profileeditor.d:1381
+#: source/gx/ttyx/prefeditor/profileeditor.d:1446
 msgid "(seconds)"
 msgstr "(sekundoj)"
 
-#: source/gx/tilix/prefeditor/titleeditor.d:105
-#: source/gx/tilix/terminal/terminal.d:348
-#: source/gx/tilix/terminal/terminal.d:1309
+#: source/gx/ttyx/prefeditor/titleeditor.d:121
+#: source/gx/ttyx/terminal/terminal.d:432
+#: source/gx/ttyx/terminal/terminal.d:1451
 msgid "Terminal"
 msgstr "Terminalo"
 
-#: source/gx/tilix/prefeditor/titleeditor.d:110
+#: source/gx/ttyx/prefeditor/titleeditor.d:126
 msgid "Session"
 msgstr "Seanco"
 
-#: source/gx/tilix/prefeditor/titleeditor.d:116
+#: source/gx/ttyx/prefeditor/titleeditor.d:132
 msgid "Window"
 msgstr "Fenestro"
 
-#: source/gx/tilix/prefeditor/titleeditor.d:126
-#: source/gx/tilix/prefeditor/titleeditor.d:127
+#: source/gx/ttyx/prefeditor/titleeditor.d:142
+#: source/gx/ttyx/prefeditor/titleeditor.d:143
 msgid "Help"
 msgstr "Helpo"
 
-#: source/gx/tilix/preferences.d:256
+#: source/gx/ttyx/preferences.d:279
 msgid "UpdateState"
 msgstr "Ŝanĝi Staton"
 
-#: source/gx/tilix/preferences.d:257
+#: source/gx/ttyx/preferences.d:280
 msgid "ExecuteCommand"
 msgstr "Ruli Komandon"
 
-#: source/gx/tilix/preferences.d:258
+#: source/gx/ttyx/preferences.d:281
 msgid "SendNotification"
 msgstr "Sendi Sciigon"
 
-#: source/gx/tilix/preferences.d:259
+#: source/gx/ttyx/preferences.d:282
 msgid "UpdateTitle"
 msgstr "Ŝanĝi Titolon"
 
-#: source/gx/tilix/preferences.d:260
+#: source/gx/ttyx/preferences.d:283
 msgid "PlayBell"
 msgstr "Pepigi"
 
-#: source/gx/tilix/preferences.d:261
+#: source/gx/ttyx/preferences.d:284
 msgid "SendText"
 msgstr "Sendi Tekston"
 
-#: source/gx/tilix/preferences.d:262
+#: source/gx/ttyx/preferences.d:285
 msgid "InsertPassword"
 msgstr "Enmeti Pasvorton"
 
-#: source/gx/tilix/preferences.d:263
+#: source/gx/ttyx/preferences.d:286
 msgid "UpdateBadge"
 msgstr "Ĝisdatigi Ŝildon"
 
-#: source/gx/tilix/preferences.d:264
+#: source/gx/ttyx/preferences.d:287
 msgid "RunProcess"
 msgstr "Ruli Procezon"
 
-#: source/gx/tilix/preferences.d:374
+#: source/gx/ttyx/preferences.d:397
 #, c-format
 msgid "%s (Copy)"
 msgstr "%s (Kopio)"
 
-#: source/gx/tilix/session.d:568
+#: source/gx/ttyx/session.d:659
 msgid "Could not locate dropped terminal"
 msgstr "Malsukcesis trovi demetitan terminalon"
 
-#: source/gx/tilix/session.d:573
+#: source/gx/ttyx/session.d:664
 msgid "Could not locate session for dropped terminal"
 msgstr "Malsukcesis trovi seancon por demetita terminalo"
 
-#: source/gx/tilix/sidebar.d:546 source/gx/tilix/terminal/terminal.d:383
-#: source/gx/tilix/terminal/terminal.d:1861
+#: source/gx/ttyx/sidebar.d:595 source/gx/ttyx/terminal/terminal.d:467
+#: source/gx/ttyx/terminal/terminal.d:1947
 msgid "Close"
 msgstr "Fermi"
 
-#: source/gx/tilix/terminal/advpaste.d:33
+#: source/gx/ttyx/terminal/advpaste.d:65
 msgid "This command is asking for Administrative access to your computer"
 msgstr "Ĉi tiu komando petas Administran atingon al via komputilo"
 
-#: source/gx/tilix/terminal/advpaste.d:34
+#: source/gx/ttyx/terminal/advpaste.d:66
 msgid "Copying commands from the internet can be dangerous. "
 msgstr "Kopii komandojn el interreto povas esti danĝere. "
 
-#: source/gx/tilix/terminal/advpaste.d:35
+#: source/gx/ttyx/terminal/advpaste.d:67
 msgid "Be sure you understand what each part of this command does."
 msgstr "Atentu, ke vi devas kompreni plene, kion ĉi tio komando faras."
 
-#: source/gx/tilix/terminal/advpaste.d:96
+#: source/gx/ttyx/terminal/advpaste.d:127
 msgid "Transform"
 msgstr "Transformi"
 
-#: source/gx/tilix/terminal/advpaste.d:104
+#: source/gx/ttyx/terminal/advpaste.d:135
 msgid "Convert spaces to tabs"
 msgstr "Konverti spacetojn en tabeligojn"
 
-#: source/gx/tilix/terminal/advpaste.d:115
+#: source/gx/ttyx/terminal/advpaste.d:146
 msgid "Convert CRLF and CR to LF"
 msgstr "Konverti linifinojn de Windows (ĈRLF) kaj Mac (ĈR) en Uniksajn (LF)"
 
-#: source/gx/tilix/terminal/advpaste.d:137
-msgid "Advanced Paste"
+#: source/gx/ttyx/terminal/advpaste.d:174
+#, fuzzy
+msgid "Review Paste"
 msgstr "Speciala Algluo"
 
-#: source/gx/tilix/terminal/advpaste.d:137
-#: source/gx/tilix/terminal/terminal.d:1825
-#: source/gx/tilix/terminal/terminal.d:1843
+#: source/gx/ttyx/terminal/advpaste.d:174
+#, fuzzy
+msgid "Unsafe Paste"
+msgstr "Speciala Algluo"
+
+#: source/gx/ttyx/terminal/advpaste.d:177
+#: source/gx/ttyx/terminal/terminal.d:1907
+#: source/gx/ttyx/terminal/terminal.d:1925
 msgid "Paste"
 msgstr "Alglui"
 
-#: source/gx/tilix/terminal/layout.d:33
+#: source/gx/ttyx/terminal/clipboard.d:458
+msgid "Don't Paste"
+msgstr "Ne Alglui"
+
+#: source/gx/ttyx/terminal/clipboard.d:459
+msgid "Paste Anyway"
+msgstr "Alglui Malgraŭe"
+
+#: source/gx/ttyx/terminal/layout.d:69
 msgid "Layout Options"
 msgstr "Opcioj pri Aranĝo"
 
-#: source/gx/tilix/terminal/layout.d:48
+#: source/gx/ttyx/terminal/layout.d:87
 msgid "Active"
 msgstr "Aktiva"
 
-#: source/gx/tilix/terminal/layout.d:82
+#: source/gx/ttyx/terminal/layout.d:121
 msgid "Session Load"
 msgstr "Ŝargado de Seanco"
 
-#: source/gx/tilix/terminal/layout.d:98
+#: source/gx/ttyx/terminal/layout.d:137
 msgid ""
 "Active options are always in effect and apply immediately.\n"
 "Session Load options only apply when loading a session file."
@@ -2743,72 +3026,90 @@ msgstr ""
 "Aktivaj opcioj ĉiam efektivas kaj tuj validas.\n"
 "Seanco-Ŝargaj opcioj validas nur dum ŝargado de seanco-dosiero."
 
-#: source/gx/tilix/terminal/monitor.d:112
+#: source/gx/ttyx/terminal/monitor.d:149
 msgid "Process monitoring is not enabled, this should never be called"
 msgstr "Monitorado de procezoj ne estas ŝaltita; ĉi tio neniam estu alvokita"
 
-#: source/gx/tilix/terminal/password.d:161
+#: source/gx/ttyx/terminal/password.d:277
 msgid "New"
 msgstr "Nova"
 
-#: source/gx/tilix/terminal/password.d:235
+#: source/gx/ttyx/terminal/password.d:354
+#: source/gx/ttyx/terminal/password.d:360
+#, fuzzy
+msgid "Delete failed"
+msgstr "Forigi profilon"
+
+#: source/gx/ttyx/terminal/password.d:354
+msgid "Failed to delete password: "
+msgstr ""
+
+#: source/gx/ttyx/terminal/password.d:360
+msgid "Password entry could not be deleted from the keyring."
+msgstr ""
+
+#: source/gx/ttyx/terminal/password.d:372
 msgid "Include return character with password"
 msgstr "Inkluzivi linifinon kun pasvorto"
 
-#: source/gx/tilix/terminal/password.d:371
+#: source/gx/ttyx/terminal/password.d:478
 msgid "Insert Password"
 msgstr "Enmeti Pasvorton"
 
-#: source/gx/tilix/terminal/password.d:441
+#: source/gx/ttyx/terminal/password.d:548
 msgid "Password"
 msgstr "Pasvorto"
 
-#: source/gx/tilix/terminal/password.d:451
+#: source/gx/ttyx/terminal/password.d:558
 msgid "Confirm Password"
 msgstr "Konfirmu Pasvorton"
 
-#: source/gx/tilix/terminal/password.d:499
+#: source/gx/ttyx/terminal/password.d:612
 msgid "Add Password"
 msgstr "Aldoni Pasvorton"
 
-#: source/gx/tilix/terminal/password.d:504
+#: source/gx/ttyx/terminal/password.d:617
 msgid "Edit Password"
 msgstr "Redakti Pasvorton"
 
-#: source/gx/tilix/terminal/search.d:128
+#: source/gx/ttyx/terminal/process.d:118 source/gx/ttyx/terminal/process.d:120
+msgid "Unknown"
+msgstr "Nekonata"
+
+#: source/gx/ttyx/terminal/search.d:156
 msgid "Search Options"
 msgstr "Serĉo-opcioj"
 
-#: source/gx/tilix/terminal/search.d:141
+#: source/gx/ttyx/terminal/search.d:169
 msgid "Find next"
 msgstr "Serĉi sekven"
 
-#: source/gx/tilix/terminal/search.d:147
+#: source/gx/ttyx/terminal/search.d:175
 msgid "Find previous"
 msgstr "Serĉi retro"
 
-#: source/gx/tilix/terminal/search.d:155
+#: source/gx/ttyx/terminal/search.d:183
 #, fuzzy
 msgid "Close search box"
 msgstr "Fermi seancon"
 
-#: source/gx/tilix/terminal/search.d:205
+#: source/gx/ttyx/terminal/search.d:234
 msgid "Match case"
 msgstr "Atenti usklecon"
 
-#: source/gx/tilix/terminal/search.d:206
+#: source/gx/ttyx/terminal/search.d:235
 msgid "Match entire word only"
 msgstr "Kongrui nur tutajn vortojn"
 
-#: source/gx/tilix/terminal/search.d:207
+#: source/gx/ttyx/terminal/search.d:236
 msgid "Wrap around"
 msgstr "Ĉirkaŭflui"
 
-#: source/gx/tilix/terminal/search.d:208
+#: source/gx/ttyx/terminal/search.d:237
 msgid "Match as regular expression"
 msgstr "Kongrui kiel regula esprimo"
 
-#: source/gx/tilix/terminal/search.d:243
+#: source/gx/ttyx/terminal/search.d:272
 #, c-format
 msgid ""
 "Search '%s' is not a valid regex\n"
@@ -2817,151 +3118,173 @@ msgstr ""
 "La serĉo '%s' ne egalas validan regulan esprimon\n"
 "%s"
 
-#: source/gx/tilix/terminal/terminal.d:391
-#: source/gx/tilix/terminal/terminal.d:1349
-#: source/gx/tilix/terminal/terminal.d:1860
+#: source/gx/ttyx/terminal/terminal.d:475
+#: source/gx/ttyx/terminal/terminal.d:1506
+#: source/gx/ttyx/terminal/terminal.d:1946
 msgid "Maximize"
 msgstr "Maksimumigi"
 
-#: source/gx/tilix/terminal/terminal.d:401
-#: source/gx/tilix/terminal/terminal.d:692
+#: source/gx/ttyx/terminal/terminal.d:485
+#: source/gx/ttyx/terminal/terminal.d:804
 msgid "Disable input synchronization for this terminal"
 msgstr "Malŝalti enigan sinkronigon por ĉi tiu terminalo"
 
-#: source/gx/tilix/terminal/terminal.d:410
-#: source/gx/tilix/terminal/terminal.d:829
+#: source/gx/ttyx/terminal/terminal.d:494
+#: source/gx/ttyx/terminal/terminal.d:945
 msgid "Read-Only"
 msgstr "Nurlega"
 
-#: source/gx/tilix/terminal/terminal.d:416
+#: source/gx/ttyx/terminal/terminal.d:500
 msgid "New output"
 msgstr "Nova eligo"
 
-#: source/gx/tilix/terminal/terminal.d:467
+#: source/gx/ttyx/terminal/terminal.d:512
+msgid "as root"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:513
+msgid "Running as root"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:524
+msgid "ssh"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:525
+msgid "Connected via SSH"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:577
 msgid "Edit Profile"
 msgstr "Modifi Profilon"
 
-#: source/gx/tilix/terminal/terminal.d:485
+#: source/gx/ttyx/terminal/terminal.d:595
 msgid "Edit Encodings"
 msgstr "Ŝanĝi Signarojn"
 
-#: source/gx/tilix/terminal/terminal.d:694
+#: source/gx/ttyx/terminal/terminal.d:806
 msgid "Enable input synchronization for this terminal"
 msgstr "Ŝalti enigan sinkronigon por ĉi tiu terminalo"
 
-#: source/gx/tilix/terminal/terminal.d:729
+#: source/gx/ttyx/terminal/terminal.d:846
 msgid "Library Not Loaded"
 msgstr "Biblioteko ne ŝargiĝis"
 
-#: source/gx/tilix/terminal/terminal.d:729
+#: source/gx/ttyx/terminal/terminal.d:846
 #, c-format
 msgid ""
 "The library %s could not be loaded, password functionality is unavailable."
 msgstr ""
 "La biblioteko %s ne estis ŝargebla; tial, pasvorta funkcio ne disponeblas."
 
-#: source/gx/tilix/terminal/terminal.d:828
+#: source/gx/ttyx/terminal/terminal.d:944
 msgid "Find…"
 msgstr "Serĉi…"
 
-#: source/gx/tilix/terminal/terminal.d:835
+#: source/gx/ttyx/terminal/terminal.d:951
 msgid "Password..."
 msgstr "Pasvorto…"
 
-#: source/gx/tilix/terminal/terminal.d:836
+#: source/gx/ttyx/terminal/terminal.d:952
 msgid "Bookmark..."
 msgstr "Legosigno…"
 
-#: source/gx/tilix/terminal/terminal.d:837
+#: source/gx/ttyx/terminal/terminal.d:953
 msgid "Add Bookmark..."
 msgstr "Aldoni Legosignon…"
 
-#: source/gx/tilix/terminal/terminal.d:841
+#: source/gx/ttyx/terminal/terminal.d:957
 msgid "Assistants"
 msgstr "Helpiloj"
 
-#: source/gx/tilix/terminal/terminal.d:848
+#: source/gx/ttyx/terminal/terminal.d:964
 msgid "Show File Browser..."
 msgstr "Montri Dosieradministrilon…"
 
-#: source/gx/tilix/terminal/terminal.d:852
+#: source/gx/ttyx/terminal/terminal.d:968
 msgid "Save Output…"
 msgstr "Konservi Eligaĵon…"
 
-#: source/gx/tilix/terminal/terminal.d:854
-msgid "Reset and Clear"
-msgstr "Reimplicitigi kaj Forviŝi"
+#: source/gx/ttyx/terminal/terminal.d:969
+msgid "Refresh"
+msgstr ""
 
-#: source/gx/tilix/terminal/terminal.d:859
+#: source/gx/ttyx/terminal/terminal.d:970
+#: source/gx/ttyx/terminal/terminal.d:1940
+msgid "Secure Clear"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:975
 msgid "Layout Options…"
 msgstr "Opcioj pri Aranĝo…"
 
-#: source/gx/tilix/terminal/terminal.d:863
+#: source/gx/ttyx/terminal/terminal.d:979
 msgid "Monitor Silence"
 msgstr "Monitori Silenton"
 
-#: source/gx/tilix/terminal/terminal.d:866
+#: source/gx/ttyx/terminal/terminal.d:982
 msgid "Other"
 msgstr "Alia"
 
-#: source/gx/tilix/terminal/terminal.d:875
+#: source/gx/ttyx/terminal/terminal.d:991
 msgid "Add Right"
 msgstr "Aldoni Dekstren"
 
-#: source/gx/tilix/terminal/terminal.d:879
+#: source/gx/ttyx/terminal/terminal.d:995
 msgid "Add Down"
 msgstr "Aldoni Suben"
 
-#: source/gx/tilix/terminal/terminal.d:989
+#: source/gx/ttyx/terminal/terminal.d:1107
 msgid "Terminal Activity"
 msgstr "Aktiveco de Terminalo"
 
-#: source/gx/tilix/terminal/terminal.d:1325
+#: source/gx/ttyx/terminal/terminal.d:1467
 msgid "Not Enabled"
 msgstr "Ne Ŝaltita"
 
-#: source/gx/tilix/terminal/terminal.d:1346
-#: source/gx/tilix/terminal/terminal.d:1860
+#: source/gx/ttyx/terminal/terminal.d:1503
+#: source/gx/ttyx/terminal/terminal.d:1946
 msgid "Restore"
 msgstr "Restaŭri"
 
-#: source/gx/tilix/terminal/terminal.d:1709
-msgid "Tilix Custom Notification"
+#: source/gx/ttyx/terminal/terminal.d:1789
+#, fuzzy
+msgid "ttyx_ Custom Notification"
 msgstr "Propra Sciigo de Tilix"
 
-#: source/gx/tilix/terminal/terminal.d:1810
+#: source/gx/ttyx/terminal/terminal.d:1892
 msgid "Open Link"
 msgstr "Malfermi Ligon"
 
-#: source/gx/tilix/terminal/terminal.d:1811
+#: source/gx/ttyx/terminal/terminal.d:1893
 msgid "Copy Link Address"
 msgstr "Kopii Adreson de Ligo"
 
-#: source/gx/tilix/terminal/terminal.d:1821
-#: source/gx/tilix/terminal/terminal.d:1831
+#: source/gx/ttyx/terminal/terminal.d:1903
+#: source/gx/ttyx/terminal/terminal.d:1913
 msgid "Copy"
 msgstr "Kopii"
 
-#: source/gx/tilix/terminal/terminal.d:1823
-#: source/gx/tilix/terminal/terminal.d:1837
+#: source/gx/ttyx/terminal/terminal.d:1905
+#: source/gx/ttyx/terminal/terminal.d:1919
 msgid "Copy as HTML"
 msgstr "Kopii kiel HTML"
 
-#: source/gx/tilix/terminal/terminal.d:1826
-#: source/gx/tilix/terminal/terminal.d:1848
+#: source/gx/ttyx/terminal/terminal.d:1908
+#: source/gx/ttyx/terminal/terminal.d:1930
 msgid "Select All"
 msgstr "Elekti Ĉion"
 
-#: source/gx/tilix/terminal/terminal.d:1865
+#: source/gx/ttyx/terminal/terminal.d:1951
 msgid "Synchronize input"
 msgstr "Sinkronigi enigon"
 
-#: source/gx/tilix/terminal/terminal.d:2018
+#: source/gx/ttyx/terminal/terminal.d:2123
 #, c-format
 msgid "Could not check file '%s' due to error '%s'"
 msgstr "Malsukcesis kontroli la dosieron '%s' pro eraro '%s'"
 
-#: source/gx/tilix/terminal/terminal.d:2025
+#: source/gx/ttyx/terminal/terminal.d:2130
 #, c-format
 msgid ""
 "Remote file URIs are not supported with hyperlinks.\n"
@@ -2970,87 +3293,249 @@ msgstr ""
 "Fora dosiera URI ne estas subtenata en hiperligo.\n"
 "URI estis '%s'"
 
-#: source/gx/tilix/terminal/terminal.d:2026
+#: source/gx/ttyx/terminal/terminal.d:2131
 msgid "Remote File URI Unsupported"
 msgstr "Fora dosiera URI ne estas subtenata"
 
-#: source/gx/tilix/terminal/terminal.d:2059
-#: source/gx/tilix/terminal/terminal.d:2613
+#: source/gx/ttyx/terminal/terminal.d:2165
+#: source/gx/ttyx/terminal/terminal.d:2547
 #, c-format
 msgid "Custom link regex '%s' has an error, ignoring"
 msgstr "Propra regula esprimo por ligo '%s' enhavas eraron kaj tial ignoriĝis"
 
-#: source/gx/tilix/terminal/terminal.d:2060
+#: source/gx/ttyx/terminal/terminal.d:2166
 msgid "Regular Expression Error"
 msgstr "Eraro pri Regula Esprimo"
 
-#: source/gx/tilix/terminal/terminal.d:2073
+#: source/gx/ttyx/terminal/terminal.d:2189
+#, c-format
+msgid ""
+"Refusing to open link with a disallowed scheme.\n"
+"URI was '%s'"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:2190
+msgid "Link Scheme Not Allowed"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:2198
 #, c-format
 msgid "Could not open match '%s'"
 msgstr "Malsukcesis malfermi kongruaĵon '%s'"
 
-#: source/gx/tilix/terminal/terminal.d:2074
+#: source/gx/ttyx/terminal/terminal.d:2199
 msgid "Error Opening Match"
 msgstr "Eraro pri Malfermado de Kongruaĵo"
 
-#: source/gx/tilix/terminal/terminal.d:2573
+#: source/gx/ttyx/terminal/terminal.d:2503
 #, c-format
 msgid "Unexpected error occurred when adding link regex: %s"
 msgstr "Neatendita eraro okazis dum aldonado de regula esprimo pri ligo: %s"
 
-#: source/gx/tilix/terminal/terminal.d:2773
+#: source/gx/ttyx/terminal/terminal.d:2717
 msgid "Unexpected error occurred, no additional information available"
 msgstr "Neatendita eraro okazis; neniu plia informo disponeblas"
 
-#: source/gx/tilix/terminal/terminal.d:2783
+#: source/gx/ttyx/terminal/terminal.d:2727
 #, c-format
 msgid "Unexpected error occurred: %s"
 msgstr "Neatendita eraro okazis: %s"
 
-#: source/gx/tilix/terminal/terminal.d:3662
+#: source/gx/ttyx/terminal/terminal.d:3167
 msgid "Save Terminal Output"
 msgstr "Konservi la Eligaĵon de Terminalo"
 
-#: source/gx/tilix/terminal/terminal.d:3671
+#: source/gx/ttyx/terminal/terminal.d:3177
 msgid "All Text Files"
 msgstr "Ĉiuj Tekstaj Dosieroj"
 
-#: source/gx/tilix/terminal/terminal.d:4001
-msgid "Unknown"
-msgstr "Nekonata"
+#: source/gx/ttyx/terminal/terminal.d:3380
+msgid "This session wants to run a command:"
+msgstr ""
 
-#: source/gx/tilix/terminal/terminal.d:4265
+#: source/gx/ttyx/terminal/terminal.d:3383
+#, fuzzy
+msgid "Run session command?"
+msgstr "Ŝargado de Seanco"
+
+#: source/gx/ttyx/terminal/terminal.d:3395
+msgid "Open Shell"
+msgstr ""
+
+#: source/gx/ttyx/terminal/terminal.d:3396
+#, fuzzy
+msgid "Run Command"
+msgstr "Komando"
+
+#: source/gx/ttyx/terminal/terminal.d:3872
 #, c-format
 msgid "The child process exited normally with status %d"
 msgstr "La ida procezo finiĝis ordinare per stato %d"
 
-#: source/gx/tilix/terminal/terminal.d:4266
+#: source/gx/ttyx/terminal/terminal.d:3873
 #, c-format
 msgid "The child process was aborted by signal %d."
 msgstr "La ida procezo estis misfinita de signalo %d."
 
-#: source/gx/tilix/terminal/terminal.d:4267
+#: source/gx/ttyx/terminal/terminal.d:3874
 msgid "The child process was aborted."
 msgstr "La ida procezo misfiniĝis."
 
-#: source/gx/tilix/terminal/terminal.d:4273
+#: source/gx/ttyx/terminal/terminal.d:3883
 msgid "Relaunch"
 msgstr "Relanĉi"
 
-#: source/gx/tilix/terminal/terminal.d:4340
-msgid "Don't Paste"
-msgstr "Ne Alglui"
+#~ msgid ""
+#~ "A list of user defined links that can be clicked on in the terminal based "
+#~ "on regular expression definitions."
+#~ msgstr ""
+#~ "Listo de ligoj alklakeblaj en la terminalo, difinitaj de la uzanto per "
+#~ "regulaj esprimoj."
 
-#: source/gx/tilix/terminal/terminal.d:4341
-msgid "Paste Anyway"
-msgstr "Alglui Malgraŭe"
-
-#~ msgid "A tiling terminal for Gnome"
+#~ msgid "A tiling terminal for GNOME"
 #~ msgstr "Kaheliga terminalo por GNOME"
+
+#~ msgid "Actually install Yaru color scheme"
+#~ msgstr "Efektive instali koloraron Yaru"
+
+#~ msgid "Add release notes, NEWS file, automatic metainfo update"
+#~ msgstr ""
+#~ "Aldoni notojn pri versioj kaj la dosieron NEWS, kaj aŭtomate ĝisdatigi "
+#~ "metainformojn"
+
+#~ msgid "Add shortcut to \"Unselect all\""
+#~ msgstr "Aldoni fulmoklavon por \"Malelekti ĉion\""
+
+#~ msgid "Avoid calling `values()` on a shared object"
+#~ msgstr "Eviti alvokon de la metodo `values()` de komuna objekto"
+
+#~ msgid "Avoid missing the previous command exit code when encoding URLs"
+#~ msgstr ""
+#~ "Eviti ignoradon de la elirkodo de la antaŭa komando dum enkodigo de URL-oj"
+
+#~ msgid "Bump minimum VTE version to 0.46"
+#~ msgstr "Postuli minimuman version 0.46 de VTE"
+
+#~ msgid "Drop compat code for older D frontend versions"
+#~ msgstr "Forigi kodon por malnovaj versioj de D"
+
+#~ msgid "Fix saving of already saved session"
+#~ msgstr "Korekti konservadon de jam konservita seanco"
+
+#~ msgid ""
+#~ "Fixes a problem with the session sidebar getting out of sync after having "
+#~ "deleted a session. See issues #1680, #1637 and #1699."
+#~ msgstr ""
+#~ "Ripari problemon pri la nesinkroniĝo de la seanca flankpanelo post forigo "
+#~ "de seanco. Vidu la cimojn 1680, 1637 kaj 1699."
 
 #~ msgid "Gerald Nunn"
 #~ msgstr "Gerald Nunn"
 
+#~ msgid "Give every tab the ${title}"
+#~ msgstr "Doni al ĉiu langeto '${title}'"
+
+#~ msgid "If you are interested in helping Tilix, please chime in!"
+#~ msgstr "Se vi volas helpi Tilix, bonvolu partopreni!"
+
+#~ msgid "Limit scrollback to:"
+#~ msgstr "Limigi retrorulumon al:"
+
+#~ msgid "Many Meson buildsystem fixes"
+#~ msgstr "Multaj korektoj pri la tradukadministrilo Meson"
+
+#~ msgid "Mention powerline/fonts in README"
+#~ msgstr "Mencii tiparojn por Powerline en la dosiero README"
+
+#~ msgid "Minor fixes"
+#~ msgstr "Etaj korektoj"
+
+#~ msgid "Remove app menu for gnome 3.32"
+#~ msgstr "Forigi programmenuon por GNOME 3.32"
+
+#~ msgid "Remove deprecated Autotools support"
+#~ msgstr "Forigi evitindan subtenon de Autotools"
+
+#~ msgid "Reset and Clear"
+#~ msgstr "Reimplicitigi kaj Forviŝi"
+
+#~ msgctxt "shortcut window"
+#~ msgid "Reset and clear the terminal"
+#~ msgstr "Reimplicitigi kaj forviŝi la terminalon"
+
+#~ msgid "Resolve some D deprecation messages"
+#~ msgstr "Solvi kelkajn mesaĝojn de D pri evitindeco"
+
+#~ msgid "Small release to update localizations"
+#~ msgstr "Eta versio por ĝisdatigi tradukojn"
+
+#~ msgid "Some new features and bug fixes."
+#~ msgstr "Kelke da novaj funkcioj kaj korektoj de cimoj."
+
+#~ msgid ""
+#~ "The application was written using GTK 3 and an effort was made to conform "
+#~ "to GNOME Human Interface Guidelines (HIG). As a result, it does use "
+#~ "client-side-decorations, though it can be disabled if necessary."
+#~ msgstr ""
+#~ "La programo uzas version 3 de GTK kaj klopodas konformi al la Gvidnormoj "
+#~ "pri Fasadoj de GNOME (HIG). Tial, ĝi uzas klientflankajn ornamaĵojn, "
+#~ "kvankam ili estas malŝalteblaj."
+
+#~ msgid "This release fixes the following bug:"
+#~ msgstr "Ĉi tiu versio korektas la jenan cimon:"
+
+#~ msgid "This release updates translations."
+#~ msgstr "Ĉi tiu versio ĝisdatigas tradukojn."
+
+#~ msgid "Tilix"
+#~ msgstr "Tilix"
+
+#~ msgid "Tilix Preferences"
+#~ msgstr "Preferoj pri Tilix"
+
+#~ msgid "Tilix has been tested with GNOME and with Unity."
+#~ msgstr "Tilix estas elprovita kun GNOME kaj kun Unity."
+
+#~ msgid "Tilix is a tiling terminal emulator."
+#~ msgstr "Tilix estas kaheliga terminalimitilo."
+
+#~ msgid ""
+#~ "Tilix is looking for maintainers! At the moment, only very minimal "
+#~ "maintenance is done, no new features will be implemented and pull-"
+#~ "requests may be reviewed very slowly."
+#~ msgstr ""
+#~ "Tilix serĉas prizorgantojn! Nuntempe, nur minimumo da prizorgado estas "
+#~ "farata; neniom da novaj funkcioj estos efektivigita; tirpetoj reviziiĝas "
+#~ "malrapidege."
+
+#, fuzzy
+#~ msgid "Tilix is still looking for a new maintainer!"
+#~ msgstr "Tilix estas kaheliga terminalimitilo."
+
+#~ msgid ""
+#~ "Triggers are regular expressions that are used to check against output "
+#~ "text in the terminal. When a match is detected the configured action is "
+#~ "executed."
+#~ msgstr ""
+#~ "Ekagigiloj estas regulaj esprimoj uzataj por kontroli eligaĵon en "
+#~ "terminalo. Kiam kongruaĵo troviĝas, la agordita ago ekas."
+
+#~ msgid "Update icon"
+#~ msgstr "Ĝisdatigi ikonon"
+
+#~ msgid "Update metainfo data"
+#~ msgstr "Ĝisdatigi metainformajn datenojn"
+
+#~ msgid "Update to GtkD 3.8.5 to fix library name in GtkD."
+#~ msgstr ""
+#~ "Ĝisdatigi GtkD al versio 3.8.5 por korekti nomon de biblioteko en GtkD."
+
+#~ msgid "Update to GtkD 3.9.0"
+#~ msgstr "Ĝisdatigi GtkD al versio 3.9.0"
+
 #~ msgctxt "shortcut window"
 #~ msgid "View configured shortcuts"
 #~ msgstr "Vidi agorditajn fulmoklavojn"
+
+#~ msgid "You can only use the action parameter within Tilix"
+#~ msgstr "Vi povas nur uzi la ago-parametrojn ene de Tilix"
