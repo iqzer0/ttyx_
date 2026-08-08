@@ -17,6 +17,5 @@ data/man/man
 
 # Local dev
 .rundata/
-.claude/
 .vscode
 *~

@@ -111,7 +111,7 @@ Key conventions worth knowing:
 
 - **Commit subject**: `<category>: short description`, where category is one of `feat`, `fix`, `security`, `refactor`, `docs`, `test`, `style`, `chore`, `ci`. Under 72 chars.
 - **Commit body**: explain the *why* rather than the *what*. Surface tradeoffs when a decision has them. Reference issues with `#N`.
-- **No `Co-Authored-By: Claude` footers**. If a change was AI-assisted, say so in the body (`Assisted by Claude Code.`) — you stay the author of record.
+- **No AI co-author footers or attribution trailers** — the human committer is the author of record.
 - **PR description**: link the issue the PR addresses (`Closes #N` / `Refs #N`), summarize the change, include a test plan.
 
 ## Codebase orientation
