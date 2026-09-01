@@ -65,6 +65,15 @@ unconditionally true and can be deleted rather than ported. The risk is
 concentrated in removing `dialog.run()`'s nested main loops (26 sites), three of
 which sit on the security-critical paste path.
 
+**Feature-parity caveat, decide before WP0:** VTE 3.91 drops seven signals that
+2.91 has. `text-deleted` is a **hard compile error** (`gid:vte3` generates no
+`connectTextDeleted`; the existing guard is runtime-only), and
+`notification-received` is a **silent feature loss** — process-completion
+notifications go permanently off on stock VTE 3.91. Triggers and prompt
+navigation already depend on the patched-only `terminal-screen-changed`, so they
+are GTK3-only unless a patched *vte3* exists downstream. Full 1.3.0 feature
+parity is **not** achievable on stock VTE 3.91.
+
 - [ ] WP0 — dependency swap to `gid:gtk4` / `gid:vte3` / `gid:adw1`; capture the compiler error list as the authoritative inventory
 - [ ] WP2 — input: 42 `connectGdkEvent` sites → EventControllers; delete `events.d` and the 16 `EventBox` wrappers
 - [ ] WP1 — dialogs: 26 `.run()` nested main loops → async response callbacks (paste path first, with tests)

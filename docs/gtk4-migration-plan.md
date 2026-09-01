@@ -64,6 +64,47 @@ Both mean the post-2b codebase is smaller than the pre-2b one in these areas.
 
 ---
 
+## VTE 3.91 removes seven signals — this costs us two features
+
+Diffing the GIRs giD vendors (`Vte-2.91.gir` → `Vte-3.91.gir`), these signals
+are gone in the GTK4 build:
+
+```
+notification-received   shell-precmd   shell-preexec
+text-deleted   text-inserted   text-modified   text-scrolled
+```
+
+ttyx_ touches two of them, and they fail in **different ways**:
+
+| Signal | How it is used | Failure mode on vte3 |
+|---|---|---|
+| `text-deleted` | `terminal.d:1215`, prompt-buffer tracking | **compile error** |
+| `notification-received` | `exvte.d`, hand-written closure | silent feature loss |
+
+- **`text-deleted` is a hard compile error, not a graceful degradation.**
+  Confirmed directly: `gid:vte3` generates no `connectTextDeleted`, while
+  `gid:vte2` does. The call site *is* guarded — but by
+  `checkVTEFeature(EVENT_SCREEN_CHANGED)` at **runtime**, which does nothing for
+  compilation. This is the first known concrete item on the WP0 error list.
+- **`notification-received` degrades quietly.** It is connected through a
+  hand-written closure in `exvte.d` behind a `signalLookup` probe, so it
+  compiles and simply reports the feature as unavailable. Practical effect:
+  **process-completion notifications go permanently off on stock VTE 3.91.**
+
+Separately, `terminal-screen-changed` — which gates the whole triggers feature
+— was **never in stock VTE at all**; it is a Tilix-patched-VTE signal, already
+runtime-probed. So triggers are conditional today too. The open question is not
+whether upstream vte3 has it (it does not, and never did) but whether a patched
+*vte3* exists downstream at all. If not, triggers and prompt navigation are
+GTK3-only features and that needs saying out loud rather than discovering it
+after the port.
+
+Net: the port does not silently break these, but **feature parity with 1.3.0 is
+not achievable on stock VTE 3.91**, and that is a product decision to take
+before WP0, not a surprise to absorb during it.
+
+---
+
 ## Work packages
 
 Ordered by risk, not by size. WP1 is the one that can genuinely go wrong.
@@ -199,10 +240,12 @@ shrink several of the above.
   `disable-csd-hide-toolbar` and `borderless` window styles, plus an embedded
   headerbar for quake. `AdwHeaderBar` assumes CSD. Whether these modes survive,
   and in what form, is a product decision that should be settled before WP0.
-- **Does VTE 3.91 still expose everything used?** The triggers feature depends
-  on `EVENT_SCREEN_CHANGED`, which is a *patched-VTE* signal, not upstream. Its
-  status on the VTE 3.91 line is unverified and needs checking before promising
-  trigger parity.
+- ~~**Does VTE 3.91 still expose everything used?**~~ **Answered** — see the
+  VTE signals section above. It does not: `text-deleted` is a compile error and
+  `notification-received` is a silent feature loss. The remaining sub-question
+  is whether a *patched vte3* exists downstream to carry
+  `terminal-screen-changed`; if not, triggers and prompt navigation are
+  GTK3-only and the feature list needs updating before, not after, the port.
 - **Runtime dependency documentation.** The 2026-08-09 spike found giD dlopens
   its C libraries, so the binary has no direct link deps — `vte4` and
   `libadwaita` become undeclared runtime requirements that packaging must state
