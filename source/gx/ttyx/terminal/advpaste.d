@@ -20,15 +20,14 @@
  *   - buffer.getText() (GtkD convenience) → getBounds(start, end) +
  *     getText(start, end, true).
  *   - addOnKeyPress(Event, Widget) + event.getKeyval(out kv) →
- *     connectKeyPressEvent with a typed gdk.event_key.EventKey parameter and
+ *     GTK4: an EventControllerKey added to the widget, and
  *     direct .keyval/.state field accessors.
  *   - Enums are PascalCase in <pkg>.types (ResponseType.Apply,
- *     ShadowType.EtchedIn, PolicyType.Automatic, Align.Start,
+ *     PolicyType.Automatic, Align.Start,
  *     ModifierType.ControlMask, SettingsBindFlags.Default); keysyms are
  *     module-level gdk.types.KEY_* constants.
  */
 module gx.ttyx.terminal.advpaste;
-import gx.gtk.events;
 
 import std.experimental.logger;
 import std.format;
@@ -36,8 +35,9 @@ import std.string;
 
 import gid.gid : No;
 
-import gdk.event_key : EventKey;
 import gdk.types : KEY_Return, ModifierType;
+
+import gtk.event_controller_key : EventControllerKey;
 
 import gio.settings : GSettings = Settings;
 import gio.types : SettingsBindFlags;
@@ -54,7 +54,7 @@ import gtk.text_buffer : TextBuffer;
 import gtk.text_iter : TextIter;
 import gtk.text_tag_table : TextTagTable;
 import gtk.text_view : TextView;
-import gtk.types : Align, Orientation, PolicyType, ResponseType, ShadowType;
+import gtk.types : Align, Orientation, PolicyType, ResponseType;
 import gtk.window : Window;
 
 import gx.i18n.l10n;
@@ -88,8 +88,8 @@ private:
 
     void createUI(string text, bool unsafe) {
         with (getContentArea()) {
-            setMarginLeft(18);
-            setMarginRight(18);
+            setMarginStart(18);
+            setMarginEnd(18);
             setMarginTop(18);
             setMarginBottom(18);
         }
@@ -99,55 +99,62 @@ private:
             string[3] msg = getUnsafePasteMessage();
             Label lblUnsafe = new Label("<span weight='bold' size='large'>" ~ msg[0] ~ "</span>\n" ~ msg[1] ~ "\n" ~ msg[2]);
             lblUnsafe.setUseMarkup(true);
-            lblUnsafe.setLineWrap(true);
-            b.add(lblUnsafe);
+            lblUnsafe.setWrap(true);
+            b.append(lblUnsafe);
             getWidgetForResponse(ResponseType.Apply).getStyleContext().addClass("destructive-action");
         }
 
         buffer = new TextBuffer(new TextTagTable());
         buffer.setText(text);
         TextView view = TextView.newWithBuffer(buffer);
-        connectGdkEvent!EventKey(view, "key-press-event", delegate bool(EventKey event) {
-            if (event.keyval == KEY_Return && (event.state & ModifierType.ControlMask)) {
-                response(ResponseType.Apply);
-                return true;
-            }
-            return false;
-        });
+        // GTK4: no key-press-event signal; input arrives through controllers.
+        // key-pressed still returns bool, so consuming Ctrl+Return is unchanged.
+        EventControllerKey keyController = new EventControllerKey();
+        keyController.connectKeyPressed(
+            delegate bool(uint keyval, uint keycode, ModifierType state, EventControllerKey c) {
+                if (keyval == KEY_Return && (state & ModifierType.ControlMask)) {
+                    response(ResponseType.Apply);
+                    return true;
+                }
+                return false;
+            });
+        view.addController(keyController);
         ScrolledWindow sw = new ScrolledWindow();
-        sw.add(view);
-        sw.setShadowType(ShadowType.EtchedIn);
+        sw.setChild(view);
+        // GTK4: GtkShadowType is gone; a scrolled window's border is a
+        // boolean frame (styled via CSS) rather than a shadow enum.
+        sw.setHasFrame(true);
         sw.setPolicy(PolicyType.Automatic, PolicyType.Automatic);
         sw.setHexpand(true);
         sw.setVexpand(true);
         sw.setSizeRequest(400, 140);
 
-        b.add(sw);
+        b.append(sw);
 
         Label lblTransform = new Label(format("<b>%s</b>", _("Transform")));
         lblTransform.setUseMarkup(true);
         lblTransform.setHalign(Align.Start);
         lblTransform.setMarginTop(6);
-        b.add(lblTransform);
+        b.append(lblTransform);
 
         //Tabs to Spaces
         Box bTabs = new Box(Orientation.Horizontal, 6);
         cbTabsToSpaces = CheckButton.newWithLabel(_("Convert spaces to tabs"));
         gsSettings.bind(SETTINGS_ADVANCED_PASTE_REPLACE_TABS_KEY, cbTabsToSpaces, "active", SettingsBindFlags.Default);
-        bTabs.add(cbTabsToSpaces);
+        bTabs.append(cbTabsToSpaces);
 
         sbTabWidth = SpinButton.newWithRange(0, 32, 1);
         gsSettings.bind(SETTINGS_ADVANCED_PASTE_SPACE_COUNT_KEY, sbTabWidth.getAdjustment(), "value", SettingsBindFlags.Default);
         gsSettings.bind(SETTINGS_ADVANCED_PASTE_REPLACE_TABS_KEY, sbTabWidth, "sensitive", SettingsBindFlags.Default);
-        bTabs.add(sbTabWidth);
+        bTabs.append(sbTabWidth);
 
-        b.add(bTabs);
+        b.append(bTabs);
 
         cbConvertCRLF = CheckButton.newWithLabel(_("Convert CRLF and CR to LF"));
         gsSettings.bind(SETTINGS_ADVANCED_PASTE_REPLACE_CRLF_KEY, cbConvertCRLF, "active", SettingsBindFlags.Default);
-        b.add(cbConvertCRLF);
+        b.append(cbConvertCRLF);
 
-        getContentArea().add(b);
+        getContentArea().append(b);
     }
 
     string transform() {

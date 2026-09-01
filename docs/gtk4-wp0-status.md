@@ -168,3 +168,52 @@ GTK4-clean; widget snapshotting moved verbatim to `gx/gtk/widgetimage.d`, which
 is explicitly NOT ported and carries its blocker list in the module header. The
 two halves shared nothing but GTK3-only API, so keeping them together blocked
 `application.d` on a rewrite it has no stake in.
+
+## WP2 pilot: the porting rulebook
+
+`advpaste.d` (1 event site) and `search.d` (4) are fully clean. Doing them
+end-to-end produced the rules below, which generalise to the remaining modules —
+worth reading before touching `appwindow.d` or `terminal.d`.
+
+### Event model (WP2)
+
+| GTK3 | GTK4 | Note |
+|---|---|---|
+| `connectGdkEvent!EventKey(w,"key-press-event",dg)` | `new EventControllerKey()` + `connectKeyPressed` + `w.addController(c)` | still returns `bool`, so consuming works the same |
+| `"key-release-event"` | `connectKeyReleased` | **returns `void`** — you cannot consume a release |
+| `"focus-in-event"` / `"focus-out-event"` | `EventControllerFocus` `connectEnter` / `connectLeave` | callback gets the **controller**, not the widget — capture the widget from scope |
+
+Callback shape is `(uint keyval, uint keycode, ModifierType state, Controller c)`:
+the typed `EventKey` struct is gone, so `event.keyval`/`event.state` become plain
+parameters.
+
+**Check before converting a release handler:** if it ever returns `true`, the
+behaviour cannot be preserved as-is. Both handlers converted so far returned
+`false` unconditionally, so nothing was lost — but that has to be verified per
+site, not assumed.
+
+### Mechanical rules (apply tree-wide)
+
+| GTK3 | GTK4 |
+|---|---|
+| `setMarginLeft/Right` | `setMarginStart/End` (RTL-aware) |
+| `Label.setLineWrap` | `setWrap` |
+| `Box.add` | `append` (or `prepend`) |
+| `Box.packEnd(c,exp,fill,pad)` | no equivalent — `c.setHalign(Align.End); c.setHexpand(true); box.append(c)` |
+| `Bin.add` (Frame, Revealer, ScrolledWindow, MenuButton, …) | `setChild` |
+| `Image.newFromIconName(n, IconSize.X)` | `newFromIconName(n)` — **size argument is gone**, sizing is CSS |
+| `Button.newFromIconName(n, IconSize.X)` | `newFromIconName(n)` |
+| `setRelief(ReliefStyle.None)` | `setHasFrame(false)` |
+| `ScrolledWindow.setShadowType(EtchedIn)` | `setHasFrame(true)` |
+| `Frame.setShadowType(None)` | delete — GTK4 frames have no shadow |
+| `Popover.newFromModel(w, model)` | `PopoverMenu.newFromModel(model)` — widget association moves to `MenuButton.setPopover` |
+
+`IconSize` is the largest single category (72 hits) and reduces to deleting an
+argument, so it is a good candidate for a scripted sweep — but note `IconSize`
+must then come out of the `gtk.types` import list too, or the module fails on an
+unused-import error.
+
+### Progress
+
+33 clean → **35 clean, 33 failing**. The two pilot modules moved, and nothing
+regressed.

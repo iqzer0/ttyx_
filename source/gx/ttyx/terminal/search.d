@@ -37,9 +37,10 @@ module gx.ttyx.terminal.search;
 import std.experimental.logger;
 import std.format;
 
-import gdk.event_focus : EventFocus;
-import gdk.event_key : EventKey;
 import gdk.types : KEY_Escape, KEY_Return, ModifierType;
+
+import gtk.event_controller_focus : EventControllerFocus;
+import gtk.event_controller_key : EventControllerKey;
 
 import gio.action_group : ActionGroup;
 import gio.menu : Menu;
@@ -58,9 +59,10 @@ import gtk.global : checkVersion;
 import gtk.image : Image;
 import gtk.menu_button : MenuButton;
 import gtk.popover : Popover;
+import gtk.popover_menu : PopoverMenu;
 import gtk.revealer : Revealer;
 import gtk.search_entry : SearchEntry;
-import gtk.types : Align, IconSize, Orientation, ReliefStyle, ShadowType;
+import gtk.types : Align, Orientation;
 import gtk.widget : Widget;
 
 import vte.regex : VRegex = Regex;
@@ -68,7 +70,6 @@ import vte.terminal : VTE = Terminal;
 
 import gx.gtk.actions;
 import gx.gtk.vte;
-import gx.gtk.events;
 import gx.i18n.l10n;
 
 import gx.ttyx.common;
@@ -115,8 +116,8 @@ private:
 
         Box bSearch = new Box(Orientation.Horizontal, 6);
         bSearch.setHalign(Align.Center);
-        bSearch.setMarginLeft(4);
-        bSearch.setMarginRight(4);
+        bSearch.setMarginStart(4);
+        bSearch.setMarginEnd(4);
         bSearch.setMarginTop(4);
         bSearch.setMarginBottom(4);
         bSearch.setHexpand(true);
@@ -133,67 +134,80 @@ private:
         seSearch.connectSearchChanged(delegate() {
             setTerminalSearchCriteria();
         });
-        connectGdkEvent!EventKey(seSearch, "key-release-event", delegate bool(EventKey event) {
-            switch (event.keyval) {
-                case KEY_Escape:
-                    setRevealChild(false);
-                    vte.grabFocus();
-                    break;
-                case KEY_Return:
-                    if (event.state & ModifierType.ShiftMask) {
-                        terminalActions.activateAction(ACTION_FIND_NEXT, null);
-                    } else {
-                        terminalActions.activateAction(ACTION_FIND_PREVIOUS, null);
-                    }
-                    break;
-                default:
-            }
-            return false;
-        });
-        bEntry.add(seSearch);
+        // GTK4: key-release-event -> EventControllerKey's key-released, whose
+        // callback returns void rather than bool. No behaviour is lost here —
+        // the GTK3 handler unconditionally returned false, i.e. it never
+        // consumed the event.
+        EventControllerKey keyController = new EventControllerKey();
+        keyController.connectKeyReleased(
+            delegate void(uint keyval, uint keycode, ModifierType state, EventControllerKey c) {
+                switch (keyval) {
+                    case KEY_Escape:
+                        setRevealChild(false);
+                        vte.grabFocus();
+                        break;
+                    case KEY_Return:
+                        if (state & ModifierType.ShiftMask) {
+                            terminalActions.activateAction(ACTION_FIND_NEXT, null);
+                        } else {
+                            terminalActions.activateAction(ACTION_FIND_PREVIOUS, null);
+                        }
+                        break;
+                    default:
+                }
+            });
+        seSearch.addController(keyController);
+        bEntry.append(seSearch);
 
         mbOptions = new MenuButton();
         mbOptions.setTooltipText(_("Search Options"));
         mbOptions.setFocusOnClick(false);
-        Image iHamburger = Image.newFromIconName("pan-down-symbolic", IconSize.Menu);
-        mbOptions.add(iHamburger);
+        Image iHamburger = Image.newFromIconName("pan-down-symbolic");
+        mbOptions.setChild(iHamburger);
         mbOptions.setPopover(createPopover());
-        bEntry.add(mbOptions);
+        bEntry.append(mbOptions);
 
-        bSearch.add(bEntry);
+        bSearch.append(bEntry);
 
         Box bButtons = new Box(Orientation.Horizontal, 0);
         bButtons.getStyleContext().addClass("linked");
 
-        Button btnNext = Button.newFromIconName("go-up-symbolic", IconSize.Menu);
+        Button btnNext = Button.newFromIconName("go-up-symbolic");
         btnNext.setTooltipText(_("Find next"));
         btnNext.setActionName(getActionDetailedName(ACTION_PREFIX, ACTION_FIND_PREVIOUS));
         btnNext.setCanFocus(false);
-        bButtons.add(btnNext);
+        bButtons.append(btnNext);
 
-        Button btnPrevious = Button.newFromIconName("go-down-symbolic", IconSize.Menu);
+        Button btnPrevious = Button.newFromIconName("go-down-symbolic");
         btnPrevious.setTooltipText(_("Find previous"));
         btnPrevious.setActionName(getActionDetailedName(ACTION_PREFIX, ACTION_FIND_NEXT));
         btnPrevious.setCanFocus(false);
-        bButtons.add(btnPrevious);
+        bButtons.append(btnPrevious);
 
-        bSearch.add(bButtons);
+        bSearch.append(bButtons);
 
-        Button btnClose = Button.newFromIconName("window-close-symbolic", IconSize.Menu);
+        Button btnClose = Button.newFromIconName("window-close-symbolic");
         btnClose.setTooltipText(_("Close search box"));
-        btnClose.setRelief(ReliefStyle.None);
+        // GTK4: GtkReliefStyle is gone; a button either has a frame or not.
+        btnClose.setHasFrame(false);
         btnClose.setFocusOnClick(true);
         btnClose.connectClicked(delegate() {
             setRevealChild(false);
             vte.grabFocus();
         });
-        bSearch.packEnd(btnClose, false, false, 0);
+        // GTK4: GtkBox lost pack_end's expand/fill/padding arguments. The
+        // close button is pushed to the trailing edge with halign + hexpand
+        // instead, which is the GTK4 idiom.
+        btnClose.setHalign(Align.End);
+        btnClose.setHexpand(true);
+        bSearch.append(btnClose);
 
         Frame frame = new Frame();
-        frame.add(bSearch);
-        frame.setShadowType(ShadowType.None);
+        frame.setChild(bSearch);
+        // GTK4: GtkShadowType is gone; GtkFrame has no shadow, only a label
+        // and CSS styling, so ShadowType.None is simply the default.
         frame.getStyleContext().addClass("ttyx-search-frame");
-        add(frame);
+        setChild(frame);
     }
 
     void createActions() {
@@ -236,7 +250,10 @@ private:
         model.append(_("Wrap around"), getActionDetailedName(ACTION_SEARCH_PREFIX, ACTION_SEARCH_WRAP_AROUND));
         model.append(_("Match as regular expression"), getActionDetailedName(ACTION_SEARCH_PREFIX, ACTION_SEARCH_MATCH_REGEX));
 
-        return Popover.newFromModel(mbOptions, model);
+        // GTK4: gtk_popover_new_from_model is gone. PopoverMenu.newFromModel
+        // takes only the model — the widget association is made by
+        // MenuButton.setPopover, which the caller already does.
+        return PopoverMenu.newFromModel(model);
     }
 
     void updateActionsState()
@@ -295,17 +312,19 @@ public:
             this.vte = null;
             this.terminalActions = null;
         });
-        connectGdkEvent!EventFocus(seSearch, "focus-in-event", delegate bool(EventFocus event, Widget widget) {
-            onSearchEntryFocusIn.emit(widget);
-            return false;
+        // GTK4: focus-in/out-event -> EventControllerFocus enter/leave. The
+        // callback receives the controller, not the widget, so the widget the
+        // events describe is captured from the enclosing scope instead.
+        // (The GtkD original connected addOnFocusIn twice — an evident
+        // copy-paste bug; focus-out belongs on the leave signal.)
+        EventControllerFocus focusController = new EventControllerFocus();
+        focusController.connectEnter(delegate void(EventControllerFocus c) {
+            onSearchEntryFocusIn.emit(seSearch);
         });
-        // The GtkD original connected addOnFocusIn here a second time (an
-        // evident copy-paste bug); the focus-out emission belongs on the
-        // focus-out signal.
-        connectGdkEvent!EventFocus(seSearch, "focus-out-event", delegate bool(EventFocus event, Widget widget) {
-            onSearchEntryFocusOut.emit(widget);
-            return false;
+        focusController.connectLeave(delegate void(EventControllerFocus c) {
+            onSearchEntryFocusOut.emit(seSearch);
         });
+        seSearch.addController(focusController);
     }
 
     void focusSearchEntry() {
