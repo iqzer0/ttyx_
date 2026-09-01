@@ -38,11 +38,9 @@ import gobject.type_instance : TypeInstance;
 import gobject.types : GType, GTypeEnum;
 import gobject.value : Value;
 
-import gtk.bin : Bin;
 import gtk.box : Box;
 import gtk.cell_renderer_text : CellRendererText;
 import gtk.combo_box : ComboBox;
-import gtk.container : Container;
 import gtk.global : eventsPending, mainIterationDo;
 import gtk.list_store : ListStore;
 import gtk.settings : Settings;
@@ -128,11 +126,27 @@ Box createBox(Orientation orientation, int spacing,  Widget[] children) {
 }
 
 /**
- * Finds the index position of a child in a container.
+ * Direct children of `widget`, in order.
+ *
+ * GTK4 removed GtkContainer and GtkBin: every widget exposes its children
+ * through the same first-child/next-sibling walk, so the old
+ * "is it a Bin or a Container?" branch disappears entirely.
  */
-int getChildIndex(Container container, Widget child) {
-    Widget[] children = container.getChildren();
-    foreach(i, c; children) {
+Widget[] childWidgets(Widget widget) {
+    Widget[] result;
+    if (widget is null) return result;
+    for (Widget c = widget.getFirstChild(); c !is null; c = c.getNextSibling()) {
+        result ~= c;
+    }
+    return result;
+}
+
+/**
+ * Finds the index position of a child within its parent.
+ */
+int getChildIndex(Widget parent, Widget child) {
+    if (parent is null || child is null) return -1;
+    foreach(i, c; childWidgets(parent)) {
         if (c._cPtr == child._cPtr) return cast(int) i;
     }
     return -1;
@@ -160,15 +174,7 @@ T[] getChildren(T) (Widget widget, bool recursive) {
 
     if (widget is null) return result;
 
-    Bin bin = cast(Bin) widget;
-    if (bin !is null) {
-        children = [bin.getChild()];
-    } else {
-        Container container = cast(Container) widget;
-        if (container !is null) {
-            children = container.getChildren();
-        }
-    }
+    children = childWidgets(widget);
 
     foreach(child; children) {
         if (child is null) continue;

@@ -21,11 +21,11 @@
  * giD does not bind the GDK X11 backend, and its xlib2 binding lacks the raw
  * event types (XClientMessageEvent / XSendEvent). So this port:
  *   - reuses ttyx_'s vendored, GtkD-free x11.X / x11.Xlib bindings for raw Xlib;
- *   - declares the four gdk_x11_* backend helpers (plus gdk_x11_window_get_xid)
+ *   - declares the four gdk_x11_* backend helpers (plus gdk_x11_surface_get_xid)
  *     directly as extern(C) — they resolve at link time from libgdk-3, so no
  *     runtime Linker is needed (GtkD had to dlsym them);
  *   - uses giD's gtk.global / gdk.global for the current-event-time and error
- *     trap / flush calls, and reaches the underlying GdkWindow* via _cPtr.
+ *     trap / flush calls, and reaches the underlying GdkSurface* via _cPtr.
  *
  * NOTE: the raw _NET_ACTIVE_WINDOW event send cannot be exercised in a headless
  * build; verify window activation on a real X11 session.
@@ -35,8 +35,8 @@ module gx.gtk.x11;
 import std.experimental.logger;
 import std.string;
 
-import gdk.window : GdkWindowWrap = Window;
-import gdk.c.types : GdkWindow;
+import gdk.surface : GdkSurfaceWrap = Surface;
+import gdk.c.types : GdkSurface;
 import gdk.global : errorTrapPush, errorTrapPop, flush;
 
 import gtk.global : getCurrentEventTime;
@@ -57,15 +57,17 @@ import x11.Xlib : Display, XClientMessageEvent, XSendEvent, XEvent;
  * derived work under GPL.
  */
 void activateX11Window(GtkWindow window) {
-    GdkWindowWrap gdkWindow = window.getWindow();
+    // GTK4: GdkWindow became GdkSurface, reached via the GtkNative interface
+    // that GtkWindow implements, rather than gtk_widget_get_window().
+    GdkSurfaceWrap gdkWindow = window.getSurface();
     uint timestamp = getCurrentEventTime();
 
     if (timestamp == 0)
-        timestamp = gdk_x11_get_server_time(cast(GdkWindow*) gdkWindow._cPtr);
+        timestamp = gdk_x11_get_server_time(cast(GdkSurface*) gdkWindow._cPtr);
 
     XClientMessageEvent event;
     event.type = ClientMessage;
-    event.window = gdk_x11_window_get_xid(cast(GdkWindow*) gdkWindow._cPtr);
+    event.window = gdk_x11_surface_get_xid(cast(GdkSurface*) gdkWindow._cPtr);
     const(char*) name = toStringz("_NET_ACTIVE_WINDOW");
     event.message_type = gdk_x11_get_xatom_by_name(name);
     event.format = 32;
@@ -92,6 +94,6 @@ extern(C) {
     Atom gdk_x11_get_xatom_by_name(const(char)* atom_name);
     Display* gdk_x11_get_default_xdisplay();
     XWindow gdk_x11_get_default_root_xwindow();
-    uint gdk_x11_get_server_time(GdkWindow* window);
-    XWindow gdk_x11_window_get_xid(GdkWindow* window);
+    uint gdk_x11_get_server_time(GdkSurface* surface);
+    XWindow gdk_x11_surface_get_xid(GdkSurface* surface);
 }

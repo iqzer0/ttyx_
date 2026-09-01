@@ -71,6 +71,55 @@ Entangled (do as its work package, not as an import fix):
 | `gtk.offscreen_window` | WP6 — `WidgetPaintable` |
 | `gtk.file_chooser_button` | `FileDialog` |
 
+## Two corrections to the plan, found by doing it
+
+### 1. Dependency leverage beats mechanical-vs-entangled
+
+The plan (and the first version of this file) said "do the mechanical sweep
+first, then WP2". That is the wrong axis. Modules cannot reach *clean* until
+their dependencies do, so what matters is how many modules something gates:
+
+| Module | Imported by | Own blockers |
+|---|---:|---|
+| `gx.gtk.util` | **17** | mechanical (`gtk.bin`, `gtk.container`) |
+| `gx.gtk.events` | **11** | none — but WP2 deletes it |
+| `gx.gtk.dialog` | 6 | none (transitive only) |
+| `gx.gtk.cairo` | 5 | **WP6** (`gtk.offscreen_window`) |
+| `gx.gtk.clipboard` | 2 | **WP3** (`gdk.atom`) |
+| `gx.gtk.x11` | 1 | mechanical (`gdk.window`) |
+
+Consequence: **WP6 cannot be last.** `gx.gtk.cairo` gates `application.d`,
+`session.d`, `appwindow.d`, `sidebar.d` and `terminal.d` — most of the app.
+Porting it early unblocks far more than its size suggests. Likewise
+`gx.gtk.util` at 17 dependents is the single highest-leverage item and is
+purely mechanical, so it is the correct first move.
+
+Of the 35 failing modules: 5 blocked only by mechanical removals, 15
+genuinely entangled, and **15 merely transitive** — those should resolve for
+free as their dependencies land.
+
+### 2. WP8 (new) — GTK4 removed the manual main-loop pump
+
+Not in the original plan, and it is architectural rather than mechanical:
+
+| Removed global | Uses | Files |
+|---|---:|---|
+| `gtk.global.mainIterationDo` | 12 | `gtk/cairo.d`, `gtk/util.d`, `prefeditor/profileeditor.d` |
+| `gtk.global.eventsPending` | 9 | `gtk/cairo.d`, `gtk/util.d` |
+| `gtk.global.getCurrentEventTime` | 11 | `gtk/x11.d`, `terminal/terminal.d`, `prefeditor/titleeditor.d` |
+| `gdk.global.errorTrapPush` / `errorTrapPop` | 2+2 | `gtk/x11.d` |
+
+`gtk_events_pending` / `gtk_main_iteration_do` are gone in GTK4 — there is no
+app-accessible main loop to pump, because `GtkApplication` owns it. Every
+"drain pending events then continue" pattern has to become genuinely
+asynchronous. That is the same shape of change as WP1's `dialog.run()` removal
+and should be planned alongside it, not discovered inside it.
+
+`gtk_get_current_event_time()` is also gone; timestamps now come from the event
+that triggered the action, which interacts with WP2 (controllers are where the
+event is available). The X11 error traps are gone from the portable API too, so
+`gx/gtk/x11.d` needs the backend header or the traps dropped.
+
 ## Resuming
 
 ```bash
@@ -79,6 +128,17 @@ Entangled (do as its work package, not as an import fix):
 RAW=1 ./typecheck-gtk4.sh <file>             # include giD-internal noise
 ```
 
-Suggested order: finish the mechanical sweep first (it is verifiable and
-shrinks the surface), then WP2, since the `gdk.event_*` family blocks the
-most files.
+Suggested order, by dependency leverage rather than by difficulty:
+
+1. `gx.gtk.util` — 17 dependents, mechanical. **Done** (see below).
+2. `gx.gtk.x11` — 1 dependent but it blocks `util`. **Done.**
+3. `gx.gtk.cairo` — WP6, gates 5 of the biggest modules. Do this *early*,
+   not last.
+4. WP8 — the main-loop pump, since `cairo.d` and `util.d` both need it.
+5. WP2 — `gdk.event_*`, and delete `gx/gtk/events.d`.
+6. Everything above, which is largely transitive by then.
+
+Verified clean so far: `gx/gtk/resource.d`. Ported but still transitively
+blocked: `gx/gtk/util.d` (Bin/Container → `childWidgets` first-child/
+next-sibling walk), `gx/gtk/x11.d` (GdkWindow → GdkSurface via GtkNative),
+`gx/ttyx/application.d` (Screen → Display).

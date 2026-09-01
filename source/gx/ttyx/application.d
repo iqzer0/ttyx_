@@ -69,7 +69,7 @@ import core.sys.linux.sys.prctl : prctl, PR_SET_DUMPABLE;
 
 import cairo.surface : Surface;
 
-import gdk.screen : Screen;
+import gdk.display : Display;
 
 import gdkpixbuf.pixbuf : Pixbuf;
 
@@ -521,7 +521,8 @@ private:
         string theme = getGtkTheme();
         trace("Theme changed to " ~ theme);
         if (themeCssProvider !is null) {
-            StyleContext.removeProviderForScreen(Screen.getDefault(), themeCssProvider);
+            // GTK4: providers attach to the display, not a GdkScreen.
+            StyleContext.removeProviderForDisplay(Display.getDefault(), themeCssProvider);
             themeCssProvider = null;
         }
         //Check if ttyx_ has a theme specific CSS file to load
