@@ -8,13 +8,19 @@ __test__library__
 docs.json
 __dummy.html
 
-# Generated at install/run time
+# install.sh intermediates (gresource, localized desktop/appdata, transient .mo)
+/build/
+
+# Generated at run time by debug-ttyx.sh (runs as your user, not root)
 data/gsettings/gschemas.compiled
-data/pkg/desktop/io.github.gwelr.ttyx.desktop
-data/metainfo/io.github.gwelr.ttyx.appdata.xml
-data/metainfo/io.github.gwelr.ttyx.rel.appdata.xml.in
-data/resources/ttyx.gresource
 data/man/man
+
+# NOTE: install.sh used to generate into the source tree — the entries for
+# data/pkg/desktop/*.desktop, data/metainfo/*.appdata.xml and
+# data/resources/ttyx.gresource are gone because it now writes to /build/.
+# If an older `sudo ./install.sh` left root-owned copies of those behind, they
+# will now show up as untracked; that is deliberate, so you notice and delete
+# them (they break subsequent non-root builds).
 
 # Local dev
 .rundata/
