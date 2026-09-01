@@ -88,6 +88,7 @@ import gtk.window : Window;
 import pango.types : EllipsizeMode;
 
 import gx.gtk.cairo;
+import gx.gtk.widgetimage;
 import gx.gtk.util;
 
 import gx.i18n.l10n;

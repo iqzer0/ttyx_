@@ -215,6 +215,7 @@ import vte.types : Format, PtyFlags, WriteFlags;
 
 import gx.gtk.actions;
 import gx.gtk.cairo;
+import gx.gtk.widgetimage;
 import gx.gtk.color;
 import gx.gtk.clipboard;
 import gx.gtk.dialog;

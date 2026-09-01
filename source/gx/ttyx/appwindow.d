@@ -148,6 +148,7 @@ import pango.types : EllipsizeMode;
 
 import gx.gtk.actions;
 import gx.gtk.cairo;
+import gx.gtk.widgetimage;
 import gx.gtk.dialog;
 import gx.gtk.events;
 import gx.gtk.threads;

@@ -120,6 +120,24 @@ that triggered the action, which interacts with WP2 (controllers are where the
 event is available). The X11 error traps are gone from the portable API too, so
 `gx/gtk/x11.d` needs the backend header or the traps dropped.
 
+## Measured: the counter barely moves until WP2 lands
+
+After porting `resource.d`, `util.d`, `x11.d`, `application.d` and splitting
+`cairo.d`, the whole-tree count went from **32 clean → 33 clean**. Only
+`cairo.d` newly reached clean.
+
+That is not a sign the ports were wasted — they are all necessary — but it does
+settle the sequencing argument. `gdk.event_*` is imported directly by **10
+modules**, including `appwindow.d` and `terminal/terminal.d`, which almost
+everything else imports; **12 of the 35 failing modules depend on a
+WP2-blocked module**. Until the event model is ported, higher-level modules
+cannot reach clean no matter what else is fixed, so per-module "clean" counts
+stay flat and are a misleading progress metric in the meantime.
+
+**Revised order: WP2 first, not the mechanical sweep.** The mechanical work is
+cheap and safe but unblocks almost nothing on its own. Track progress by
+"removed-API call sites eliminated" rather than "modules clean" until WP2 is in.
+
 ## Resuming
 
 ```bash
@@ -138,7 +156,15 @@ Suggested order, by dependency leverage rather than by difficulty:
 5. WP2 — `gdk.event_*`, and delete `gx/gtk/events.d`.
 6. Everything above, which is largely transitive by then.
 
-Verified clean so far: `gx/gtk/resource.d`. Ported but still transitively
-blocked: `gx/gtk/util.d` (Bin/Container → `childWidgets` first-child/
-next-sibling walk), `gx/gtk/x11.d` (GdkWindow → GdkSurface via GtkNative),
+Verified clean: `gx/gtk/resource.d`, `gx/gtk/cairo.d`.
+
+Ported but still transitively blocked (all on WP2):
+`gx/gtk/util.d` (Bin/Container → `childWidgets` first-child/next-sibling walk),
+`gx/gtk/x11.d` (GdkWindow → GdkSurface via GtkNative),
 `gx/ttyx/application.d` (Screen → Display).
+
+`gx/gtk/cairo.d` was **split**: the pure cairo image composition stays and is
+GTK4-clean; widget snapshotting moved verbatim to `gx/gtk/widgetimage.d`, which
+is explicitly NOT ported and carries its blocker list in the module header. The
+two halves shared nothing but GTK3-only API, so keeping them together blocked
+`application.d` on a rewrite it has no stake in.
