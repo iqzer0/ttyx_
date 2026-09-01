@@ -252,6 +252,7 @@ import gx.ttyx.terminal.password;
 import gx.ttyx.terminal.regex;
 import gx.ttyx.terminal.search;
 import gx.ttyx.terminal.state;
+import gx.ttyx.terminal.triggers : collectTriggerMatches;
 import gx.ttyx.terminal.types;
 import gx.ttyx.terminal.util;
 import gx.ttyx.terminal.monitor;
@@ -1751,22 +1752,10 @@ private:
             // Update position early in case we get re-entrant event
             triggerLastRowChecked = cursorRow;
             triggerLastColChecked = cursorCol;
-            // Store matches so we can sort them by position in process in order of appearance
-            TerminalTriggerMatch[] triggerMatches;
-            foreach(trigger; triggers) {
-                auto matches = matchAll(text, trigger.compiledRegex);
-                //tracef("Matching trigger '%s' against text '%s'", trigger.pattern, text);
-                foreach (m; matches) {
-                    string[] groups = [m.hit];
-                    foreach (group; m.captures) {
-                        groups ~= group;
-                    }
-                    triggerMatches ~= TerminalTriggerMatch(trigger, groups, m.pre.length);
-                }
-            }
-            //tracef("Found %d trigger matches", triggerMatches.length);
-            bool myComp(TerminalTriggerMatch a, TerminalTriggerMatch b) { return a.index < b.index; }
-            foreach(triggerMatch; triggerMatches.sort!(myComp)) {
+            // Matching and position-ordering live in gx.ttyx.terminal.triggers
+            // so they are unit-testable without a live VTE; this loop is just
+            // the dispatch.
+            foreach (triggerMatch; collectTriggerMatches(text, triggers)) {
                 processTrigger(triggerMatch.trigger, triggerMatch.groups);
             }
         }
@@ -2175,8 +2164,13 @@ private:
                                 regex.match(urlMatch.match, RegexMatchFlags.Default, info);
                                 tracef("Match count %d", info.getMatchCount());
                                 if (info.matches) {
-                                    string[] groups = [info.getString()];
-                                    groups ~= info.fetchAll();
+                                    // fetchAll() already returns the whole
+                                    // match as element 0, so prepending
+                                    // getString() duplicated it and shifted
+                                    // every capture group up by one — $1 gave
+                                    // the whole match instead of group 1, the
+                                    // same off-by-one the trigger path had.
+                                    string[] groups = info.fetchAll();
                                     foreach(group; groups) tracef("Group %s", group);
                                     string command = shellCommandFromTemplate(cr.command, groups);
                                     trace("Command: " ~ command);
