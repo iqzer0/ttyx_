@@ -314,11 +314,16 @@ private:
             }
             if (useTabs) {
                 threadsAddIdleDelegate(delegate() {
-                    // Delay focus restore
+                    // Delay focus restore. This runs deferred, so the session
+                    // may have been closed between the page switch and the
+                    // idle callback — getTabLabel then returns null. The
+                    // result was dereferenced unguarded (switch tabs, close
+                    // quickly); every other getTabLabel site null-checks.
                     trace("Delayed focus restore");
+                    if (nb.pageNum(session) < 0) return false;
                     session.focusRestore();
                     SessionTabLabel label = cast(SessionTabLabel) nb.getTabLabel(session);
-                    label.showNewOutput(false);
+                    if (label !is null) label.showNewOutput(false);
                     return false;
                 });
             }
@@ -549,7 +554,9 @@ private:
                 // handling, don't trigger UI activity until after it is done
                 // See comments in gx.gtk.cairo.getWidgetImage
                 if (newState) {
-                    sb.populateSessions(getSessions(), getCurrentSession().uuid, sessionNotifications, nb.getAllocatedWidth(), nb.getAllocatedHeight());
+                    Session current = getCurrentSession();
+                    if (current is null) return;
+                    sb.populateSessions(getSessions(), current.uuid, sessionNotifications, nb.getAllocatedWidth(), nb.getAllocatedHeight());
                     sb.showAll();
                 }
                 sb.setRevealChild(newState);
@@ -642,8 +649,10 @@ private:
 
         //Close Session
         registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_SESSION_CLOSE, gsShortcuts, delegate(GVariant value, SimpleAction sa) {
+            Session session = getCurrentSession();
+            if (session is null) return;
             CumulativeResult!bool results = new CumulativeResult!bool();
-            onUserSessionClose(getCurrentSession().uuid, results);
+            onUserSessionClose(session.uuid, results);
         });
 
         //Load Session
@@ -658,6 +667,7 @@ private:
         //Change name of session
         registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_SESSION_NAME, gsShortcuts, delegate(GVariant value, SimpleAction sa) {
             Session session = getCurrentSession();
+            if (session is null) return;
 
             // GtkD's MessageDialog flags ctor is unbound in giD; use-header-bar
             // and buttons are construct-only -> builder pattern.
@@ -700,9 +710,11 @@ private:
 
         //Synchronize Input
         saSyncInput = registerActionWithSettings(sessionActions, ACTION_PREFIX, ACTION_SESSION_SYNC_INPUT, gsShortcuts, delegate(GVariant value, SimpleAction sa) {
+            Session session = getCurrentSession();
+            if (session is null) return;
             bool newState = !sa.getState().getBoolean();
             sa.setState(new GVariant(newState));
-            getCurrentSession().synchronizeInput = newState;
+            session.synchronizeInput = newState;
             mbSessionActions.setActive(false);
         }, null, new GVariant(false));
 
@@ -817,7 +829,8 @@ private:
 
         if (useTabs) {
             SessionTabLabel label = cast(SessionTabLabel) nb.getTabLabel(page);
-            label.onCloseClicked.connect(&closeSession);
+            // Guarded to match closeSession/onCreateWindow, which null-check.
+            if (label !is null) label.onCloseClicked.connect(&closeSession);
             nb.setTabReorderable(session, true);
             nb.setTabDetachable(session, true);
         }
@@ -954,6 +967,7 @@ private:
     void reorderCurrentSessionRelative(int offset) {
         int page = nb.getCurrentPage();
         Session session = getCurrentSession();
+        if (session is null) return;
         nb.reorderChild(session, page + offset);
         updateUIState();
     }
@@ -1234,9 +1248,16 @@ private:
             getApplication().sendNotification(uuid, n);
             //if session not visible send to local handler
         }
-        // If session not active, keep copy locally
-        if (sessionUUID != getCurrentSession().uuid) {
-            tracef("SessionUUID: %s versusterminal. Notification UUID: %s", sessionUUID, getCurrentSession().uuid);
+        // If session not active, keep copy locally.
+        // getCurrentSession() was dereferenced unguarded here. This handler is
+        // driven by the background process monitor, so it can fire while the
+        // notebook has no current page (window teardown, last session
+        // closing) — the branch above already guards on _destroyed, this one
+        // did not.
+        Session current = getCurrentSession();
+        if (current is null) return;
+        if (sessionUUID != current.uuid) {
+            tracef("SessionUUID: %s versus notification UUID: %s", sessionUUID, current.uuid);
             //handle session level notifications here
             ProcessNotificationMessage msg = ProcessNotificationMessage(terminalUUID, summary, _body);
             if (sessionUUID in sessionNotifications) {
@@ -1361,7 +1382,8 @@ private:
             }
             for (int i=0; i<nb.getNPages; i++) {
                 SessionTabLabel label = cast(SessionTabLabel) nb.getTabLabel(nb.getNthPage(i));
-                label.updatePositionType(nb.getTabPos);
+                // Guarded to match updateUIState, which already skips nulls.
+                if (label !is null) label.updatePositionType(nb.getTabPos);
             }
         }
     }
@@ -1629,7 +1651,12 @@ private:
      */
     void saveSession(bool showSaveAsDialog = true) {
         Session session = getCurrentSession();
-        if (session !is null && (session.filename.length <= 0 || showSaveAsDialog)) {
+        // The null check used to be folded into the `if` below as
+        // `session !is null && (...)`, which guarded only the Save-As branch —
+        // a null session fell through to the `else` and dereferenced it in
+        // session.serialize(). Return early so both branches are covered.
+        if (session is null) return;
+        if (session.filename.length <= 0 || showSaveAsDialog) {
             fcd = createFileChooserDialog(_("Save Session"), FileChooserAction.Save, _("Save"));
             fcd.setModal(true);
             fcd.setTransientFor(this);

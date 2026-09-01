@@ -38,9 +38,11 @@ When the clipboard contains multi-line content, ttyx_ shows a review dialog befo
 
 When the pasted text matches patterns for privilege escalation, destructive file operations, or remote code execution, the unsafe-paste dialog escalates the warning. Patterns include (non-exhaustive):
 
-- Privilege escalation: `sudo`, `su -`, `doas`
+- Privilege escalation: `sudo`, `su -`, `doas`, `pkexec`
 - Destructive file operations: `rm -rf`, `rm -fr`, `mkfs`, `dd if=`, `chmod 777`, `chmod -R 777`
-- Remote code execution: `curl ... | bash`, `wget ... | sh`, `eval`, fork bombs
+- Remote code execution: piping to a shell — `| bash`, `|bash`, `| sh`, `|sh` (so `curl ... | bash` and `wget ... | sh` both match), and the classic fork bomb `:(){ :|:& };:`
+
+Matching is plain substring matching against the pasted text, and it only fires when the text also contains a line break (`\n` or `\r`) — without one, nothing auto-executes on paste. Being substring-based, it both over-matches (`visudo` contains `sudo`) and is trivially evaded by an adversary who knows about it. It is a guard against *your own* careless paste, not a security boundary; the always-on escape stripping and the multi-line review dialog are the load-bearing protections.
 
 When enabled, the warning fires **every time** a dangerous pattern is detected — unlike some terminal emulators that show it once per session and then suppress it.
 
@@ -127,19 +129,40 @@ In both cases the substituted text comes from terminal output. **Under SSH or an
 Build failed: oops"; rm -rf ~/Documents; #
 ```
 
-After substitution, `spawnShell` receives `notify-send "Build failed" "oops"; rm -rf ~/Documents; #"` — three commands, the second one destructive. This is the same class of bug that has affected iTerm2, tmux `-CC` mode, and various OSC 8 implementations.
+Without quoting, `spawnShell` would receive `notify-send "Build failed" "oops"; rm -rf ~/Documents; #"` — three commands, the second one destructive. This is the same class of bug that has affected iTerm2, tmux `-CC` mode, and various OSC 8 implementations.
 
-### Status
+### Status: substitutions are shell-quoted
+
+Every value substituted into a shell-executed template is passed through `g_shell_quote` before it reaches `/bin/sh -c`. Taking the example above, the trigger actually runs:
+
+```
+notify-send "Build failed" 'oops"; rm -rf ~/Documents; #'
+```
+
+The payload arrives as one inert argument to `notify-send`. Specifically:
+
+- **Regex capture groups** (`$0` = whole match, `$1..$N` = groups) are quoted individually.
+- **Title variables** (`${title}`, `${hostname}`, `${username}`, `${directory}`, `${process}`, …) are quoted too. Several of these are remote-settable via OSC sequences, so they are attacker-controlled on exactly the same terms as a capture group.
+- **The template itself is not quoted**, so your own shell syntax — pipes, `&&`, redirects, quoting — keeps working as written.
+
+This covers all three shell-exec paths: the `ExecuteCommand` and `RunProcess` trigger actions, and custom-link clicks.
+
+Two related notes:
+
+- The `SendText` trigger action is deliberately **not** quoted. It is fed to the child PTY as if typed, which is the whole point of the feature — it never reaches a shell as a command string.
+- **OSC 8 hyperlinks** carry a URI chosen by whatever wrote to the terminal. Only allow-listed URI schemes are handed to the desktop handler; anything else is refused rather than opened.
+
+Remaining caveats:
 
 - ttyx_ ships with **no default triggers and no default custom links**. The attack surface is exactly what you opt into.
 - The trigger and custom-link editor dialogs surface the warning at the point of editing.
-- ttyx_ does **not** currently shell-quote match-group substitutions. Designing a safe-substitution scheme that doesn't break legitimate templates (where the user intentionally wants `$1` to expand into multiple shell tokens) is open work.
+- Quoting makes a captured value inert *as shell syntax*. It does not make it a safe **argument**: a capture group that lands in a position where the receiving program treats it as an option (`rm $1` matching `-rf`) or a path is still your responsibility.
 
 ### Recommendations
 
-- Only enable trigger `ExecuteCommand`/`RunProcess` and custom-link templates for hosts you trust.
-- Avoid templates where a regex capture group lands in a shell-interpreted position. Prefer templates that pass the captured value to a program via a non-shell channel — for example, by setting an env var rather than embedding `$1` in a shell command string. (Subject to change once safe-substitution lands.)
-- Audit any imported trigger configurations the same way you would audit a shell script.
+- Prefer templates where a capture group is a plain data argument, not an option position or a path you then act on destructively.
+- Treat imported trigger configurations the way you would treat a shell script from the same source.
+- Only enable `ExecuteCommand`/`RunProcess` and custom-link templates whose *effects* you are comfortable with a remote host being able to trigger with arbitrary argument text — quoting bounds the injection, not the invocation.
 
 ## Log hygiene
 

@@ -136,7 +136,9 @@ private:
         GMenu helpSection = new GMenu();
         SimpleAction saHelp = new SimpleAction("help", null);
         saHelp.connectActivate(delegate(GVariant gv, SimpleAction sa) {
-            showUri(null, "https://gnunn1.github.io/tilix-web/manual/title/", getCurrentEventTime());
+            // Was gnunn1.github.io/tilix-web — upstream Tilix's site, which
+            // this fork does not control. Point at our own copy of the page.
+            showUri(null, "https://gwelr.github.io/ttyx_/manual/title/", getCurrentEventTime());
         });
         sagVariables.insert(saHelp);
         helpSection.append(_("Help"), getActionDetailedName(ACTION_PREFIX, "help"));

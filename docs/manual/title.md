@@ -3,6 +3,7 @@ title: Titles
 parent: Manual
 nav_order: 1
 layout: default
+permalink: /manual/title/
 ---
 
 ttyx_ supports using variables in the various titles and names it allows to be configured. This enables the title to better reflect the current state of the application, session, or currently focused terminal. Variables are available within a particular scope and can always be used in higher scopes. For example, `${title}` is a terminal-scope variable but can be used in session and application titles — there it reflects the currently active terminal.

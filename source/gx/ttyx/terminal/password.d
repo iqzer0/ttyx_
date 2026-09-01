@@ -252,7 +252,10 @@ private:
         column = new TreeViewColumn();
         column.setTitle(_("ID"));
         column.packStart(crtID, true);
-        column.addAttribute(crtID, "text", COLUMN_NAME);
+        // Was COLUMN_NAME — a copy-paste slip that bound the ID column to the
+        // name. Harmless only because the column is hidden; it would have
+        // rendered the wrong text the moment anyone made it visible.
+        column.addAttribute(crtID, "text", COLUMN_ID);
         column.setVisible(false);
         tv.appendColumn(column);
 
