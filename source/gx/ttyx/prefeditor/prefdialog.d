@@ -110,7 +110,7 @@ import gtk.cell_renderer_toggle : CellRendererToggle;
 import gtk.check_button : CheckButton;
 import gtk.combo_box : ComboBox;
 import gtk.entry : Entry;
-import gtk.file_chooser_button : FileChooserButton;
+import gx.gtk.filechooserbutton : FileChooserButton;
 import gtk.file_filter : FileFilter;
 import gtk.global : acceleratorGetLabel, acceleratorName, acceleratorParse, checkVersion, getMajorVersion, getMinorVersion;
 import gtk.grid : Grid;

@@ -50,7 +50,7 @@ import gtk.button : Button;
 import gtk.combo_box : ComboBox;
 import gtk.dialog : Dialog;
 import gtk.entry : Entry;
-import gtk.file_chooser_button : FileChooserButton;
+import gx.gtk.filechooserbutton : FileChooserButton;
 import gtk.grid : Grid;
 import gtk.label : Label;
 import gtk.spin_button : SpinButton;

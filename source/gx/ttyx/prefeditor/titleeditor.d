@@ -14,8 +14,8 @@
  *    takes the position by ref: insertText(value, position).
  *  - new Image(name, IconSize.MENU) -> static Image.newFromIconName(name,
  *    IconSize.Menu) (enums PascalCase in gtk.types).
- *  - MountOperation.showUri(null, uri, ts) + Main.getCurrentEventTime ->
- *    gtk.global.showUri(null, uri, gtk.global.getCurrentEventTime()).
+ *  - MountOperation.showUri(null, uri, ts) -> GTK4 gtk.uri_launcher.UriLauncher
+ *    (gtk_show_uri deprecated in 4.10; gtk_get_current_event_time removed).
  *  - addOnMap/addOnClosed/addOnDestroy -> connectMap/connectClosed/
  *    connectDestroy; ConnectFlags.AFTER -> Yes.After; unused Widget callback
  *    parameters dropped (giD accepts zero-arg delegates).
@@ -35,7 +35,7 @@ import glib.variant : GVariant = Variant;
 
 import gtk.box : Box;
 import gtk.entry : Entry;
-import gtk.global : getCurrentEventTime, showUri;
+import gtk.uri_launcher : UriLauncher;
 import gtk.image : Image;
 import gtk.menu_button : MenuButton;
 import gtk.popover_menu : PopoverMenu;
@@ -80,13 +80,13 @@ private:
         sagVariables = new SimpleActionGroup();
         this.insertActionGroup(ACTION_PREFIX, sagVariables);
 
-        add(entry);
+        append(entry);
 
         MenuButton mbVariables = new MenuButton();
-        mbVariables.add(Image.newFromIconName("pan-down-symbolic"));
+        mbVariables.setChild(Image.newFromIconName("pan-down-symbolic"));
         mbVariables.setFocusOnClick(false);
         mbVariables.setPopover(createPopover(tes));
-        add(mbVariables);
+        append(mbVariables);
     }
 
     /**
@@ -138,13 +138,21 @@ private:
         saHelp.connectActivate(delegate(GVariant gv, SimpleAction sa) {
             // Was gnunn1.github.io/tilix-web — upstream Tilix's site, which
             // this fork does not control. Point at our own copy of the page.
-            showUri(null, "https://github.com/iqzer0/ttyx_/blob/master/docs/manual/title.md", getCurrentEventTime());
+            // GTK4: gtk_show_uri is deprecated since 4.10 and
+            // gtk_get_current_event_time() is gone entirely (there is no
+            // global "time of the event being handled" any more). GtkUriLauncher
+            // is the replacement and needs no timestamp.
+            UriLauncher launcher = new UriLauncher(
+                "https://github.com/iqzer0/ttyx_/blob/master/docs/manual/title.md");
+            launcher.launch(null, null, null);
         });
         sagVariables.insert(saHelp);
         helpSection.append(_("Help"), getActionDetailedName(ACTION_PREFIX, "help"));
         model.appendSection(_("Help"), helpSection);
 
-        PopoverMenu pm = new PopoverMenu();
+        // GTK4: PopoverMenu has no default constructor and no bindModel; the
+        // model is supplied at construction instead.
+        PopoverMenu pm = PopoverMenu.newFromModel(model);
         pm.connectMap(delegate() {
             onPopoverShow.emit();
         });
@@ -153,7 +161,6 @@ private:
             onPopoverClosed.emit();
         }, Yes.After);
 
-        pm.bindModel(model, null);
         return pm;
     }
 
