@@ -394,3 +394,46 @@ together per site — some become `present()`, some `setVisible(false)`, many ju
 delete.
 
 **41 clean, 27 failing.**
+
+## Checkpoint: 42 / 68 clean
+
+`gx/gtk/clipboard.d` ported. GTK4 removed `GdkAtom` and the atom-named-selection
+model entirely: there are exactly two clipboards, obtained as objects from a
+widget or display rather than looked up by interned name. The three `Atom`
+constants collapse to a two-value `ClipboardSelection` enum plus
+`selectionClipboard(widget, selection)`. `GDK_SELECTION_SECONDARY` is dropped —
+GTK4 has no such clipboard and it had no callers.
+
+Consumers that thread an `Atom` through (`ClipboardHandler.paste(Atom)`) should
+thread a `ClipboardSelection` and resolve it against their own widget, since the
+clipboard is per-display.
+
+### The remaining 26, by what they actually need
+
+| Need | Modules | Nature |
+|---|---:|---|
+| WP2 — events → controllers | 7 | pattern known, rulebook above |
+| WP3 / DnD — `gdk.atom`, `target_*`, `selection_data`, `drag_context` | 6 | **redesign**: sync → async clipboard, DnD → `DragSource`/`DropTarget` |
+| `FileChooserButton` → `FileDialog` | 3 | redesign (async dialog) |
+| `getCurrentEventTime` | 2 | needs a controller-supplied timestamp (couples to WP2) |
+| icon column (`closedialog`, `manager`) | 2 | **decision**: `Pixbuf` → `icon-name` in the tree model |
+| visibility (`showAll` / `setNoShowAll`) | 2 | per-site reading, not scriptable |
+| mechanical | 2 | sweepable |
+| WP1 — `dialog.run` | 1 file, 26 sites | **architectural**, and the paste path is security-critical |
+
+### What changes from here
+
+Everything cheap is done. Of the 26 remaining, only ~4 are mechanical or
+pattern-known; the rest are genuine redesigns — async clipboard, GTK4 drag and
+drop, `FileDialog`, the icon-column decision, and WP1's nested-main-loop
+removal. Those need design choices, and several are user-visible.
+
+Two consequences worth stating plainly:
+
+1. **Progress will slow sharply and the module counter will jump in steps**, not
+   smoothly — the redesigns unblock several dependents at once when they land.
+2. **Type-checking clean stops being good evidence** from here. The remaining
+   work changes *behaviour* — event phases, async ordering, visibility, focus,
+   drag semantics — none of which the compiler checks. Nothing in this branch
+   has ever been *run*, and it cannot be until the whole tree compiles. Budget
+   real GUI testing before trusting any of it.

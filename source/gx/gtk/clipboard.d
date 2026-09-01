@@ -3,26 +3,67 @@
  * distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-/*
- * giD port of source/gx/gtk/clipboard.d.
+/**
+ * Clipboard selection identifiers.
  *
- * GtkD used `gdk.Atom` with a free `intern()` returning `GdkAtom`; giD models
- * it as a `gdk.atom.Atom` class with a static `Atom.intern(name, onlyIfExists)`.
- * The stored selection atoms are typed `Atom` (was `GdkAtom`); giD's
- * `gtk.clipboard.Clipboard.get` takes a `gdk.atom.Atom`, so consumers pass
- * these straight through.
+ * GTK4 removed `GdkAtom` and the whole atom-named-selection model. There are
+ * now exactly two clipboards, and they are obtained as objects from a widget or
+ * display rather than looked up by an interned name:
+ *
+ *   - `Widget.getClipboard()`        — the CLIPBOARD selection
+ *   - `Widget.getPrimaryClipboard()` — the PRIMARY selection
+ *
+ * So the three `Atom` constants this module used to export collapse into a
+ * two-valued enum plus an accessor. `GDK_SELECTION_SECONDARY` is dropped
+ * outright: GTK4 has no such clipboard, and it had no callers here anyway.
+ *
+ * Callers that previously threaded an `Atom` through (for example
+ * `ClipboardHandler.paste(Atom source)`) should thread a `ClipboardSelection`
+ * instead and resolve it against their own widget at the point of use — the
+ * clipboard is per-display, so it needs a widget in the tree.
  */
 module gx.gtk.clipboard;
 
-import gdk.atom : Atom;
+import gdk.clipboard : Clipboard;
 
-/* Clipboard Atoms */
-Atom GDK_SELECTION_CLIPBOARD;
-Atom GDK_SELECTION_PRIMARY;
-Atom GDK_SELECTION_SECONDARY;
+import gtk.widget : Widget;
 
-static this() {
-    GDK_SELECTION_CLIPBOARD = Atom.intern("CLIPBOARD", true);
-    GDK_SELECTION_PRIMARY = Atom.intern("PRIMARY", true);
-    GDK_SELECTION_SECONDARY = Atom.intern("SECONDARY", true);
+/**
+ * Which of GTK4's two clipboards an operation applies to.
+ *
+ * Replaces the GTK3 `GDK_SELECTION_CLIPBOARD` / `GDK_SELECTION_PRIMARY` atoms.
+ */
+enum ClipboardSelection {
+    /// The CLIPBOARD selection — explicit copy/paste.
+    clipboard,
+    /// The PRIMARY selection — X11-style select-to-copy, middle-click paste.
+    primary
+}
+
+/**
+ * Resolve `selection` to the actual clipboard for `widget`'s display.
+ *
+ * Returns null if `widget` is null, since there is no display to ask.
+ */
+Clipboard selectionClipboard(Widget widget, ClipboardSelection selection) {
+    if (widget is null) return null;
+    return selection == ClipboardSelection.primary
+        ? widget.getPrimaryClipboard()
+        : widget.getClipboard();
+}
+
+unittest {
+    // The enum exists to replace atoms that could not be compared or defaulted
+    // meaningfully; pin the two values and the default so a reordering that
+    // silently changed which clipboard is used shows up here.
+    assert(ClipboardSelection.init == ClipboardSelection.clipboard,
+        "default must be CLIPBOARD, not PRIMARY — a wrong default would silently "
+        ~ "redirect explicit copy/paste to the select-to-copy buffer");
+    assert(ClipboardSelection.clipboard != ClipboardSelection.primary);
+}
+
+unittest {
+    // A null widget has no display, so there is no clipboard to return.
+    assert(selectionClipboard(null, ClipboardSelection.clipboard) is null);
+    assert(selectionClipboard(null, ClipboardSelection.primary) is null);
 }
