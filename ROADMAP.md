@@ -63,8 +63,34 @@ the GtkD-free logic unchanged), then a single build swap.
 - [x] File the giD event-marshal bug upstream — already tracked as Kymorphia/gid#52 (see `source/gx/gtk/events.d`)
 
 ### Phase 2b — GTK3 → GTK4 + libadwaita
-- [ ] Dependency swap to `gid:gtk4` / `gid:vte3` / `gid:adw1` + API-delta pass (`add`→`setChild`, `showAll`→`present`, event/controller model)
-- [ ] Adopt libadwaita for modern GNOME look and feel
+
+**Scoped 2026-09-01 — see [docs/gtk4-migration-plan.md](docs/gtk4-migration-plan.md)**
+for the measured API inventory, five sized work packages, and sequencing. Two
+findings worth carrying up here: `gx/gtk/events.d` and our exposure to
+Kymorphia/gid#52 **disappear** in 2b (GTK4 has no `*-event` signals, so the
+boxed-marshal bug has nothing to bite), and every VTE/GTK version gate becomes
+unconditionally true and can be deleted rather than ported. The risk is
+concentrated in removing `dialog.run()`'s nested main loops (26 sites), three of
+which sit on the security-critical paste path.
+
+**Feature-parity caveat, decide before WP0:** VTE 3.91 drops seven signals that
+2.91 has. `text-deleted` is a **hard compile error** (`gid:vte3` generates no
+`connectTextDeleted`; the existing guard is runtime-only), and
+`notification-received` is a **silent feature loss** — process-completion
+notifications go permanently off on stock VTE 3.91. Triggers and prompt
+navigation already depend on the patched-only `terminal-screen-changed`, so they
+are GTK3-only unless a patched *vte3* exists downstream. Full 1.3.0 feature
+parity is **not** achievable on stock VTE 3.91.
+
+- [ ] WP0 — dependency swap to `gid:gtk4` / `gid:vte3` / `gid:adw1`; capture the compiler error list as the authoritative inventory
+- [ ] WP2 — input: 42 `connectGdkEvent` sites → EventControllers; delete `events.d` and the 16 `EventBox` wrappers
+- [ ] WP1 — dialogs: 26 `.run()` nested main loops → async response callbacks (paste path first, with tests)
+- [ ] WP3 — clipboard: 16 sync reads → async `Gdk.Clipboard`, preserving the auto-clear content comparison
+- [ ] WP4 — drawing: 5 `connectDraw` sites → snapshot / overlaid `DrawingArea` (prototype the over-VTE badge first)
+- [ ] WP6 — offscreen rendering: `GtkOffscreenWindow` is gone, taking session sidebar thumbnails and the drag preview with it; rewrite `gx/gtk/cairo.d` onto `WidgetPaintable` (which `DragSource.setIcon` accepts directly, so the drag path gets simpler)
+- [ ] Mechanical sweep — `add`→`setChild`, `showAll`, `packStart`, `Screen`→`Display`, removed enums
+- [ ] WP5 — X11/quake: `gdk_x11_window_*`→`gdk_x11_surface_*` (one function, `activateX11Window`); quake positioning is a product decision, not a port task
+- [ ] Adopt libadwaita — settle first whether the `disable-csd` / `borderless` window styles survive `AdwHeaderBar`
 - [x] ~~**Blocker:** giD's GTK4 bindings did not compile at v0.9.13~~ **Re-spiked 2026-08-09: no longer reproduces — Phase 2b is unblocked.** The full target stack (`gid:gtk4` + `gid:vte3` + `gid:adw1`, all 0.9.13) compiles, links, and runs (adw window + embedded VTE renders) with LDC 1.40.0 / dub 1.39 against GTK 4.22.4, libadwaita 1.9.3, vte4 0.84. Note: giD resolves the C libraries at runtime (dlopen-style loader, `GID_LIBRARY_PATH` supported) — the spike binary has zero direct gtk/vte/adw link deps, so `vte4`/`libadwaita` become runtime requirements to document for packaging. Caveat for planning: giD upstream has had no release since 0.9.13 and ~2 months of master inactivity; our event-marshal report (Kymorphia/gid#52) is still unanswered — budget for carrying local workarounds.
 - [x] **Bus-factor spike (2026-09-01): we can regenerate giD ourselves. The dependency risk is mitigated.**
       The question was whether a giD stall could strand us mid-GTK4. It cannot — the
