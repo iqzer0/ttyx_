@@ -105,6 +105,64 @@ before WP0, not a surprise to absorb during it.
 
 ---
 
+## WP0 dry run: 22 of 112 imported modules are removed
+
+The dependency swap was tried on a throwaway branch. **The compiler error list
+cannot be captured in one pass** — the first failure is
+`unable to read module 'bin'` (`GtkBin` is gone), and missing-module errors are
+fatal, so each removed import has to be resolved before the next layer of
+semantic errors is even visible. Plan WP0 as iterative, not as one build.
+
+A static inventory gets the same answer immediately. Of the 112 distinct
+`gtk.*` / `gdk.*` / `vte.*` modules imported by `source/`, these 22 exist in
+the GTK3 stack and **not** in the GTK4 one:
+
+```
+gdk.atom          gdk.drag_context   gdk.event_button   gdk.event_crossing
+gdk.event_expose  gdk.event_focus    gdk.event_key      gdk.event_scroll
+gdk.event_window_state               gdk.screen         gdk.visual
+gdk.window        gtk.bin            gtk.clipboard      gtk.container
+gtk.event_box     gtk.file_chooser_button                gtk.icon_info
+gtk.offscreen_window                 gtk.selection_data gtk.target_entry
+gtk.target_list
+```
+
+Most map onto work packages already identified (the `gdk.event_*` family → WP2,
+`gtk.clipboard` → WP3, `target_*`/`selection_data`/`drag_context` → drag and
+drop, `gtk.bin`/`gtk.container` → the mechanical sweep). **Two were not
+predicted by the grep pass and need their own package.**
+
+### WP6 — offscreen rendering (`gtk.offscreen_window`)
+
+`gx/gtk/cairo.d` renders widgets offscreen via `class RenderWindow :
+OffscreenWindow`. GTK4 removed `GtkOffscreenWindow` outright. Two user-visible
+features depend on it:
+
+- **Session sidebar thumbnails** — `sidebar.d:539,623,650`, the scaled preview
+  of each session. A headline feature of the sidebar.
+- **Drag-and-drop terminal preview** — `terminal.d:2956,2959`, the image shown
+  while dragging a terminal.
+
+Good news: the GTK4 replacement is cleaner than what is there now.
+`gtk.widget_paintable.WidgetPaintable` renders a live widget, and
+`gtk.drag_source.DragSource.setIcon(gdk.paintable.Paintable, int, int)` takes a
+paintable directly — both confirmed present in `gid:gtk4`. So the drag-icon path
+gets *simpler*, and the thumbnail path becomes paintable→texture instead of
+offscreen-window→pixbuf. This is a rewrite of `cairo.d`'s core rather than a
+mechanical swap, but it is a rewrite toward a better API — and it may retire the
+event-handling fragility that `appwindow.d:555` warns about
+("populate sessions does some weird shit with event handling").
+
+### Transparency setup (`gdk.visual`) mostly deletes
+
+`appwindow.d:updateVisual()` fetches an RGBA visual from the screen and calls
+`setVisual()` so terminal transparency works. GTK4 has no `GdkVisual`;
+compositing is the compositor's business and windows are transparency-capable
+without setup. Expect this function to be **deleted rather than ported** — but
+verify transparency still behaves, since it is a shipped profile feature.
+
+---
+
 ## Work packages
 
 Ordered by risk, not by size. WP1 is the one that can genuinely go wrong.
@@ -217,16 +275,18 @@ provide **one** function — `activateX11Window`, called from
 
 ## Sequencing
 
-1. **WP0 — dependency swap on a branch.** `gid:gtk3`→`gtk4`, `vte2`→`vte3`,
-   add `adw1`. Expect it not to compile; the error list is the real work
-   inventory and is worth capturing before touching anything.
+1. **WP0 — dependency swap on a branch.** Already dry-run: see the 22-module
+   inventory above. Resolving imports is iterative (missing-module errors are
+   fatal), so budget for peeling them off in layers rather than one error dump.
 2. **WP2 (input) + EventBox removal.** Largest mechanical win, deletes
    `events.d`, unblocks compiling large parts of the tree.
 3. **WP1 (dialogs).** The risky one; do it with the paste-path tests green.
 4. **WP3 (clipboard)**, which WP1 has now made tractable.
 5. **WP4 (drawing).** Prototype the VTE overlay first.
 6. **Mechanical sweep** — `add`/`showAll`/`packStart`/enums/`Screen`.
-7. **WP5 (X11/quake)** and the libadwaita adoption pass last, as they are
+7. **WP6 (offscreen rendering).** Independent of the others — can be done in
+   parallel by a second pair of hands if there is one.
+8. **WP5 (X11/quake)** and the libadwaita adoption pass last, as they are
    product decisions rather than ports.
 
 Deleting the VTE/GTK version gates can happen at any point after WP0 and will

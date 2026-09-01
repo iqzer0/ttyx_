@@ -79,6 +79,7 @@ parity is **not** achievable on stock VTE 3.91.
 - [ ] WP1 — dialogs: 26 `.run()` nested main loops → async response callbacks (paste path first, with tests)
 - [ ] WP3 — clipboard: 16 sync reads → async `Gdk.Clipboard`, preserving the auto-clear content comparison
 - [ ] WP4 — drawing: 5 `connectDraw` sites → snapshot / overlaid `DrawingArea` (prototype the over-VTE badge first)
+- [ ] WP6 — offscreen rendering: `GtkOffscreenWindow` is gone, taking session sidebar thumbnails and the drag preview with it; rewrite `gx/gtk/cairo.d` onto `WidgetPaintable` (which `DragSource.setIcon` accepts directly, so the drag path gets simpler)
 - [ ] Mechanical sweep — `add`→`setChild`, `showAll`, `packStart`, `Screen`→`Display`, removed enums
 - [ ] WP5 — X11/quake: `gdk_x11_window_*`→`gdk_x11_surface_*` (one function, `activateX11Window`); quake positioning is a product decision, not a port task
 - [ ] Adopt libadwaita — settle first whether the `disable-csd` / `borderless` window styles survive `AdwHeaderBar`
