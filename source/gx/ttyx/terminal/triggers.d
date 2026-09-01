@@ -149,3 +149,81 @@ unittest {
     assert(m.length == 1);
     assert(m[0].groups[1] == `oops"; rm -rf ~; #`);
 }
+
+// -- end-to-end contract tests -------------------------------------------
+//
+// The `$N` substitution contract has broken twice, in different halves of
+// the pipeline and for different reasons:
+//
+//   1. replaceMatchTokens had a size_t underflow (`i - 1` wrapping on the
+//      first iteration), so $0 resolved to the first capture group (#84).
+//   2. Both match collectors prepended the whole match to an array that
+//      already contained it at index 0, so $1 resolved to the whole match.
+//
+// Each half is now unit-tested on its own, but neither bug lived *inside* a
+// half — both lived at the seam, where one side's output feeds the other's
+// input. These tests compose the real functions and pin the contract the
+// manuals promise users, so a regression in either half fails here.
+
+version (unittest) {
+    import gx.ttyx.terminal.regex : replaceMatchTokens, replaceMatchTokensQuoted;
+
+    /// Match `text`, then substitute into `template_` exactly as the trigger
+    /// and custom-link dispatch paths do.
+    string substituteFirstMatch(string text, string pattern, string template_) {
+        auto matches = collectTriggerMatches(text, [mk(pattern)]);
+        assert(matches.length > 0, "test pattern did not match");
+        return replaceMatchTokens(template_, matches[0].groups);
+    }
+}
+
+unittest {
+    // The worked example from docs/manual/triggers.md, end to end. If either
+    // half regresses, this is the test that notices.
+    assert(substituteFirstMatch("[alice@server ~]$ ",
+        `^\[(?P<user>.*)@(?P<host>[-a-zA-Z0-9]*)`,
+        "username=$1;hostname=$2") == "username=alice;hostname=server");
+}
+
+unittest {
+    // The worked example from docs/manual/customlinks.md: Python traceback ->
+    // `gedit +$2 $1`, i.e. capture groups used out of order as real argv.
+    assert(substituteFirstMatch(`File "/tmp/app.py", line 42, in main`,
+        `File "([^"]+)", line (\d+)`,
+        "gedit +$2 $1") == "gedit +42 /tmp/app.py");
+}
+
+unittest {
+    // $0 is the whole match — the half of the contract that bug #84 broke.
+    assert(substituteFirstMatch("error: disk full", `error: (.+)$`, "notify $0")
+        == "notify error: disk full");
+    // ...and $1 is the FIRST capture group — the half this session's bug broke.
+    assert(substituteFirstMatch("error: disk full", `error: (.+)$`, "notify $1")
+        == "notify disk full");
+}
+
+unittest {
+    // Double-digit tokens must not be corrupted by the single-digit pass.
+    // Guards the reverse-iteration order in replaceMatchTokens across the seam.
+    string text = "a b c d e f g h i j k";
+    string pattern = `(a) (b) (c) (d) (e) (f) (g) (h) (i) (j) (k)`;
+    assert(substituteFirstMatch(text, pattern, "[$10][$11][$1]") == "[j][k][a]");
+}
+
+unittest {
+    // The security contract across the seam: a capture containing shell
+    // metacharacters survives matching verbatim, and the quoted substitution
+    // renders it a single inert word. Mirrors the attack in docs/security.md.
+    string sq(string s) {
+        import std.array : replace;
+        return "'" ~ s.replace("'", `'\''`) ~ "'";
+    }
+    auto m = collectTriggerMatches(`Build failed: oops"; rm -rf ~; #`,
+        [mk(`failed: (.+)$`)]);
+    assert(m.length == 1);
+    string cmd = replaceMatchTokensQuoted(`notify-send "Build failed" $1`,
+        m[0].groups, &sq);
+    // The whole payload lands inside a single quoted word, so the `;` is a
+    // literal character rather than a command separator.
+    assert(cmd == `notify-send "Build failed" 'oops"; rm -rf ~; #'`);
+}
