@@ -254,6 +254,7 @@ import gx.ttyx.terminal.search;
 import gx.ttyx.terminal.state;
 import gx.ttyx.terminal.triggers : collectTriggerMatches;
 import gx.ttyx.terminal.types;
+import gx.ttyx.terminal.variables : TerminalVariables, substituteTerminalVariables;
 import gx.ttyx.terminal.util;
 import gx.ttyx.terminal.monitor;
 import gx.ttyx.terminal.activeprocess;
@@ -1468,37 +1469,31 @@ private:
         // foreground process). When the result feeds a shell (custom links,
         // EXECUTE_COMMAND/RUN_PROCESS triggers) callers pass a shell-quoting
         // transform; display/state callers pass none and get verbatim values.
-        string q(string v) { return transform is null ? v : transform(v); }
+        // Gather live widget state here; the substitution itself lives in
+        // gx.ttyx.terminal.variables so it is unit-testable — in particular so
+        // the "every value passes through the transform" invariant is pinned by
+        // a test rather than by reviewer attention.
+        TerminalVariables v;
 
-        string windowTitle = vte.getWindowTitle();
-        if (windowTitle.length == 0)
-            windowTitle = _("Terminal");
-        text = text.replace(VARIABLE_TERMINAL_TITLE, q(windowTitle));
-        text = text.replace(VARIABLE_TERMINAL_ICON_TITLE, q(vte.getIconTitle()));
-        text = text.replace(VARIABLE_TERMINAL_ID, q(to!string(terminalID)));
-        text = text.replace(VARIABLE_TERMINAL_COLUMNS, q(to!string(vte.getColumnCount())));
-        text = text.replace(VARIABLE_TERMINAL_ROWS, q(to!string(vte.getRowCount())));
-        text = text.replace(VARIABLE_TERMINAL_HOSTNAME, q(gst.currentHostname));
-        text = text.replace(VARIABLE_TERMINAL_USERNAME, q(gst.currentUsername));
-        text = text.replace(VARIABLE_TERMINAL_STATUS_READONLY, q(to!string(!vte.getInputEnabled())));
-        text = text.replace(VARIABLE_TERMINAL_STATUS_SILENCE, q(to!string(monitorSilence)));
-        text = text.replace(VARIABLE_TERMINAL_STATUS_INPUT_SYNC, q(to!string(isSynchronizedInput())));
+        v.title = vte.getWindowTitle();
+        if (v.title.length == 0) v.title = _("Terminal");
+        v.iconTitle = vte.getIconTitle();
+        v.id = to!string(terminalID);
+        v.columns = to!string(vte.getColumnCount());
+        v.rows = to!string(vte.getRowCount());
+        v.hostname = gst.currentHostname;
+        v.username = gst.currentUsername;
+        v.statusReadOnly = to!string(!vte.getInputEnabled());
+        v.statusSilence = to!string(monitorSilence);
+        v.statusInputSync = to!string(isSynchronizedInput());
+        // Resolved eagerly now rather than behind an indexOf guard; both
+        // branches read a stored field or a bool property, so there is nothing
+        // expensive to avoid and the result is identical.
+        v.process = tilix.processMonitor ? activeProcessName : _("Not Enabled");
+        // No directory until the terminal is initialized and VTE configured.
+        v.directory = terminalInitialized ? gst.currentDirectory : "";
 
-        if (text.indexOf(VARIABLE_TERMINAL_PROCESS) >= 0) {
-            if (tilix.processMonitor)
-                text = text.replace(VARIABLE_TERMINAL_PROCESS, q(activeProcessName));
-            else
-                text = text.replace(VARIABLE_TERMINAL_PROCESS, q(_("Not Enabled")));
-        }
-        string path;
-        if (terminalInitialized) {
-            path = gst.currentDirectory;
-        } else {
-            //trace("Terminal not initialized yet or VTE not configured, no path available");
-            path = "";
-        }
-        text = text.replace(VARIABLE_TERMINAL_DIR, q(path));
-        return text;
+        return substituteTerminalVariables(text, v, transform);
     }
 
     /**
