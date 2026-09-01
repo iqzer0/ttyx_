@@ -35,11 +35,10 @@ module gx.gtk.x11;
 import std.experimental.logger;
 import std.string;
 
+import gdk.display : GdkDisplayWrap = Display;
 import gdk.surface : GdkSurfaceWrap = Surface;
-import gdk.c.types : GdkSurface;
-import gdk.global : errorTrapPush, errorTrapPop, flush;
+import gdk.c.types : GdkDisplay, GdkSurface;
 
-import gtk.global : getCurrentEventTime;
 import gtk.window : GtkWindow = Window;
 
 import x11.X : Atom, ClientMessage, StructureNotifyMask, XWindow = Window;
@@ -60,10 +59,16 @@ void activateX11Window(GtkWindow window) {
     // GTK4: GdkWindow became GdkSurface, reached via the GtkNative interface
     // that GtkWindow implements, rather than gtk_widget_get_window().
     GdkSurfaceWrap gdkWindow = window.getSurface();
-    uint timestamp = getCurrentEventTime();
+    GdkDisplayWrap gdkDisplay = gdkWindow.getDisplay();
 
-    if (timestamp == 0)
-        timestamp = gdk_x11_get_server_time(cast(GdkSurface*) gdkWindow._cPtr);
+    // GTK4 removed gtk_get_current_event_time(); there is no global "time of
+    // the event being handled" any more (it now comes from the specific event
+    // or controller, which this function has no access to). The GTK3 code
+    // already fell back to the X server time whenever it was outside an event
+    // handler, so use that unconditionally. A real event timestamp is
+    // marginally better for focus-stealing prevention, so if this ever needs
+    // tightening, thread the time in from the caller's controller.
+    uint timestamp = gdk_x11_get_server_time(cast(GdkSurface*) gdkWindow._cPtr);
 
     XClientMessageEvent event;
     event.type = ClientMessage;
@@ -78,10 +83,13 @@ void activateX11Window(GtkWindow window) {
     Display* display = gdk_x11_get_default_xdisplay();
     XWindow root = gdk_x11_get_default_root_xwindow();
 
-    errorTrapPush();
+    // GTK4 dropped the portable gdk_error_trap_* API entirely; error trapping
+    // is X11-backend-only now and takes the display explicitly.
+    GdkDisplay* rawDisplay = cast(GdkDisplay*) gdkDisplay._cPtr;
+    gdk_x11_display_error_trap_push(rawDisplay);
     XSendEvent(display, root, false, StructureNotifyMask, cast(XEvent*) &event);
-    flush();
-    if (errorTrapPop() != 0) {
+    gdkDisplay.flush();
+    if (gdk_x11_display_error_trap_pop(rawDisplay) != 0) {
         error("Failed to focus window");
     }
 }
@@ -89,9 +97,12 @@ void activateX11Window(GtkWindow window) {
 private:
 
 // GDK X11 backend helpers. giD does not bind the GDK X11 backend, so declare
-// them directly; they resolve at link time from libgdk-3 (linked via gid:gtk3).
+// them directly; they resolve at link time from libgtk-4 (GTK4 has no separate
+// libgdk).
 extern(C) {
     Atom gdk_x11_get_xatom_by_name(const(char)* atom_name);
+    void gdk_x11_display_error_trap_push(GdkDisplay* display);
+    int gdk_x11_display_error_trap_pop(GdkDisplay* display);
     Display* gdk_x11_get_default_xdisplay();
     XWindow gdk_x11_get_default_root_xwindow();
     uint gdk_x11_get_server_time(GdkSurface* surface);

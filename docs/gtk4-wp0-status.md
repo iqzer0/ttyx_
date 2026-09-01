@@ -300,3 +300,51 @@ item, ahead of the rest of WP2. Revised order:
 This is the third time the critical path has moved after contact with the code.
 The pattern is consistent: leverage lives in the low-level `gx/gtk/*` modules,
 not in the big obvious ones.
+
+## WP8 resolved — and it was smaller than the plan claimed
+
+The plan called WP8 "the same shape of change as WP1's `dialog.run()` removal",
+i.e. architectural. That was wrong on the main point:
+
+**GLib's `MainContext.pending()` / `iteration(bool)` survive GTK4 untouched.**
+GTK4 only removed the *GTK-level wrappers* `gtk_events_pending` and
+`gtk_main_iteration_do`; the underlying main-context API they wrapped is still
+there, with identical semantics. Any bounded event drain can be reimplemented
+directly on it — no async redesign required.
+
+And in `util.d` it did not even need that: **`processEvents` had zero callers.**
+It was dead code, so the blocker was removed by deleting it (with a note
+pointing at `MainContext` should the utility ever be wanted again).
+
+The genuinely-removed items in WP8 are narrower than feared:
+
+| Item | Resolution |
+|---|---|
+| `gtk_events_pending` / `gtk_main_iteration_do` | GLib `MainContext.pending()`/`iteration()`; in `util.d`, dead code — deleted |
+| `gdk_error_trap_push/pop`, `gdk_flush` | **Gone from portable GDK.** X11-backend only now; declared `extern(C)` as `gdk_x11_display_error_trap_push/pop` alongside the other `gdk_x11_*` calls `x11.d` already declares. `flush` → `Display.flush()` |
+| `gtk_get_current_event_time` | **No global replacement.** GTK3 returned 0 outside an event handler and `x11.d` already fell back to `gdk_x11_get_server_time`, so that fallback is now unconditional. Slightly weaker for focus-stealing prevention; thread a controller timestamp in if it matters |
+
+### One real capability loss: theme background colour
+
+`gtk_style_context_get_background_color()` is **removed with no replacement** —
+GTK4 backgrounds are CSS-rendered and not queryable at all. `renderer.d` used it
+for the shipped `use-theme-colors` profile option and for the selection colour.
+
+`lookupColor()` does survive, so `getStyleBackgroundColor` now looks up the
+conventional theme colour names (`theme_base_color`, then `theme_bg_color`) and
+returns bool. Two things are genuinely lost and are documented at the function:
+
+- **the `StateFlags` argument is now inert** — per-state background colours
+  cannot be resolved, so Selected vs Active is no longer distinguishable
+- a theme that defines neither name yields false, so callers must treat the
+  result as best-effort
+
+This needs a look with real themes once the tree runs. It is the first change in
+the port that degrades a user-visible feature rather than relocating it.
+
+### Cascade
+
+**35 clean → 39 clean, 29 failing.** `util.d` and `x11.d` went clean directly;
+`colorschemes.d` and `renderer.d` came free, having been transitively blocked.
+Largest single jump so far, and exactly what the dependency-leverage reading
+predicted — `util.d` has 17 importers.

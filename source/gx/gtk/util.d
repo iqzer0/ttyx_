@@ -10,7 +10,7 @@
  *   - parseName uses gio.file.File.parseName (giD binds it; GtkD needed a
  *     hand-rolled g_file_parse_name call);
  *   - isWayland replaces GtkD's gtkc.gdk/gtkc.gobject C imports with a plain
- *     extern(C) gdk_x11_window_get_type (link-time resolve from libgdk-3, same
+ *     extern(C) gdk_x11_surface_get_type (link-time resolve from libgtk-4, same
  *     pattern as gx.gtk.x11) + gobject.global.typeCheckInstanceIsA;
  *   - Container.getChildren returns Widget[] directly (no ListG);
  *   - tree stores: createIter → append(out iter), setValue takes a
@@ -18,8 +18,10 @@
  *   - ComboBox: ComboBox.newWithModel + CellLayout packStart/addAttribute;
  *   - getGtkTheme reads gtk.settings.Settings.getDefault().gtkThemeName
  *     (giD generates typed property accessors, no gobject.Value dance);
- *   - processEvents uses gtk.global.eventsPending/mainIterationDo; the
- *     pre-2.075 std.datetime branch is dropped (toolchain floor is LDC 1.40).
+ *   - processEvents was DELETED in the GTK4 port: it had no callers, and
+ *     gtk_events_pending/gtk_main_iteration_do no longer exist. If a
+ *     bounded event drain is ever needed again, GLib's MainContext
+ *     pending()/iteration() survives GTK4 and is the direct equivalent.
  */
 module gx.gtk.util;
 
@@ -41,7 +43,6 @@ import gobject.value : Value;
 import gtk.box : Box;
 import gtk.cell_renderer_text : CellRendererText;
 import gtk.combo_box : ComboBox;
-import gtk.global : eventsPending, mainIterationDo;
 import gtk.list_store : ListStore;
 import gtk.settings : Settings;
 import gtk.style_context : StyleContext;
@@ -61,19 +62,6 @@ import gx.gtk.x11;
  */
 public File parseName(string parseName) {
     return File.parseName(parseName);
-}
-
-/**
- * Directly process events for up to a specified period
- */
-void processEvents(uint millis) {
-    StopWatch sw = StopWatch(AutoStart.yes);
-    scope (exit) {
-        sw.stop();
-    }
-    while (eventsPending() && sw.peek.total!"msecs" < millis) {
-        mainIterationDo(false);
-    }
 }
 
 /**
@@ -97,12 +85,12 @@ void activateWindow(Window window) {
  * it just uses a simple environment variable check to detect it.
  */
 bool isWayland(Window window) {
-    if (window is null || window.getWindow() is null) {
+    if (window is null || window.getSurface() is null) {
         return (environment.get("XDG_SESSION_TYPE","x11") == "wayland" && environment.get("GDK_BACKEND")!="x11");
     }
 
-    GType x11Type = gdk_x11_window_get_type();
-    scope instance = new TypeInstance(window.getWindow()._cPtr, No.Take);
+    GType x11Type = gdk_x11_surface_get_type();
+    scope instance = new TypeInstance(window.getSurface()._cPtr, No.Take);
 
     return !typeCheckInstanceIsA(instance, x11Type);
 }
@@ -120,7 +108,7 @@ string getGtkTheme() {
 Box createBox(Orientation orientation, int spacing,  Widget[] children) {
     Box result = new Box(orientation, spacing);
     foreach(child; children) {
-        result.add(child);
+        result.append(child);
     }
     return result;
 }
@@ -192,13 +180,31 @@ T[] getChildren(T) (Widget widget, bool recursive) {
  * spurious VTE State messages on GTK 3.19 or later. See the
  * blog entry here: https://blogs.gnome.org/mclasen/2015/11/20/a-gtk-update/
  */
-void getStyleBackgroundColor(StyleContext context, StateFlags flags, out RGBA color) {
-    with (context) {
-        save();
-        setState(flags);
-        getBackgroundColor(getState(), color);
-        restore();
+/**
+ * Approximate the themed background colour.
+ *
+ * GTK4 removed gtk_style_context_get_background_color() outright, with no
+ * replacement: backgrounds are CSS-rendered and simply not queryable any more.
+ * The closest surviving mechanism is looking up the named colour GTK themes
+ * conventionally define, so that is what this does.
+ *
+ * Caveats the caller should know:
+ *   - `flags` is now unused. Per-state background colours cannot be resolved,
+ *     so a Selected vs Active distinction is no longer available here.
+ *   - a theme that does not define the named colour yields false, and `color`
+ *     is left at its default. Callers already guard on the profile's
+ *     use-theme-colors setting, but they should treat the result as
+ *     best-effort rather than authoritative.
+ *
+ * Returns: true if the theme provided a value.
+ */
+bool getStyleBackgroundColor(StyleContext context, StateFlags flags, out RGBA color) {
+    // theme_bg_color is the long-standing convention; theme_base_color is what
+    // entry-like widgets use and is the better match for a terminal surface.
+    foreach (name; ["theme_base_color", "theme_bg_color"]) {
+        if (context.lookupColor(name, color)) return true;
     }
+    return false;
 }
 
 /**
@@ -210,7 +216,7 @@ void getStyleColor(StyleContext context, StateFlags flags, out RGBA color) {
     with (context) {
         save();
         setState(flags);
-        getColor(getState(), color);
+        getColor(color);
         restore();
     }
 }
@@ -226,9 +232,9 @@ void setAllMargins(Widget widget, int margin) {
  * Sets margins of a widget to the passed values
  */
 void setMargins(Widget widget, int left, int top, int right, int bottom) {
-    widget.setMarginLeft(left);
+    widget.setMarginStart(left);
     widget.setMarginTop(top);
-    widget.setMarginRight(right);
+    widget.setMarginEnd(right);
     widget.setMarginBottom(bottom);
 }
 
@@ -437,4 +443,4 @@ private:
 
 // giD does not bind the GDK X11 backend; resolves at link time from libgdk-3
 // (same pattern as gx.gtk.x11).
-extern(C) GType gdk_x11_window_get_type();
+extern(C) GType gdk_x11_surface_get_type();
