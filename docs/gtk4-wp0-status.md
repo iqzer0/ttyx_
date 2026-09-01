@@ -437,3 +437,48 @@ Two consequences worth stating plainly:
    drag semantics — none of which the compiler checks. Nothing in this branch
    has ever been *run*, and it cannot be until the whole tree compiles. Budget
    real GUI testing before trusting any of it.
+
+## WP2 reference: the remaining controller types
+
+Beyond `EventControllerKey` / `EventControllerFocus` already used, the sites left
+need three more. Callback shapes verified against giD 0.9.13:
+
+| GTK3 event | GTK4 | Callback |
+|---|---|---|
+| `EventButton` | `GestureClick` | `void(int nPress, double x, double y, GestureClick)` |
+| `EventScroll` | `EventControllerScroll` | `connectScroll` (plus begin/end/decelerate) |
+| `EventCrossing` | `EventControllerMotion` | `void(double x, double y, EventControllerMotion)` |
+| `EventWindowState` | `Window` properties | notify on `maximized` / `fullscreened` |
+
+### Three behavioural traps in this group
+
+1. **`GestureClick.pressed` returns `void`.** GTK3's `button-press-event`
+   returned bool to consume the event. To consume with a gesture you must call
+   `setState(EventSequenceState.Claimed)` explicitly — returning nothing is
+   *not* equivalent to returning false, and silently letting a click propagate
+   where it used to be consumed is a real behaviour change.
+2. **Button number is not a callback parameter.** GTK3 read `event.button`;
+   GTK4 reads `gesture.getCurrentButton()`, and a `GestureClick` only reports
+   the button it was configured for via `setButton` (0 = any).
+3. **Double-click is `nPress == 2`**, not `EventType._2buttonPress`.
+
+`terminal.d` uses all three of these — `event.button == BUTTON_MIDDLE`,
+`EventType._2buttonPress` for the maximize toggle, and coordinate hit-testing
+against the menu button — so it is the site where getting this wrong is least
+likely to be noticed by the compiler and most likely to be noticed by a user.
+
+### Remaining WP2 sites (6 modules, ~24 sites)
+
+| Module | Sites |
+|---|---:|
+| `terminal/terminal.d` | 9 (Button 3, Key 2, Focus 2, Scroll 1, Crossing 1) |
+| `appwindow.d` | 7 (Focus 3, WindowState 1, Scroll 1, Key 1, Button 1) |
+| `customtitle.d` | 4 |
+| `sidebar.d` | 3 |
+| `session.d` | 1 |
+| `gtk/widgetimage.d` | 1 (Expose — belongs to WP6) |
+
+`gx/gtk/events.d` is deleted once these are converted. It is imported by exactly
+these six modules, and it gates 8 modules transitively — including `session.d`,
+whose container `add`/`remove` calls **cannot be type-checked until events.d is
+gone**, because compilation stops at the import error.

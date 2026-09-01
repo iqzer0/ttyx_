@@ -12,7 +12,7 @@
  *   - gtk.Version.checkVersion (GtkD static class method) →
  *     gtk.global.checkVersion free function; returns null (not "") when
  *     compatible, so the `.length == 0` compatibility check carries over.
- *   - grid.getToplevel() returns the most-derived giD wrapper, so the plain
+ *   - GTK4: getToplevel() -> getRoot(); returns the most-derived wrapper, so the plain
  *     cast(Window) downcast carries over unchanged.
  *   - Everything else (Grid.attach, GSettings.getStrv/setStrv, Dialog
  *     run/destroy/showAll, Label setters) is bound 1:1 by giD.
@@ -66,7 +66,7 @@ void createAdvancedUI(Grid grid, ref uint row, GSettings delegate() scb, bool sh
     btnEditLink.connectClicked(delegate() {
         GSettings gs = scb();
         string[] links = gs.getStrv(SETTINGS_ALL_CUSTOM_HYPERLINK_KEY);
-        EditCustomLinksDialog dlg = new EditCustomLinksDialog(cast(Window) grid.getToplevel(), links);
+        EditCustomLinksDialog dlg = new EditCustomLinksDialog(cast(Window) grid.getRoot(), links);
         scope (exit) {
             dlg.destroy();
         }
@@ -96,7 +96,7 @@ void createAdvancedUI(Grid grid, ref uint row, GSettings delegate() scb, bool sh
 
         btnEditTriggers.connectClicked(delegate() {
             GSettings gs = scb();
-            EditTriggersDialog dlg = new EditTriggersDialog(cast(Window) grid.getToplevel(), gs, showTriggerLineSettings);
+            EditTriggersDialog dlg = new EditTriggersDialog(cast(Window) grid.getRoot(), gs, showTriggerLineSettings);
             scope (exit) {
                 dlg.destroy();
             }

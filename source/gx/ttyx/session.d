@@ -71,7 +71,6 @@ import gobject.value : Value;
 
 import gtk.box : Box;
 import gtk.combo_box : ComboBox;
-import gtk.container : Container;
 import gtk.dialog : Dialog;
 import gtk.entry : Entry;
 import gtk.global : checkVersion;
@@ -317,7 +316,7 @@ private:
          */
         Paned getRootPaned() {
             Paned result = paned;
-            Container parent = cast(Container) paned.getParent();
+            Widget parent = cast(Widget) paned.getParent();
             while (parent !is null) {
                 Paned p = cast(Paned) parent;
                 if (p !is null) {
@@ -328,7 +327,7 @@ private:
                     }
                 }
                 if (parent.getParent() !is null)
-                    parent = cast(Container) parent.getParent();
+                    parent = cast(Widget) parent.getParent();
                 else
                     parent = null;
             }
@@ -599,7 +598,7 @@ private:
         //Clean up terminal parent, use container as base class since
         //terminal can be parented to either Box or Stack which both
         //descend from Container
-        Container container = cast(Container) terminal.getParent();
+        Widget container = cast(Widget) terminal.getParent();
         container.remove(terminal);
         container.destroy();
 
@@ -1189,7 +1188,7 @@ private:
     bool onDraw(Context cr, Widget w) {
         AppWindow window = cast(AppWindow)getToplevel();
         if (window is null) return false;
-        Container child = cast(Container) getVisibleChild();
+        Widget child = cast(Widget) getVisibleChild();
         if (child is null) return false;
 
         //Cached render
@@ -1546,7 +1545,7 @@ public:
         if (terminals.length <= 1) return;
         Terminal terminal = currentTerminal;
         if (terminal !is null) {
-            Container parent = cast(Container) terminal;
+            Widget parent = cast(Widget) terminal;
             int increment = 10;
             if (direction == "up" || direction == "left")
                 increment = -increment;
@@ -1567,7 +1566,7 @@ public:
                     }
                 }
                 if (parent.getParent() is null) parent = null;
-                else parent = cast(Container) parent.getParent();
+                else parent = cast(Widget) parent.getParent();
             }
         }
     }

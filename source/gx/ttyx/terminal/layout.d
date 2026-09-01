@@ -77,8 +77,8 @@ public:
         Grid grid = new Grid();
         grid.setMarginTop(18);
         grid.setMarginBottom(18);
-        grid.setMarginLeft(18);
-        grid.setMarginRight(18);
+        grid.setMarginStart(18);
+        grid.setMarginEnd(18);
         grid.setColumnSpacing(12);
         grid.setRowSpacing(6);
 
