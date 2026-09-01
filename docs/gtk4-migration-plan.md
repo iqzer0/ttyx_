@@ -99,9 +99,19 @@ whether upstream vte3 has it (it does not, and never did) but whether a patched
 GTK3-only features and that needs saying out loud rather than discovering it
 after the port.
 
-Net: the port does not silently break these, but **feature parity with 1.3.0 is
-not achievable on stock VTE 3.91**, and that is a product decision to take
-before WP0, not a surprise to absorb during it.
+**Decided 2026-09-01: proceed, and drop these features rather than chase them.**
+Measuring before deciding changed the answer. `ttyx --version` on **stock VTE
+0.84 under GTK3 today** already reports `Notifications enabled=0` and
+`Triggers enabled=0` — both need the Tilix-patched VTE, which no current distro
+ships. So the port costs stock users nothing; the only regression is for anyone
+running a patched VTE, a population that is effectively zero now the Tilix patch
+set is unmaintained. Badges (`enabled=1`) gate on a version check rather than a
+patched signal and are unaffected here, though WP4 reworks how they draw.
+
+Consequence for the plan: delete the `TerminalFeature` probe machinery for
+`EVENT_NOTIFICATION` / `EVENT_SCREEN_CHANGED`, fix the `connectTextDeleted`
+compile error, and stop advertising triggers as an available feature — which is
+the honest description on GTK3 today, not only after the port. Tracked as WP7.
 
 ---
 
@@ -296,10 +306,13 @@ shrink several of the above.
 
 ## Open questions
 
-- **libadwaita vs. the CSD modes.** ttyx_ supports `disable-csd`,
-  `disable-csd-hide-toolbar` and `borderless` window styles, plus an embedded
-  headerbar for quake. `AdwHeaderBar` assumes CSD. Whether these modes survive,
-  and in what form, is a product decision that should be settled before WP0.
+- ~~**libadwaita vs. the CSD modes.**~~ **Decided 2026-09-01: decoupled.**
+  Nothing in the codebase references libadwaita — it is aspirational, not a
+  dependency. Phase 2b is now GTK4 only, on plain `GtkHeaderBar` (which exists
+  in GTK4 and supports the embedded/non-titlebar usage all four window styles
+  need), so behaviour is preserved and the CSD question moves to an optional
+  Phase 2c where it is a real tradeoff rather than a blocker on an EOL-driven
+  migration.
 - ~~**Does VTE 3.91 still expose everything used?**~~ **Answered** — see the
   VTE signals section above. It does not: `text-deleted` is a compile error and
   `notification-received` is a silent feature loss. The remaining sub-question
