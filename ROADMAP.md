@@ -73,14 +73,44 @@ unconditionally true and can be deleted rather than ported. The risk is
 concentrated in removing `dialog.run()`'s nested main loops (26 sites), three of
 which sit on the security-critical paste path.
 
-**Feature-parity caveat, decide before WP0:** VTE 3.91 drops seven signals that
-2.91 has. `text-deleted` is a **hard compile error** (`gid:vte3` generates no
-`connectTextDeleted`; the existing guard is runtime-only), and
-`notification-received` is a **silent feature loss** — process-completion
-notifications go permanently off on stock VTE 3.91. Triggers and prompt
-navigation already depend on the patched-only `terminal-screen-changed`, so they
-are GTK3-only unless a patched *vte3* exists downstream. Full 1.3.0 feature
-parity is **not** achievable on stock VTE 3.91.
+**Feature parity — RESOLVED 2026-09-01, proceed.** VTE 3.91 drops seven signals
+that 2.91 has. `text-deleted` is a **hard compile error** (`gid:vte3` generates
+no `connectTextDeleted`; the existing guard is runtime-only) and must be fixed
+in WP0. `notification-received` would be a silent feature loss. But measuring
+before deciding changed the answer: `ttyx --version` against **stock VTE 0.84 on
+GTK3 today** already reports
+
+```
+Notifications enabled=0
+Triggers enabled=0
+Badges enabled=1
+```
+
+Both features are *already unavailable* on a stock VTE — they need the
+Tilix-patched VTE, which no current distro ships. So GTK4 costs stock users
+nothing; the only regression is for anyone still running a patched VTE, and
+that population is effectively zero now that the Tilix patch set is unmaintained.
+Badges are unaffected (they gate on a version check, not a patched signal) but
+do get reworked by WP4.
+
+**Decision: proceed with the port and drop the patched-VTE features rather than
+chase them.** Delete the `TerminalFeature` probe machinery for
+`EVENT_NOTIFICATION` / `EVENT_SCREEN_CHANGED` along with the version gates, and
+update the feature list and docs to stop advertising triggers as available —
+which is honest for GTK3 today too, not just after the port.
+
+**libadwaita — DECOUPLED 2026-09-01.** The blocking question was whether the
+`disable-csd` / `disable-csd-hide-toolbar` / `borderless` window styles survive
+`AdwHeaderBar`. It does not need answering, because **nothing in the codebase
+references libadwaita** — it is aspirational, not a dependency. Splitting it out
+removes the only product blocker on starting the port:
+
+- **Phase 2b is now GTK4 only**, on plain `GtkHeaderBar`, which exists in GTK4
+  and supports the embedded/non-titlebar usage all four window styles rely on.
+  Behaviour is preserved exactly; `window-style` still defaults to `normal`.
+- **libadwaita becomes Phase 2c**, optional and separately justified. The CSD
+  question gets answered then, when it is a real tradeoff against a real
+  benefit, instead of gating an EOL-driven migration on a cosmetic one.
 
 - [ ] WP0 — dependency swap to `gid:gtk4` / `gid:vte3` / `gid:adw1`; capture the compiler error list as the authoritative inventory
 - [ ] WP2 — input: 42 `connectGdkEvent` sites → EventControllers; delete `events.d` and the 16 `EventBox` wrappers
@@ -90,7 +120,10 @@ parity is **not** achievable on stock VTE 3.91.
 - [ ] WP6 — offscreen rendering: `GtkOffscreenWindow` is gone, taking session sidebar thumbnails and the drag preview with it; rewrite `gx/gtk/cairo.d` onto `WidgetPaintable` (which `DragSource.setIcon` accepts directly, so the drag path gets simpler)
 - [ ] Mechanical sweep — `add`→`setChild`, `showAll`, `packStart`, `Screen`→`Display`, removed enums
 - [ ] WP5 — X11/quake: `gdk_x11_window_*`→`gdk_x11_surface_*` (one function, `activateX11Window`); quake positioning is a product decision, not a port task
-- [ ] Adopt libadwaita — settle first whether the `disable-csd` / `borderless` window styles survive `AdwHeaderBar`
+- [ ] WP7 — drop the patched-VTE feature probes (`EVENT_NOTIFICATION`, `EVENT_SCREEN_CHANGED`) and all VTE/GTK version gates; fix the `connectTextDeleted` compile error; stop advertising triggers as available
+
+### Phase 2c — libadwaita (optional, separately justified)
+- [ ] Decide whether adopting `AdwHeaderBar` is worth losing or reworking the `disable-csd` / `disable-csd-hide-toolbar` / `borderless` window styles. Deliberately **not** a Phase 2b blocker: nothing in the codebase references libadwaita today, so GTK4 can land on plain `GtkHeaderBar` with behaviour unchanged.
 - [x] ~~**Blocker:** giD's GTK4 bindings did not compile at v0.9.13~~ **Re-spiked 2026-08-09: no longer reproduces — Phase 2b is unblocked.** The full target stack (`gid:gtk4` + `gid:vte3` + `gid:adw1`, all 0.9.13) compiles, links, and runs (adw window + embedded VTE renders) with LDC 1.40.0 / dub 1.39 against GTK 4.22.4, libadwaita 1.9.3, vte4 0.84. Note: giD resolves the C libraries at runtime (dlopen-style loader, `GID_LIBRARY_PATH` supported) — the spike binary has zero direct gtk/vte/adw link deps, so `vte4`/`libadwaita` become runtime requirements to document for packaging. Caveat for planning: giD upstream has had no release since 0.9.13 and ~2 months of master inactivity; our event-marshal report (Kymorphia/gid#52) is still unanswered — budget for carrying local workarounds.
 - [x] **Bus-factor spike (2026-09-01): we can regenerate giD ourselves. The dependency risk is mitigated.**
       The question was whether a giD stall could strand us mid-GTK4. It cannot — the
