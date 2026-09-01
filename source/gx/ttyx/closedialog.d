@@ -42,7 +42,6 @@ import std.format;
 
 import gid.gid : No;
 
-import gdkpixbuf.pixbuf : Pixbuf;
 
 import gdk.types : KEY_Escape, KEY_Return, ModifierType;
 
@@ -61,15 +60,13 @@ import gtk.cell_renderer_pixbuf : CellRendererPixbuf;
 import gtk.cell_renderer_text : CellRendererText;
 import gtk.check_button : CheckButton;
 import gtk.dialog : Dialog;
-import gtk.icon_info : IconInfo;
-import gtk.icon_theme : IconTheme;
 import gtk.label : Label;
 import gtk.scrolled_window : ScrolledWindow;
 import gtk.tree_iter : TreeIter;
 import gtk.tree_store : TreeStore;
 import gtk.tree_view : TreeView;
 import gtk.tree_view_column : TreeViewColumn;
-import gtk.types : Align, IconLookupFlags, Orientation, PolicyType, ResponseType, ShadowType;
+import gtk.types : Align, Orientation, PolicyType, ResponseType;
 import gtk.window : Window;
 
 import pango.types : EllipsizeMode;
@@ -118,31 +115,24 @@ private:
     TreeView tv;
     CheckButton cbIgnore;
 
-    Pixbuf pbTerminal;
+    // GTK4: the ICON column holds an icon *name*, not a loaded Pixbuf.
+    // GtkIconTheme.lookupIcon now returns a GtkIconPaintable with no
+    // loadIcon() — GTK4 icons are not Pixbufs — while CellRendererPixbuf has
+    // always been able to render straight from a theme name via its
+    // "icon-name" property. Letting the renderer do the lookup deletes the
+    // manual theme handling, both error paths and the hardcoded 16px size.
+    enum ICON_TERMINAL = "utilities-terminal";
 
     void createUI() {
-        // Create icons
-        IconTheme iconTheme = new IconTheme();
-        IconInfo iconInfo = iconTheme.lookupIcon("utilities-terminal", 16, cast(IconLookupFlags) 0);
-        if (iconInfo !is null) {
-            try {
-                pbTerminal = iconInfo.loadIcon();
-                tracef("Pixbuf width,height = %d,%d", pbTerminal.getWidth(), pbTerminal.getHeight());
-            } catch (ErrorWrap e) {
-                warningf("Could not load icon for 'utilities-terminal': %s", e.msg);
-            }
-        } else {
-            warning("Could not load icon for 'utilities-terminal'");
-        }
         setAllMargins(getContentArea(), 18);
         Box box = new Box(Orientation.Vertical, 6);
 
         Label lbl = new Label("There are processes still running as shown below, close anyway?");
         lbl.setHalign(Align.Start);
         lbl.setMarginBottom(6);
-        box.add(lbl);
+        box.append(lbl);
 
-        ts = TreeStore.new_([cast(GType) GTypeEnum.String, Pixbuf._getGType(), cast(GType) GTypeEnum.String]);
+        ts = TreeStore.new_([cast(GType) GTypeEnum.String, cast(GType) GTypeEnum.String, cast(GType) GTypeEnum.String]);
         loadProcesses();
 
         tv = TreeView.newWithModel(ts);
@@ -176,29 +166,31 @@ private:
         tv.appendColumn(column);
 
         CellRendererPixbuf crp = new CellRendererPixbuf();
-        crp.stockSize = 16;
+        // GTK4 dropped CellRendererPixbuf's stock-size property; an icon-name
+        // renders at its natural themed size.
         column = new TreeViewColumn();
         column.setTitle(_("Icon"));
         column.packStart(crp, true);
-        column.addAttribute(crp, "pixbuf", COLUMNS.ICON);
+        column.addAttribute(crp, "icon-name", COLUMNS.ICON);
         column.setExpand(true);
         tv.appendColumn(column);
 
         ScrolledWindow sw = new ScrolledWindow();
-        sw.add(tv);
-        sw.setShadowType(ShadowType.EtchedIn);
+        sw.setChild(tv);
+        // GTK4: GtkShadowType is gone; the border is a boolean frame.
+        sw.setHasFrame(true);
         sw.setPolicy(PolicyType.Never, PolicyType.Automatic);
         sw.setHexpand(true);
         sw.setVexpand(true);
         sw.setSizeRequest(-1, 300);
 
-        box.add(sw);
+        box.append(sw);
         tv.expandAll();
 
         cbIgnore = CheckButton.newWithLabel(_("Do not show this again"));
-        box.add(cbIgnore);
+        box.append(cbIgnore);
 
-        getContentArea().add(box);
+        getContentArea().append(box);
     }
 
     /**
@@ -218,8 +210,8 @@ private:
     void loadProcess(TreeIter parent, ProcessInformation pi) {
         TreeIter current;
         ts.append(current, parent);
-        if (pi.source == ProcessInfoSource.TERMINAL && pbTerminal !is null) {
-            ts.setValue(current, COLUMNS.ICON, new Value(pbTerminal));
+        if (pi.source == ProcessInfoSource.TERMINAL) {
+            ts.setValue(current, COLUMNS.ICON, new Value(ICON_TERMINAL));
         }
         switch (pi.source) {
             case ProcessInfoSource.WINDOW:
