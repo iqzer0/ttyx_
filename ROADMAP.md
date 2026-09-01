@@ -66,6 +66,30 @@ the GtkD-free logic unchanged), then a single build swap.
 - [ ] Dependency swap to `gid:gtk4` / `gid:vte3` / `gid:adw1` + API-delta pass (`add`→`setChild`, `showAll`→`present`, event/controller model)
 - [ ] Adopt libadwaita for modern GNOME look and feel
 - [x] ~~**Blocker:** giD's GTK4 bindings did not compile at v0.9.13~~ **Re-spiked 2026-08-09: no longer reproduces — Phase 2b is unblocked.** The full target stack (`gid:gtk4` + `gid:vte3` + `gid:adw1`, all 0.9.13) compiles, links, and runs (adw window + embedded VTE renders) with LDC 1.40.0 / dub 1.39 against GTK 4.22.4, libadwaita 1.9.3, vte4 0.84. Note: giD resolves the C libraries at runtime (dlopen-style loader, `GID_LIBRARY_PATH` supported) — the spike binary has zero direct gtk/vte/adw link deps, so `vte4`/`libadwaita` become runtime requirements to document for packaging. Caveat for planning: giD upstream has had no release since 0.9.13 and ~2 months of master inactivity; our event-marshal report (Kymorphia/gid#52) is still unanswered — budget for carrying local workarounds.
+- [x] **Bus-factor spike (2026-09-01): we can regenerate giD ourselves. The dependency risk is mitigated.**
+      The question was whether a giD stall could strand us mid-GTK4. It cannot — the
+      whole toolchain is public and reproducible:
+      - The generator is **[Kymorphia/gidgen](https://github.com/Kymorphia/gidgen)**, a
+        *separate public repo* wired into `Kymorphia/gid` as a git submodule with an
+        SSH URL. It is **not** shipped in the dub package (`gidgen/` there is an empty
+        directory), so this is only obvious once you clone the git repo — worth knowing
+        before you need it in a hurry. Clone it over HTTPS; it builds clean with LDC in
+        one `dub build`.
+      - Everything else regeneration needs **is** in the dub package: `gir/` (a vendored
+        GIR set that includes `Vte-3.91.gir`, which is not even installed system-wide
+        here) and `defs/` (72 customization files, `gtk4.d` / `vte3.d` / `adw1.d`
+        among them).
+      - Full regeneration is **byte-for-byte reproducible**: deleting all 3030 generated
+        `.d` files and re-running `gidgen --defs defs --gir-path gir --pkg-path .
+        --subpkg-path packages` reproduced all 3030 with **zero** diff against the
+        published output. The regenerated `gid:adw1` and `gid:vte3` then compile clean.
+      - Practical consequence: if giD stalls, we fork `gid` + `gidgen`, patch `defs/`
+        and regenerate — we are not blocked on upstream merging anything, and
+        Kymorphia/gid#52 becomes a local patch rather than a hard dependency.
+      - What to mirror for real insurance: **both** repos (`gid` *and* `gidgen`), since
+        the dub package alone cannot regenerate. Upstream state at spike time: `gid`
+        master `876b1eb5` and `gidgen` `cb1310d`, both last touched 2026-06-14; dub
+        registry still at 0.9.13; #52 open, zero comments since 2026-06-11.
 
 ### Why this matters
 - GTK3 is EOL — no new features, limited bug fixes
