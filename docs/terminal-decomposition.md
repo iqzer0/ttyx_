@@ -53,6 +53,35 @@ nearly untouched by GTK4, so extracting them now is free of conflict risk *and*
 makes the migration easier by shrinking the file the porter has to hold in their
 head.
 
+## Correction after the first extraction (2026-09-01)
+
+**The sizing below was too optimistic, and the ordering was wrong.** This
+proposal sized clusters by line count and GTK4 overlap. It never measured
+*coupling to `Terminal`*, and that is the binding constraint. Attempting the
+first extraction showed:
+
+- **`processTrigger` does not move cleanly.** It reaches into `_overrideTitle`
+  / `_overrideBadge`, `sagTerminalActions`, `onNewOutput`, `hasFocus()` and four
+  update methods. `ITerminalContext` supplies the VTE, settings, state and UUID
+  — none of these. Moving it needs a wider context interface, which is its own
+  design task rather than part of an extraction.
+- **The cluster order here is backwards.** Triggers call `replaceVariables` and
+  `shellCommandFromTemplate`, which belong to the *title / badge / display text*
+  cluster. That cluster is therefore a **dependency of** triggers, not a later
+  step — a full trigger extraction has to take it first.
+
+What did move cleanly is the pure matching half, now
+`gx.ttyx.terminal.triggers.collectTriggerMatches` (~150 lines including tests).
+That was worth doing regardless of size: writing tests for it immediately
+exposed a real `$1` off-by-one in both the trigger and custom-link substitution
+paths that had been invisible inside a 3,900-line widget.
+
+**Revised guidance:** extract *pure logic* first and leave widget-coupled
+dispatch in place until a wider context interface earns its keep. Expect
+smaller and more numerous extractions than the table below implies, and expect
+`terminal.d` to shrink more slowly than the ~577-line estimate. The value is in
+the testability of what comes out, not in the line count that leaves.
+
 ## Proposed modules
 
 Each follows the pattern the existing extractions established: constructor takes
