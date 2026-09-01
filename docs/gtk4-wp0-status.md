@@ -257,3 +257,46 @@ not catch, so it went in three times before it was right:
 Any future sweep should assert all four afterwards: zero live uses remaining,
 zero lines over 171 chars added, zero blank lines removed, and zero
 `,\s{2,}[A-Z]` joins. Those checks are what caught all three.
+
+## WP2 continued: three more event modules
+
+`closedialog.d`, `bmchooser.d` and `password.d` had their event handlers
+converted. All three controller ports succeeded on the first attempt using the
+rulebook above — the pattern generalises, which was the point of piloting it.
+
+Notes worth keeping:
+
+- **`bmchooser.d` shares one named handler between two widgets.** GTK4
+  controllers are per-widget, so each gets its own `EventControllerKey` wired to
+  the same method; the method's signature changes from `bool(EventKey)` to
+  `bool(uint, uint, ModifierType, EventControllerKey)`.
+- **`closedialog.d` is NOT finished** and needs a design decision, not a
+  rename. It stores a `Pixbuf` in a `TreeStore` column for the process-list
+  icons, obtained via `IconTheme.lookupIcon(...).loadIcon()`. In GTK4
+  `lookupIcon` returns a `GtkIconPaintable` with **no `loadIcon()`** — icons are
+  no longer Pixbufs. The clean fix is to store the icon *name* in the column and
+  let `CellRendererPixbuf`'s `icon-name` property do the work, which changes the
+  column type and renderer wiring. Deliberately left undone rather than guessed
+  at, since this is the close-confirmation dialog.
+
+## Critical path moved again: WP8, not WP2
+
+`password.d` now type-checks except for its dependencies, and those dependencies
+are `gx/gtk/util.d` and `gx/gtk/x11.d` — both blocked on WP8
+(`eventsPending`, `mainIterationDo`, `getCurrentEventTime`, the GDK error
+traps). **7 of the 33 remaining failures trace to those two files.**
+
+Since `util.d` alone is imported by 17 modules, WP8 has become the top-leverage
+item, ahead of the rest of WP2. Revised order:
+
+1. **WP8** — replace the main-loop pump and the removed globals. Unblocks
+   `util.d`, therefore much of the tree.
+2. WP2 remainder — `customtitle.d`, then `appwindow.d` / `terminal.d`.
+3. DnD rework — `sidebar.d`, `bmtreeview.d` (`gdk.atom`, `target_entry`,
+   `selection_data`, `drag_context`).
+4. WP6 — `widgetimage.d`.
+5. `closedialog.d`'s icon-column decision.
+
+This is the third time the critical path has moved after contact with the code.
+The pattern is consistent: leverage lives in the low-level `gx/gtk/*` modules,
+not in the big obvious ones.

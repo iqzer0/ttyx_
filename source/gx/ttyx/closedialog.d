@@ -44,8 +44,9 @@ import gid.gid : No;
 
 import gdkpixbuf.pixbuf : Pixbuf;
 
-import gdk.event_key : EventKey;
-import gdk.types : KEY_Escape, KEY_Return;
+import gdk.types : KEY_Escape, KEY_Return, ModifierType;
+
+import gtk.event_controller_key : EventControllerKey;
 
 import gio.settings : GSettings = Settings;
 
@@ -75,7 +76,6 @@ import pango.types : EllipsizeMode;
 
 import gx.i18n.l10n;
 import gx.gtk.util;
-import gx.gtk.events;
 
 import gx.ttyx.common;
 import gx.ttyx.preferences;
@@ -146,18 +146,23 @@ private:
         loadProcesses();
 
         tv = TreeView.newWithModel(ts);
-        connectGdkEvent!EventKey(tv, "key-release-event", delegate bool(EventKey event) {
-            switch (event.keyval) {
-                case KEY_Escape:
-                    response(ResponseType.Cancel);
-                    break;
-                case KEY_Return:
-                    response(ResponseType.Ok);
-                    break;
-                default:
-            }
-            return false;
-        });
+        // GTK4: key-release-event -> EventControllerKey's key-released, whose
+        // callback returns void. The GTK3 handler returned false throughout,
+        // so nothing is lost.
+        EventControllerKey keyController = new EventControllerKey();
+        keyController.connectKeyReleased(
+            delegate void(uint keyval, uint keycode, ModifierType state, EventControllerKey c) {
+                switch (keyval) {
+                    case KEY_Escape:
+                        response(ResponseType.Cancel);
+                        break;
+                    case KEY_Return:
+                        response(ResponseType.Ok);
+                        break;
+                    default:
+                }
+            });
+        tv.addController(keyController);
         tv.setHeadersVisible(false);
 
         CellRendererText crt = new CellRendererText();

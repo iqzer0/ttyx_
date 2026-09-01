@@ -32,8 +32,9 @@ module gx.ttyx.bookmark.bmchooser;
 
 import gid.gid : No;
 
-import gdk.event_key : EventKey;
-import gdk.types : KEY_Escape, KEY_Return;
+import gdk.types : KEY_Escape, KEY_Return, ModifierType;
+
+import gtk.event_controller_key : EventControllerKey;
 
 import gio.settings : GSettings = Settings;
 import gio.types : SettingsBindFlags;
@@ -49,7 +50,6 @@ import gtk.types : Orientation, PolicyType, ResponseType, SelectionMode, ShadowT
 import gtk.window : Window;
 
 import gx.gtk.util;
-import gx.gtk.events;
 
 import gx.i18n.l10n;
 
@@ -85,7 +85,9 @@ private:
         tv.connectRowActivated(() {
             response(ResponseType.Ok);
         });
-        connectGdkEvent!EventKey(tv, "key-press-event", &checkKeyPress);
+        EventControllerKey tvKeys = new EventControllerKey();
+        tvKeys.connectKeyPressed(&checkKeyPress);
+        tv.addController(tvKeys);
 
         ScrolledWindow sw = new ScrolledWindow();
         sw.add(tv);
@@ -100,7 +102,9 @@ private:
             tv.filterText = se.getText();
             updateUI();
         });
-        connectGdkEvent!EventKey(se, "key-press-event", &checkKeyPress);
+        EventControllerKey seKeys = new EventControllerKey();
+        seKeys.connectKeyPressed(&checkKeyPress);
+        se.addController(seKeys);
 
         Box box = new Box(Orientation.Vertical, 6);
         setAllMargins(box, 18);
@@ -137,12 +141,14 @@ private:
         return enabled;
     }
 
-    bool checkKeyPress(EventKey event) {
-        if (event.keyval == KEY_Escape) {
+    // Shared by the tree view and the search entry. GTK4 controllers are
+    // per-widget, so each gets its own EventControllerKey wired to this.
+    bool checkKeyPress(uint keyval, uint keycode, ModifierType state, EventControllerKey c) {
+        if (keyval == KEY_Escape) {
             response(ResponseType.Cancel);
             return true;
         }
-        if (event.keyval == KEY_Return) {
+        if (keyval == KEY_Return) {
             if (isSelectEnabled()) {
                 response(ResponseType.Ok);
                 return true;

@@ -65,7 +65,7 @@
  *   - new Button(label) → Button.newWithLabel; new CheckButton(label) →
  *     CheckButton.newWithLabel; new ScrolledWindow(tv) → no-arg + add(tv).
  *   - Enums PascalCase in <pkg>.types (ResponseType.Apply/Cancel/Ok,
- *     Orientation.Vertical, ShadowType.EtchedIn, PolicyType.Never/Automatic,
+ *     Orientation.Vertical, PolicyType.Never/Automatic,
  *     Align.End/Center, SettingsBindFlags.Default).
  */
 module gx.ttyx.terminal.password;
@@ -79,8 +79,9 @@ import std.uuid;
 
 import gid.gid;
 
-import gdk.event_key : EventKey;
-import gdk.types : KEY_Escape, KEY_Return;
+import gdk.types : KEY_Escape, KEY_Return, ModifierType;
+
+import gtk.event_controller_key : EventControllerKey;
 
 import gio.async_result : AsyncResult;
 import gio.cancellable : Cancellable;
@@ -111,7 +112,7 @@ import gtk.tree_iter : TreeIter;
 import gtk.tree_model : TreeModel;
 import gtk.tree_view : TreeView;
 import gtk.tree_view_column : TreeViewColumn;
-import gtk.types : Align, Orientation, PolicyType, ResponseType, ShadowType;
+import gtk.types : Align, Orientation, PolicyType, ResponseType;
 import gtk.window : Window;
 
 import secret.c.functions;
@@ -126,7 +127,6 @@ import secret.value : SecretValue = Value;
 
 import gx.gtk.dialog: showErrorDialog;
 import gx.gtk.util;
-import gx.gtk.events;
 import gx.i18n.l10n;
 
 import gx.ttyx.preferences;
@@ -222,17 +222,22 @@ private:
         se.connectSearchChanged(delegate() {
             filterEntries();
         });
-        connectGdkEvent!EventKey(se, "key-press-event", delegate bool(EventKey event) {
-            if (event.keyval == KEY_Escape) {
-                response(ResponseType.Cancel);
-                return true;
-            }
-            if (event.keyval == KEY_Return) {
-                response(ResponseType.Apply);
-                return true;
-            }
-            return false;
-        });
+        // GTK4: EventControllerKey; key-pressed still returns bool, so Escape
+        // and Return are consumed exactly as before.
+        EventControllerKey keyController = new EventControllerKey();
+        keyController.connectKeyPressed(
+            delegate bool(uint keyval, uint keycode, ModifierType state, EventControllerKey c) {
+                if (keyval == KEY_Escape) {
+                    response(ResponseType.Cancel);
+                    return true;
+                }
+                if (keyval == KEY_Return) {
+                    response(ResponseType.Apply);
+                    return true;
+                }
+                return false;
+            });
+        se.addController(keyController);
         b.add(se);
 
         Box bList = new Box(Orientation.Horizontal, 6);
@@ -267,8 +272,10 @@ private:
         });
 
         ScrolledWindow sw = new ScrolledWindow();
-        sw.add(tv);
-        sw.setShadowType(ShadowType.EtchedIn);
+        sw.setChild(tv);
+        // GTK4: GtkShadowType is gone; a scrolled window's border is a
+        // boolean frame styled via CSS.
+        sw.setHasFrame(true);
         sw.setPolicy(PolicyType.Never, PolicyType.Automatic);
         sw.setHexpand(true);
         sw.setVexpand(true);
