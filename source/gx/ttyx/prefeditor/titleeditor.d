@@ -138,7 +138,7 @@ private:
         saHelp.connectActivate(delegate(GVariant gv, SimpleAction sa) {
             // Was gnunn1.github.io/tilix-web — upstream Tilix's site, which
             // this fork does not control. Point at our own copy of the page.
-            showUri(null, "https://gwelr.github.io/ttyx_/manual/title/", getCurrentEventTime());
+            showUri(null, "https://github.com/iqzer0/ttyx_/blob/master/docs/manual/title.md", getCurrentEventTime());
         });
         sagVariables.insert(saHelp);
         helpSection.append(_("Help"), getActionDetailedName(ACTION_PREFIX, "help"));

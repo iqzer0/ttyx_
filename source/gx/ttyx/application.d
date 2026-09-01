@@ -984,7 +984,7 @@ public:
             messageArea.add(new Label(msg));
             // Was gnunn1.github.io/tilix-web — upstream Tilix's site, which
             // this fork does not control. Point at our own copy of the page.
-            messageArea.add(new LinkButton("https://gwelr.github.io/ttyx_/manual/vteconfig/"));
+            messageArea.add(new LinkButton("https://github.com/iqzer0/ttyx_/blob/master/docs/manual/vteconfig.md"));
             CheckButton cb = CheckButton.newWithLabel(_("Do not show this message again"));
             messageArea.add(cb);
             dlg.setImage(Image.newFromIconName("dialog-warning", IconSize.Dialog));

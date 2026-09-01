@@ -2,7 +2,7 @@
 
 Thanks for your interest in contributing to ttyx_!
 
-The [online documentation](https://gwelr.github.io/ttyx_/) has install instructions, a user manual, and a changelog. This file covers what you need to **work on ttyx_ itself** — setting up a dev environment, running the test suite, submitting changes.
+The [online documentation](https://github.com/iqzer0/ttyx_) has install instructions, a user manual, and a changelog. This file covers what you need to **work on ttyx_ itself** — setting up a dev environment, running the test suite, submitting changes.
 
 ## Prerequisites
 
@@ -10,7 +10,7 @@ The [online documentation](https://gwelr.github.io/ttyx_/) has install instructi
 - **GTK 3.18+** and **VTE 0.46+** (0.76+ recommended — some features like triggers depend on newer VTE releases) with development headers (`libgtk-3-dev`, `libvte-2.91-dev`, `libsecret-1-dev` on Debian/Ubuntu).
 - The GUI bindings are [giD](https://github.com/Kymorphia/gid) (`gid:gtk3`, `gid:vte2`, `gid:secret1`) — a source-only Dub package fetched from the registry and compiled in; nothing D-specific to install system-wide.
 
-See the [Install page](https://gwelr.github.io/ttyx_/install/) for the full system-dependency list.
+See the [Install page](https://github.com/iqzer0/ttyx_/blob/master/docs/install.md) for the full system-dependency list.
 
 ## Build
 
@@ -129,7 +129,7 @@ Key conventions worth knowing:
 - `source/secret/`, `source/secretc/` — libsecret D and C bindings.
 - `source/x11/` — X11 D bindings.
 - `data/` — GSettings schema, color schemes, icons, desktop file, AppStream metadata, scripts.
-- `docs/` — Jekyll site content published at <https://gwelr.github.io/ttyx_/>.
+- `docs/` — Jekyll site content published at <https://github.com/iqzer0/ttyx_>.
 - `po/` — gettext translations.
 
 ## License
