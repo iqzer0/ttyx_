@@ -23,7 +23,7 @@ import std.experimental.logger;
 import std.file;
 import std.path;
 
-import gdk.screen : Screen;
+import gdk.display : Display;
 
 import glib.bytes : Bytes;
 import glib.error : ErrorWrap;
@@ -72,9 +72,15 @@ CssProvider createCssProvider(string filename, string[string] variables = null) 
         CssProvider provider = new CssProvider();
         string css = getResource(filename, variables);
         if (css.length > 0) {
-            if (provider.loadFromData(cast(ubyte[]) css)) {
-                return provider;
-            }
+            // GTK4: loadFromData takes a string (was ubyte[]) and returns void
+            // (was bool). Parse failure is no longer reported synchronously —
+            // it arrives on the `parsing-error` signal. Callers here only use a
+            // null return to mean "no such resource", which getResource still
+            // signals by throwing, so behaviour is preserved for that case.
+            // TODO(WP4): connect `parsing-error` if we want malformed CSS to be
+            // surfaced rather than silently producing an empty provider.
+            provider.loadFromData(css);
+            return provider;
         }
     } catch (ErrorWrap ge) {
         trace("Unexpected error loading css provider " ~ filename);
@@ -84,19 +90,20 @@ CssProvider createCssProvider(string filename, string[string] variables = null) 
 }
 
 /**
- * Adds a CSSProvider to the default screen, if no provider is found it
+ * Adds a CSSProvider to the default display, if no provider is found it
  * returns null
  */
 CssProvider addCssProvider(string filename, ProviderPriority priority, string[string] variables = null) {
     try {
         CssProvider provider = createCssProvider(filename, variables);
         if (provider !is null) {
-            Screen screen = Screen.getDefault();
-            if (screen !is null) {
-                StyleContext.addProviderForScreen(screen, provider, priority);
+            // GTK4: GdkScreen is gone; style providers attach to the display.
+            Display display = Display.getDefault();
+            if (display !is null) {
+                StyleContext.addProviderForDisplay(display, provider, priority);
                 return provider;
             } else {
-                warning("Default screen is null, no CSS provider added and as a result ttyx_ UI may appear incorrect");
+                warning("Default display is null, no CSS provider added and as a result ttyx_ UI may appear incorrect");
                 return null;
             }
         }
