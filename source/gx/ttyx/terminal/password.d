@@ -210,8 +210,8 @@ private:
 
     void createUI() {
         with (getContentArea()) {
-            setMarginLeft(18);
-            setMarginRight(18);
+            setMarginStart(18);
+            setMarginEnd(18);
             setMarginTop(18);
             setMarginBottom(18);
         }
@@ -238,7 +238,7 @@ private:
                 return false;
             });
         se.addController(keyController);
-        b.add(se);
+        b.append(se);
 
         Box bList = new Box(Orientation.Horizontal, 6);
 
@@ -281,7 +281,7 @@ private:
         sw.setVexpand(true);
         sw.setSizeRequest(-1, 200);
 
-        bList.add(sw);
+        bList.append(sw);
 
         Box bButtons = new Box(Orientation.Vertical, 6);
         Button btnNew = Button.newWithLabel(_("New"));
@@ -311,7 +311,7 @@ private:
                     });
             }
         });
-        bButtons.add(btnNew);
+        bButtons.append(btnNew);
 
         Button btnEdit = Button.newWithLabel(_("Edit"));
         btnEdit.connectClicked(delegate() {
@@ -339,7 +339,7 @@ private:
                 }
             }
         });
-        bButtons.add(btnEdit);
+        bButtons.append(btnEdit);
 
         Button btnDelete = Button.newWithLabel(_("Delete"));
         btnDelete.connectClicked(delegate() {
@@ -374,16 +374,16 @@ private:
             rows = removeRowById(rows, id);
             ls.remove(selected);
         });
-        bButtons.add(btnDelete);
+        bButtons.append(btnDelete);
 
-        bList.add(bButtons);
+        bList.append(bButtons);
 
-        b.add(bList);
+        b.append(bList);
         CheckButton cbIncludeEnter = CheckButton.newWithLabel(_("Include return character with password"));
         gsSettings.bind(SETTINGS_PASSWORD_INCLUDE_RETURN_KEY, cbIncludeEnter, "active", SettingsBindFlags.Default);
 
-        b.add(cbIncludeEnter);
-        getContentArea().add(b);
+        b.append(cbIncludeEnter);
+        getContentArea().append(b);
     }
 
     void filterEntries() {
@@ -581,8 +581,8 @@ private:
         grid.attach(lblMatch, 1, row, 1, 1);
 
         with (getContentArea()) {
-            setMarginLeft(18);
-            setMarginRight(18);
+            setMarginStart(18);
+            setMarginEnd(18);
             setMarginTop(18);
             setMarginBottom(18);
             add(grid);

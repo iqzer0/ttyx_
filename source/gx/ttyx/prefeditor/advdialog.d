@@ -74,7 +74,7 @@ import gtk.tree_model : TreeModel;
 import gtk.tree_path : TreePath;
 import gtk.tree_view : TreeView;
 import gtk.tree_view_column : TreeViewColumn;
-import gtk.types : Align, Orientation, PolicyType, ResponseType, ShadowType;
+import gtk.types : Align, Orientation, PolicyType, ResponseType;
 import gtk.window : Window;
 
 import gx.i18n.l10n;
@@ -104,7 +104,7 @@ private:
     void createUI(string[] links) {
 
         setAllMargins(getContentArea(), 18);
-        getContentArea().add(createSecurityWarningLabel(
+        getContentArea().append(createSecurityWarningLabel(
             _("Warning: clicked links execute shell commands with captured text "
             ~ "substituted in. Under SSH or any remote session that text is "
             ~ "attacker-controlled — review templates for unquoted match-group "
@@ -173,14 +173,15 @@ private:
         tv.appendColumn(column);
 
         ScrolledWindow sc = new ScrolledWindow();
-        sc.add(tv);
-        sc.setShadowType(ShadowType.EtchedIn);
+        sc.setChild(tv);
+        // GTK4: GtkShadowType is gone; the border is a boolean frame (CSS-styled).
+        sc.setHasFrame(true);
         sc.setPolicy(PolicyType.Never, PolicyType.Automatic);
         sc.setHexpand(true);
         sc.setVexpand(true);
         sc.setSizeRequest(-1, 250);
 
-        box.add(sc);
+        box.append(sc);
 
         Box buttons = new Box(Orientation.Horizontal, 0);
         buttons.getStyleContext().addClass("linked");
@@ -192,7 +193,7 @@ private:
             ls.append(iter);
             selectRow(tv, ls.iterNChildren(null) - 1, null);
         });
-        buttons.add(btnAdd);
+        buttons.append(btnAdd);
         btnDelete = Button.newFromIconName("list-remove-symbolic");
         btnDelete.setTooltipText(_("Delete"));
         btnDelete.connectClicked(delegate() {
@@ -201,7 +202,7 @@ private:
                 ls.remove(selected);
             }
         });
-        buttons.add(btnDelete);
+        buttons.append(btnDelete);
 
         btnMoveUp = Button.newFromIconName("pan-up-symbolic");
         btnMoveUp.setTooltipText(_("Move up"));
@@ -212,7 +213,7 @@ private:
                 if (ls.iterPrevious(previous)) ls.swap(selected, previous);
             }
         });
-        buttons.add(btnMoveUp);
+        buttons.append(btnMoveUp);
 
         btnMoveDown = Button.newFromIconName("pan-down-symbolic");
         btnMoveDown.setTooltipText(_("Move down"));
@@ -223,14 +224,14 @@ private:
                 if (ls.iterNext(next)) ls.swap(selected, next);
             }
         });
-        buttons.add(btnMoveDown);
+        buttons.append(btnMoveDown);
 
-        box.add(buttons);
+        box.append(buttons);
 
-        getContentArea().add(box);
+        getContentArea().append(box);
 
         lblErrors = createErrorLabel();
-        getContentArea().add(lblErrors);
+        getContentArea().append(lblErrors);
 
         updateUI();
     }
@@ -297,7 +298,7 @@ private:
         string[] triggers = gs.getStrv(SETTINGS_ALL_TRIGGERS_KEY);
 
         setAllMargins(getContentArea(), 18);
-        getContentArea().add(createSecurityWarningLabel(
+        getContentArea().append(createSecurityWarningLabel(
             _("Warning: ExecuteCommand and RunProcess actions run shell commands "
             ~ "with captured groups substituted in. Under SSH or any remote session "
             ~ "terminal output is attacker-controlled — only configure these actions "
@@ -375,14 +376,15 @@ private:
         tv.appendColumn(column);
 
         ScrolledWindow sc = new ScrolledWindow();
-        sc.add(tv);
-        sc.setShadowType(ShadowType.EtchedIn);
+        sc.setChild(tv);
+        // GTK4: GtkShadowType is gone; the border is a boolean frame (CSS-styled).
+        sc.setHasFrame(true);
         sc.setPolicy(PolicyType.Never, PolicyType.Automatic);
         sc.setHexpand(true);
         sc.setVexpand(true);
         sc.setSizeRequest(-1, 250);
 
-        box.add(sc);
+        box.append(sc);
 
         Box buttons = new Box(Orientation.Vertical, 6);
         Button btnAdd = Button.newWithLabel(_("Add"));
@@ -391,7 +393,7 @@ private:
             ls.append(iter);
             selectRow(tv, ls.iterNChildren(null) - 1, null);
         });
-        buttons.add(btnAdd);
+        buttons.append(btnAdd);
         btnDelete = Button.newWithLabel(_("Delete"));
         btnDelete.connectClicked(delegate() {
             TreeIter selected = getSelectedIter(tv);
@@ -399,10 +401,10 @@ private:
                 ls.remove(selected);
             }
         });
-        buttons.add(btnDelete);
+        buttons.append(btnDelete);
 
-        box.add(buttons);
-        getContentArea().add(box);
+        box.append(buttons);
+        getContentArea().append(box);
 
         if (showLineSettings) {
             // Maximum number of lines to check for triggers when content change is
@@ -419,13 +421,13 @@ private:
             gs.bind(SETTINGS_TRIGGERS_UNLIMITED_LINES_KEY, sbLines, "sensitive",
                     cast(SettingsBindFlags)(SettingsBindFlags.Get | SettingsBindFlags.NoSensitivity | SettingsBindFlags.InvertBoolean));
 
-            bLines.add(cbTriggerLimit);
-            bLines.add(sbLines);
+            bLines.append(cbTriggerLimit);
+            bLines.append(sbLines);
 
-            getContentArea().add(bLines);
+            getContentArea().append(bLines);
         }
         lblErrors = createErrorLabel();
-        getContentArea().add(lblErrors);
+        getContentArea().append(lblErrors);
         updateUI();
     }
 

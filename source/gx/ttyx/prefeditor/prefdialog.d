@@ -81,7 +81,7 @@ import std.string;
 import std.typecons : No;
 
 import gdk.event : Event;
-import gdk.screen : Screen;
+import gdk.display : Display;
 import gdk.types : ModifierType, WindowTypeHint;
 
 import gio.menu : GMenu = Menu;
@@ -1528,7 +1528,9 @@ private:
             bSpecific.add(lblSpecific);
             string[] names = [_("Primary Monitor")];
             int[] values = [-1];
-            for(int monitor; monitor < Screen.getDefault().getNMonitors(); monitor++) {
+            // GTK4: GdkScreen is gone; monitors are a GListModel on the display.
+            int monitorCount = cast(int) Display.getDefault().getMonitors().getNItems();
+            for(int monitor; monitor < monitorCount; monitor++) {
                 names ~= _("Monitor ") ~ to!string(monitor);
                 values ~= monitor;
             }

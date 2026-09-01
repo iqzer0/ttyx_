@@ -35,7 +35,7 @@ import std.path;
 import std.uuid;
 
 import gdk.rgba : RGBA;
-import gdk.screen : Screen;
+import gdk.display : Display;
 
 import gdkpixbuf.pixbuf : Pixbuf;
 
@@ -664,7 +664,7 @@ Pixbuf[] getBookmarkIcons(Widget widget) {
     if (bmIcons.length > 0) return bmIcons;
     string[] names = ["folder-symbolic","mark-location-symbolic","folder-remote-symbolic", "application-x-executable-symbolic"];
     Pixbuf[] icons;
-    IconTheme iconTheme = IconTheme.getForScreen(Screen.getDefault());
+    IconTheme iconTheme = IconTheme.getForDisplay(Display.getDefault());
     if (iconTheme is null) {
         error("IconTheme could not be loaded");
         return [null, null, null, null];

@@ -88,7 +88,7 @@ bool showInputDialog(Window parent, out string value, string initialValue = "", 
             }
         });
     }
-    (cast(Box) dialog.getMessageArea()).add(entry);
+    (cast(Box) dialog.getMessageArea()).append(entry);
     entry.showAll();
     dialog.setDefaultResponse(ResponseType.Ok);
     if (dialog.run() == ResponseType.Ok) {
@@ -115,7 +115,7 @@ bool showConfirmDialog(Window parent, string message, GSettings settings = null,
     dialog.setTransientFor(parent);
     CheckButton cbPrompt = CheckButton.newWithLabel(_("Do not show this again"));
     cbPrompt.setMarginStart(12);
-    dialog.getContentArea().add(cbPrompt);
+    dialog.getContentArea().append(cbPrompt);
     dialog.setDefaultResponse(ResponseType.Cancel);
     scope (exit) {
         dialog.destroy();

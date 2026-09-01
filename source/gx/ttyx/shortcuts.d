@@ -82,7 +82,8 @@ ShortcutsWindow getShortcutWindow() {
                         .accelerator(accelName)
                         .build();
                 if (ss !is null) {
-                    sgProfile.add(ss);
+                    // GTK4: ShortcutsGroup.add -> addShortcut (typed).
+                    sgProfile.addShortcut(ss);
                 } else {
                     trace("Profile ShortcutShortcut is null");
                 }

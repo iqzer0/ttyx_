@@ -8,6 +8,8 @@
  *
  * The GtkD original needed the grestful DelegatePointer/invokeDelegatePointerFunc
  * machinery (C-linkage trampoline + manual GC.addRoot/removeRoot) because
+ * GTK4 removed gdk_threads_add_idle/timeout along with the GDK lock they
+ * existed to take; GLib's idleAdd/timeoutAdd are the direct equivalents.
  * gdk.Threads.threadsAddIdle took a raw GSourceFunc. giD's gdk.global bindings
  * take a D `bool delegate()` directly and do all of that internally:
  * freezeDelegate copies the closure into pinned, GC-rooted memory and
@@ -24,7 +26,7 @@ module gx.gtk.threads;
 
 import std.experimental.logger;
 
-import gdk.global : threadsAddIdle, threadsAddTimeout;
+import glib.global : idleAdd, timeoutAdd;
 import glib.types : PRIORITY_DEFAULT, PRIORITY_DEFAULT_IDLE;
 
 /**
@@ -41,7 +43,7 @@ import glib.types : PRIORITY_DEFAULT, PRIORITY_DEFAULT_IDLE;
  */
 void threadsAddIdleDelegate(T, parameterTuple...)(T theDelegate, parameterTuple parameters)
 {
-    threadsAddIdle(PRIORITY_DEFAULT_IDLE, delegate bool() {
+    idleAdd(PRIORITY_DEFAULT_IDLE, delegate bool() {
         try
         {
             return theDelegate(parameters);
@@ -69,7 +71,7 @@ void threadsAddIdleDelegate(T, parameterTuple...)(T theDelegate, parameterTuple 
  */
 uint threadsAddTimeoutDelegate(T, parameterTuple...)(uint interval, T theDelegate, parameterTuple parameters)
 {
-    return threadsAddTimeout(PRIORITY_DEFAULT, interval, delegate bool() {
+    return timeoutAdd(PRIORITY_DEFAULT, interval, delegate bool() {
         try
         {
             return theDelegate(parameters);

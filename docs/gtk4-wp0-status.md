@@ -348,3 +348,49 @@ the port that degrades a user-visible feature rather than relocating it.
 `colorschemes.d` and `renderer.d` came free, having been transitively blocked.
 Largest single jump so far, and exactly what the dependency-leverage reading
 predicted — `util.d` has 17 importers.
+
+## Compiler-driven sweeps (`sweep-container-api.py`)
+
+`GtkContainer.add` split into type-specific methods in GTK4, so the right
+replacement depends on the receiver's **type** — `Box` takes `append`, anything
+Bin-like takes `setChild`. That cannot be inferred from a variable name, and the
+receivers here are locals (`box`, `bContent`, `bButtons`, `sw`, …), so a
+name-based sweep would be guesswork.
+
+But the compiler states the type outright:
+
+```
+no property `add` for `box` of type `gtk.box.Box`
+```
+
+`sweep-container-api.py` drives the rewrite off that. It loops, because each
+pass lets modules compile further and reveal more sites, and it **skips
+unmapped types with a warning rather than guessing** — which is how
+`ShortcutsGroup` was caught (GTK4 wants the typed `addShortcut`, not `setChild`).
+
+First run: 32 sites (30 `Box`→`append`, 2 `ScrolledWindow`→`setChild`), all four
+formatting assertions clean. **175 `.add(` sites remain** — they sit in modules
+still blocked by earlier errors, so the compiler has not reported their types
+yet. The sweep converges as blockers clear; re-run it after each batch.
+
+This is the general technique for the rest of the port: where a rename depends
+on type information, harvest it from the compiler instead of pattern-matching
+source text.
+
+### Remaining surface
+
+| API | Sites |
+|---|---:|
+| `.add(` | 175 (convergent — re-run the sweep) |
+| `showAll()` | 39 |
+| `getToplevel()` | 29 |
+| `.run()` | 26 (**WP1**, architectural) |
+| `setNoShowAll` | 18 |
+| `setLineWrap` | 4 |
+
+`showAll`/`setNoShowAll` need care rather than a script: GTK4 widgets are
+visible by default and `setNoShowAll` is gone, so the pair has to be read
+together per site — some become `present()`, some `setVisible(false)`, many just
+delete.
+
+**41 clean, 27 failing.**
