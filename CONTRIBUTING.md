@@ -87,6 +87,36 @@ Useful gdb commands once you hit a crash:
 
 For a post-mortem on a crash that already happened, `./debug-ttyx.sh --core` opens the most recent ttyx_ coredump via `coredumpctl debug`.
 
+## Translations
+
+ttyx_ ships 46 locales under `po/`. The gettext template is **generated, not
+tracked** — `po/*.pot` is deliberately absent from the repository, so run the
+extractor to produce it:
+
+```bash
+./extract-strings.sh
+```
+
+That regenerates `po/ttyx.pot` from the D sources (via xgettext's Vala mode,
+since xgettext has no D backend), the Glade `.ui` files, the `.desktop` and
+appdata templates and the Nautilus extension, then `msgmerge`s the result into
+every existing `.po` and refreshes `po/LINGUAS`.
+
+**Adding a language:** create `po/<locale>.po` from the generated template
+(`msginit -i po/ttyx.pot -l <locale>`), translate, and re-run
+`./extract-strings.sh` so `LINGUAS` picks it up.
+
+**Updating a language:** run the extractor first so your `.po` is merged
+against current strings, then translate the `#, fuzzy` and untranslated
+entries. `msgfmt --statistics -o /dev/null po/<locale>.po` reports where a
+locale stands.
+
+Only commit the `.po` files you actually changed — a full extractor run
+rewrites line references in all 46, which makes for an unreviewable diff.
+`install.sh` compiles the `.po` files at install time; it does **not**
+regenerate the template or `LINGUAS`, so translation upkeep is always an
+explicit `./extract-strings.sh` run.
+
 ## Code style
 
 Enforced by [.editorconfig](.editorconfig) and [dscanner.ini](dscanner.ini). Formatter: [`dfmt`](https://github.com/dlang-community/dfmt).

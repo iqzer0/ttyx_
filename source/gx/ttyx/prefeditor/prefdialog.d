@@ -1022,7 +1022,12 @@ private:
                         dlg.setImage(Image.newFromIconName("dialog-question", IconSize.Dialog));
                         dlg.setDefaultResponse(ResponseType.Ok);
                         dlg.showAll();
-                        if (dlg.run() != ResponseType.Cancel) {
+                        // Require an explicit OK. This tested `!= Cancel`, so
+                        // dismissing the dialog with Escape or the window
+                        // close button counted as confirmation and silently
+                        // disabled the *other* action's shortcut — the exact
+                        // outcome someone hitting Escape is trying to avoid.
+                        if (dlg.run() == ResponseType.Ok) {
                             tsShortcuts.setValue(iter, COLUMN_SHORTCUT, new Value(_(SHORTCUT_DISABLED)));
                             updateShortcutSetting(iter, SHORTCUT_DISABLED);
                             //gsShortcuts.setString(currentActionName, SHORTCUT_DISABLED);
