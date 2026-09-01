@@ -29,7 +29,20 @@ A security-focused tiling terminal emulator for Linux/GNOME. Competes with GNOME
 - [x] ProcessMonitor: targeted foreground process lookup instead of full /proc scan — idle CPU 1.4% → 0.1% (#41)
 
 ### Architecture
-- [x] Decompose terminal.d — PreferenceRegistry, extracted ClipboardHandler, TerminalRenderer, ProcessQuery, SpawnHandler, FlatpakHostCommands (#32)
+- [x] Decompose terminal.d, first pass — PreferenceRegistry, extracted ClipboardHandler, TerminalRenderer, ProcessQuery, SpawnHandler, FlatpakHostCommands (#32)
+- [ ] **Decompose terminal.d, second pass — reopened 2026-09-01.** The first pass
+      was real, but `terminal.d` is still **3,944 lines in one class** with 123
+      member functions, by far the largest file in the repo; marking the item
+      done understated that. Plan in
+      [docs/terminal-decomposition.md](docs/terminal-decomposition.md).
+      Sequencing matters: measuring each cluster's overlap with the GTK4 work
+      splits them cleanly. Extract the three GTK4-independent clusters now
+      (~577 lines, 0–3 affected lines each) and leave drag-and-drop (35) and UI
+      construction (30) until Phase 2b rewrites them anyway.
+  - [ ] `terminal/triggers.d` (~164 lines) — first: zero GTK4 overlap, and it is the security-critical `/bin/sh -c` path, so it should be readable and testable in isolation
+  - [ ] `terminal/urlmatch.d` (~270 lines) — OSC 8 scheme allow-list and custom-link exec path
+  - [ ] `terminal/titlebuilder.d` (~143 lines) — `replaceVariables` resolves remote-settable OSC values and wants tests
+  - [ ] *(after Phase 2b)* extract drag-and-drop and UI construction, using the seams the port creates
 
 ## Phase 1: Remaining security items
 
