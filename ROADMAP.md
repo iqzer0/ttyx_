@@ -152,8 +152,25 @@ A potential security-hardened fork for enterprise/compliance use cases:
 
 ## Known issues
 
-- Titlebar shows a literal `${title}` (no substitution) when a session is
-  loaded via `--session` in a new process; interactive loads are fine.
-  Found during the v1.3.0-beta.1 GUI smoke pass (2026-08-08). Cosmetic —
-  likely the app-title template refresh isn't triggered after session
-  deserialization on the command-line load path.
+*(none open)*
+
+### Fixed
+
+- ~~Titlebar shows a literal `${title}` when a session is loaded via
+  `--session` in a new process; interactive loads are fine. Found during the
+  v1.3.0-beta.1 GUI smoke pass (2026-08-08).~~ **Fixed 2026-09-01.** The
+  guess in the original note — a missing title refresh — was wrong. The real
+  cause was `Session.currentTerminal` never being set on the deserialization
+  path: it is assigned only in `createUI(Terminal)` and in the focus-in
+  handler, and `parseSession` goes through neither. `session-name` defaults
+  to `${title}`, which only the active terminal can resolve, so with a null
+  `currentTerminal` the token reached the titlebar verbatim. Interactive
+  loads self-corrected because the window was already focused and a
+  focus-in arrived promptly; a fresh `--session` process computed its title
+  first and kept the literal. A second symptom fell out of the same cause:
+  `focusRestore()` early-returns on a null `currentTerminal`, so a loaded
+  session could come up with focus in no terminal at all. `parseSession` now
+  seeds `currentTerminal`, and `getDisplayText` blanks unresolved
+  terminal-scope variables instead of passing them through. Verified
+  before/after on a real `--session` load: `ttyx_: ${title}` →
+  `ttyx_: user@host:~`.

@@ -153,6 +153,47 @@ unittest {
 }
 
 /**
+ * Remove every terminal-scope variable from `text`.
+ *
+ * Used when a session has no active terminal and therefore cannot resolve
+ * terminal variables. Driven off the canonical VARIABLE_TERMINAL_VALUES list
+ * so a newly added variable is covered automatically.
+ *
+ * Free function so it is testable without constructing a GTK widget tree.
+ */
+package string blankTerminalVariables(string text) {
+    string result = text;
+    foreach (variable; VARIABLE_TERMINAL_VALUES) {
+        result = result.replace(variable, "");
+    }
+    return result;
+}
+
+unittest {
+    // The regression this exists for: session-name defaults to "${title}",
+    // and with no active terminal it used to reach the titlebar verbatim.
+    assert(blankTerminalVariables(VARIABLE_TERMINAL_TITLE) == "");
+    assert(blankTerminalVariables("ttyx_: " ~ VARIABLE_TERMINAL_TITLE) == "ttyx_: ");
+}
+
+unittest {
+    // Every terminal-scope variable is covered, not just ${title} — the title
+    // editor offers all of them in session and window scope.
+    foreach (variable; VARIABLE_TERMINAL_VALUES) {
+        assert(blankTerminalVariables(variable) == "",
+            "unresolved terminal variable leaked: " ~ variable);
+        assert(blankTerminalVariables("a" ~ variable ~ "b") == "ab");
+    }
+}
+
+unittest {
+    // Non-terminal text and other scopes are left alone.
+    assert(blankTerminalVariables("plain text") == "plain text");
+    assert(blankTerminalVariables(VARIABLE_SESSION_NAME) == VARIABLE_SESSION_NAME);
+    assert(blankTerminalVariables("") == "");
+}
+
+/**
  * The session is used to represent a grouping of tiled terminals. It is
  * responsible for managing the layout, de/serialization and session level
  * actions. Note that the Terminal widgets managed by the session are not the
@@ -1089,6 +1130,27 @@ private:
         trace(child.toPrettyString());
         groupChild.add(parseNode(child, sizeInfo));
 
+        // Seed currentTerminal. The interactive paths get this from
+        // createUI(Terminal); deserialization never goes through it, so
+        // currentTerminal stayed null until some terminal happened to raise
+        // focus-in. Two things broke in that window:
+        //
+        //  - getDisplayText() skips the currentTerminal.getDisplayText() call
+        //    that resolves terminal variables, so the default session name
+        //    "${title}" reached the titlebar as a literal. An interactive load
+        //    self-corrected because the window was already focused; a fresh
+        //    `ttyx --session <file>` process computed its title first and kept
+        //    the literal (the known issue from the v1.3.0-beta.1 smoke pass).
+        //  - focusRestore() is a no-op on a null currentTerminal, so a loaded
+        //    session could come up with focus in no terminal at all.
+        //
+        // terminals[] is populated by createTerminal/addTerminal during
+        // parseNode above, in document order, so [0] is the first terminal in
+        // the saved layout.
+        if (currentTerminal is null && terminals.length > 0) {
+            currentTerminal = terminals[0];
+        }
+
         if (maximizedUUID.length > 0) {
             Terminal terminal = findTerminal(maximizedUUID);
             if (terminal !is null) {
@@ -1355,8 +1417,19 @@ public:
             result = result.replace(VARIABLE_TERMINAL_NUMBER, to!string(currentTerminal.terminalID));
             result = currentTerminal.getDisplayText(result);
         } else {
+            // No active terminal, so the currentTerminal.getDisplayText() call
+            // that resolves terminal-scope variables cannot run. Blank them
+            // instead of letting them through verbatim — the default session
+            // name is "${title}", and leaking that to the titlebar as literal
+            // text reads as a bug to the user. The title editor offers every
+            // terminal variable in session and window scope, so drive this off
+            // the canonical list rather than naming individual ones; a new
+            // variable then cannot reintroduce the leak.
+            // Belt-and-braces: parseSession now seeds currentTerminal, so this
+            // branch should be rare.
             result = result.replace(VARIABLE_TERMINAL_NUMBER, "");
             result = result.replace(VARIABLE_ACTIVE_TERMINAL_TITLE, "");
+            result = blankTerminalVariables(result);
         }
         return result;
     }
