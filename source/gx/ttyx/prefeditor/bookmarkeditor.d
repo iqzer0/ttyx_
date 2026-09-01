@@ -33,7 +33,7 @@ import gtk.scrolled_window : ScrolledWindow;
 import gtk.tree_iter : TreeIter;
 import gtk.tree_model : TreeModel;
 import gtk.tree_view : TreeView;
-import gtk.types : IconSize, Orientation, PolicyType, ResponseType, SelectionMode, ShadowType;
+import gtk.types : Orientation, PolicyType, ResponseType, SelectionMode, ShadowType;
 import gtk.window : Window;
 
 import gx.i18n.l10n;
@@ -82,22 +82,22 @@ private:
         Box bButtons = new Box(Orientation.Horizontal, 0);
         bButtons.getStyleContext().addClass("linked");
 
-        Button btnAdd = Button.newFromIconName("list-add-symbolic", IconSize.Button);
+        Button btnAdd = Button.newFromIconName("list-add-symbolic");
         btnAdd.setTooltipText(_("Add bookmark"));
         btnAdd.connectClicked(&addBookmark);
         bButtons.add(btnAdd);
 
-        btnEdit = Button.newFromIconName("input-tablet-symbolic", IconSize.Button);
+        btnEdit = Button.newFromIconName("input-tablet-symbolic");
         btnEdit.setTooltipText(_("Edit bookmark"));
         btnEdit.connectClicked(&editBookmark);
         bButtons.add(btnEdit);
 
-        btnDelete = Button.newFromIconName("list-remove-symbolic", IconSize.Button);
+        btnDelete = Button.newFromIconName("list-remove-symbolic");
         btnDelete.setTooltipText(_("Delete bookmark"));
         btnDelete.connectClicked(&deleteBookmark);
         bButtons.add(btnDelete);
 
-        btnUnselect = Button.newFromIconName("edit-clear-symbolic", IconSize.Button);
+        btnUnselect = Button.newFromIconName("edit-clear-symbolic");
         btnUnselect.setTooltipText(_("Unselect bookmark"));
         btnUnselect.connectClicked(&unselectBookmark);
         bButtons.add(btnUnselect);

@@ -56,7 +56,7 @@ import gtk.label : Label;
 import gtk.spin_button : SpinButton;
 import gtk.stack : Stack;
 import gtk.stack_switcher : StackSwitcher;
-import gtk.types : Align, FileChooserAction, IconSize, Orientation, ResponseType;
+import gtk.types : Align, FileChooserAction, Orientation, ResponseType;
 import gtk.window : Window;
 
 import gx.gtk.util;
@@ -98,7 +98,7 @@ private:
             eFolder.setHexpand(true);
             bPicker.add(eFolder);
 
-            Button btnFolderPicker = Button.newFromIconName("folder-symbolic", IconSize.Button);
+            Button btnFolderPicker = Button.newFromIconName("folder-symbolic");
             btnFolderPicker.setTooltipText(_("Select folder"));
             btnFolderPicker.connectClicked(() {
                 BookmarkChooser bc = new BookmarkChooser(this, BMSelectionMode.FOLDER);
@@ -110,7 +110,7 @@ private:
             });
             bPicker.add(btnFolderPicker);
 
-            Button btnClearFolder = Button.newFromIconName("edit-clear-symbolic", IconSize.Button);
+            Button btnClearFolder = Button.newFromIconName("edit-clear-symbolic");
             btnClearFolder.setTooltipText(_("Clear folder"));
             btnClearFolder.connectClicked(() {
                 _folder = null;

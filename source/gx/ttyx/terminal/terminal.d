@@ -194,7 +194,7 @@ import gtk.style_context : StyleContext;
 import gtk.target_entry : TargetEntry;
 import gtk.target_list : TargetList;
 import gtk.toggle_button : ToggleButton;
-import gtk.types : Align, DestDefaults, DragResult, FileChooserAction, IconSize,
+import gtk.types : Align, DestDefaults, DragResult, FileChooserAction, 
     MessageType, Orientation, PolicyType, PositionType, ReliefStyle,
     ResponseType, StateFlags, TargetFlags, WindowType,
     STYLE_PROVIDER_PRIORITY_APPLICATION;
@@ -477,7 +477,7 @@ private:
 
         Box bTitleLabel = new Box(Orientation.Horizontal, 6);
         bTitleLabel.add(lblTitle);
-        bTitleLabel.add(Image.newFromIconName("pan-down-symbolic", IconSize.Menu));
+        bTitleLabel.add(Image.newFromIconName("pan-down-symbolic"));
 
         mbTitle = new MenuButton();
         mbTitle.setRelief(ReliefStyle.None);
@@ -498,7 +498,7 @@ private:
         bTitle.packStart(mbTitle, false, false, 0);
 
         //Close Button
-        Button btnClose = Button.newFromIconName("window-close-symbolic", IconSize.Menu);
+        Button btnClose = Button.newFromIconName("window-close-symbolic");
         btnClose.setTooltipText(_("Close"));
         btnClose.setRelief(ReliefStyle.None);
         btnClose.setFocusOnClick(false);
@@ -506,7 +506,7 @@ private:
         bTitle.packEnd(btnClose, false, false, 0);
 
         //Maximize Button
-        btnMaximize = Button.newFromIconName("window-maximize-symbolic", IconSize.Menu);
+        btnMaximize = Button.newFromIconName("window-maximize-symbolic");
         btnMaximize.setTooltipText(_("Maximize"));
         btnMaximize.setRelief(ReliefStyle.None);
         btnMaximize.setFocusOnClick(false);
@@ -516,7 +516,7 @@ private:
         //Synchronize Input Button
         tbSyncInput = new ToggleButton();
         tbSyncInput.setNoShowAll(true);
-        tbSyncInput.setImage(Image.newFromIconName("input-keyboard-symbolic", IconSize.Menu));
+        tbSyncInput.setImage(Image.newFromIconName("input-keyboard-symbolic"));
         tbSyncInput.setTooltipText(_("Disable input synchronization for this terminal"));
         tbSyncInput.setRelief(ReliefStyle.None);
         tbSyncInput.setFocusOnClick(false);
@@ -524,13 +524,13 @@ private:
         bTitle.packEnd(tbSyncInput, false, false, 0);
 
         //Read Only Image
-        imgReadOnly = Image.newFromIconName("changes-prevent-symbolic", IconSize.Menu);
+        imgReadOnly = Image.newFromIconName("changes-prevent-symbolic");
         imgReadOnly.setNoShowAll(true);
         imgReadOnly.setTooltipText(_("Read-Only"));
         bTitle.packEnd(imgReadOnly, false, false, 0);
 
         //New Output
-        imgNewOuput = Image.newFromIconName("insert-text-symbolic", IconSize.Menu);
+        imgNewOuput = Image.newFromIconName("insert-text-symbolic");
         imgNewOuput.setNoShowAll(true);
         imgNewOuput.setTooltipText(_("New output"));
         bTitle.packEnd(imgNewOuput, false, false, 0);
@@ -1525,7 +1525,7 @@ private:
             icon = "window-maximize-symbolic";
             btnMaximize.setTooltipText(_("Maximize"));
         }
-        btnMaximize.setImage(Image.newFromIconName(icon, IconSize.Button));
+        btnMaximize.setImage(Image.newFromIconName(icon));
     }
 
     /**

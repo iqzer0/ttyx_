@@ -138,7 +138,7 @@ import gtk.overlay : Overlay;
 import gtk.popover : Popover;
 import gtk.stack : Stack;
 import gtk.toggle_button : ToggleButton;
-import gtk.types : Allocation, ButtonsType, FileChooserAction, IconSize, MessageType, Orientation, PositionType,
+import gtk.types : Allocation, ButtonsType, FileChooserAction, MessageType, Orientation, PositionType,
     ReliefStyle, ResponseType, ShadowType;
 import gtk.widget : Widget;
 import gtk.window : Window;
@@ -375,9 +375,9 @@ private:
         //New tab button
         Button btnNew;
         if (useTabs) {
-            btnNew = Button.newFromIconName("tab-new-symbolic", IconSize.Button);
+            btnNew = Button.newFromIconName("tab-new-symbolic");
         } else {
-            btnNew = Button.newFromIconName("list-add-symbolic", IconSize.Button);
+            btnNew = Button.newFromIconName("list-add-symbolic");
         }
         btnNew.setFocusOnClick(false);
         btnNew.setAlwaysShowImage(true);
@@ -394,7 +394,7 @@ private:
             tbSideBar.getStyleContext().addClass("session-sidebar-button");
             Box b = new Box(Orientation.Horizontal, 6);
             lblSideBar = new Label("1 / 1");
-            Image img = Image.newFromIconName("pan-down-symbolic", IconSize.Menu);
+            Image img = Image.newFromIconName("pan-down-symbolic");
             b.add(lblSideBar);
             b.add(img);
             tbSideBar.add(b);
@@ -425,23 +425,23 @@ private:
         //Session Actions
         mbSessionActions = new MenuButton();
         mbSessionActions.setFocusOnClick(false);
-        Image iHamburger = Image.newFromIconName("open-menu-symbolic", IconSize.Menu);
+        Image iHamburger = Image.newFromIconName("open-menu-symbolic");
         mbSessionActions.add(iHamburger);
         mbSessionActions.setPopover(createPopover(mbSessionActions));
 
-        Button btnAddHorizontal = Button.newFromIconName("ttyx-add-horizontal-symbolic", IconSize.Menu);
+        Button btnAddHorizontal = Button.newFromIconName("ttyx-add-horizontal-symbolic");
         btnAddHorizontal.setDetailedActionName(getActionDetailedName(ACTION_PREFIX, ACTION_SESSION_ADD_RIGHT));
         btnAddHorizontal.setFocusOnClick(false);
         btnAddHorizontal.setTooltipText(_("Add terminal right"));
 
-        Button btnAddVertical = Button.newFromIconName("ttyx-add-vertical-symbolic", IconSize.Menu);
+        Button btnAddVertical = Button.newFromIconName("ttyx-add-vertical-symbolic");
         btnAddVertical.setDetailedActionName(getActionDetailedName(ACTION_PREFIX, ACTION_SESSION_ADD_DOWN));
         btnAddVertical.setTooltipText(_("Add terminal down"));
         btnAddVertical.setFocusOnClick(false);
 
         // Add find button
         tbFind = new ToggleButton();
-        tbFind.setImage(Image.newFromIconName("edit-find-symbolic", IconSize.Menu));
+        tbFind.setImage(Image.newFromIconName("edit-find-symbolic"));
         tbFind.setTooltipText(_("Find text in terminal"));
         tbFind.setFocusOnClick(false);
         _tbFindToggledId = tbFind.connectToggled(delegate(ToggleButton tb) {
@@ -2296,13 +2296,13 @@ public:
 
         add(stTitle);
 
-        imgNewOutput = Image.newFromIconName("view-list-symbolic", IconSize.Menu);
+        imgNewOutput = Image.newFromIconName("view-list-symbolic");
         imgNewOutput.setNoShowAll(true);
         imgNewOutput.setTooltipText(_("New output displayed"));
 
         add(imgNewOutput);
 
-		button = Button.newFromIconName("window-close-symbolic", IconSize.Menu);
+		button = Button.newFromIconName("window-close-symbolic");
         button.getStyleContext().addClass("ttyx-small-button");
 		button.setRelief(ReliefStyle.None);
 		button.setFocusOnClick(false);

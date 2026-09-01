@@ -140,7 +140,7 @@ import gtk.tree_path : TreePath;
 import gtk.tree_store : TreeStore;
 import gtk.tree_view : TreeView;
 import gtk.tree_view_column : TreeViewColumn;
-import gtk.types : Align, ButtonsType, CellRendererAccelMode, FileChooserAction, IconSize, MessageType, Orientation,
+import gtk.types : Align, ButtonsType, CellRendererAccelMode, FileChooserAction, MessageType, Orientation,
     PolicyType, PositionType, ReliefStyle, ResponseType, SelectionMode, ShadowType, SizeGroupMode;
 import gtk.widget : Widget;
 import gtk.window : Window;
@@ -255,12 +255,12 @@ private:
         Box bButtons = new Box(Orientation.Horizontal, 0);
         bButtons.getStyleContext().addClass("linked");
         setAllMargins(bButtons, 6);
-        Button btnAddProfile = Button.newFromIconName("list-add-symbolic", IconSize.Button);
+        Button btnAddProfile = Button.newFromIconName("list-add-symbolic");
         btnAddProfile.setTooltipText(_("Add profile"));
         btnAddProfile.connectClicked(&onAddProfile);
         bButtons.packStart(btnAddProfile, false, false, 0);
 
-        btnDeleteProfile = Button.newFromIconName("list-remove-symbolic", IconSize.Button);
+        btnDeleteProfile = Button.newFromIconName("list-remove-symbolic");
         btnDeleteProfile.setTooltipText(_("Delete profile"));
         btnDeleteProfile.connectClicked(&onDeleteProfile);
         bButtons.packStart(btnDeleteProfile, false, false, 0);
@@ -322,7 +322,7 @@ private:
         hbMain.setTitle("");
 
         searchButton = new ToggleButton();
-        searchButton.setImage(Image.newFromIconName("system-search-symbolic", IconSize.Menu));
+        searchButton.setImage(Image.newFromIconName("system-search-symbolic"));
         searchButton.setNoShowAll(true);
         hbMain.packEnd(searchButton);
 
@@ -600,7 +600,7 @@ private:
 
         box.packEnd(btnMenu, false, false, 0);
 
-        imgDefault = Image.newFromIconName("object-select-symbolic", IconSize.Button);
+        imgDefault = Image.newFromIconName("object-select-symbolic");
         imgDefault.setNoShowAll(true);
         box.packEnd(imgDefault, false, false, 0);
         if (isDefault) {
@@ -887,7 +887,7 @@ private:
         CheckButton cbAccelerators = CheckButton.newWithLabel(_("Enable shortcuts"));
         bh.bind(SETTINGS_ACCELERATORS_ENABLED, cbAccelerators, "active", SettingsBindFlags.Default);
 
-        btnDefault = Button.newFromIconName("edit-undo-symbolic", IconSize.Button);
+        btnDefault = Button.newFromIconName("edit-undo-symbolic");
         btnDefault.setTooltipText(_("Restore default shortcut for this action"));
         btnDefault.setSensitive(false);
         btnDefault.connectClicked(delegate() {
@@ -1019,7 +1019,7 @@ private:
                         messageArea.setMarginLeft(0);
                         messageArea.setMarginRight(0);
                         messageArea.add(new Label(msg));
-                        dlg.setImage(Image.newFromIconName("dialog-question", IconSize.Dialog));
+                        dlg.setImage(Image.newFromIconName("dialog-question"));
                         dlg.setDefaultResponse(ResponseType.Ok);
                         dlg.showAll();
                         // Require an explicit OK. This tested `!= Cancel`, so
@@ -1283,7 +1283,7 @@ class AppearancePreferences: Box {
                }
             });
 
-            Button btnReset = Button.newFromIconName("edit-delete-symbolic", IconSize.Button);
+            Button btnReset = Button.newFromIconName("edit-delete-symbolic");
             btnReset.setTooltipText(_("Reset background image"));
             btnReset.connectClicked(delegate() {
                 fcbImage.unselectAll();

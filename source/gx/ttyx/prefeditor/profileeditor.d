@@ -104,7 +104,7 @@ import gtk.tree_iter : TreeIter;
 import gtk.tree_model : TreeModel;
 import gtk.tree_view : TreeView;
 import gtk.tree_view_column : TreeViewColumn;
-import gtk.types : Align, FileChooserAction, IconSize, Orientation, PolicyType,
+import gtk.types : Align, FileChooserAction, Orientation, PolicyType,
                    ResponseType, ShadowType, SizeGroupMode;
 import gtk.widget : Widget;
 import gtk.window : Window;
@@ -624,7 +624,7 @@ private:
         bh.bind(SETTINGS_PROFILE_USE_THEME_COLORS_KEY, cbUseThemeColors, "active", SettingsBindFlags.Default);
 
         MenuButton mbAdvanced = new MenuButton();
-        mbAdvanced.add(createBox(Orientation.Horizontal, 6, [cast(Widget) new Label(_("Advanced")), Image.newFromIconName("pan-down-symbolic", IconSize.Menu)]));
+        mbAdvanced.add(createBox(Orientation.Horizontal, 6, [cast(Widget) new Label(_("Advanced")), Image.newFromIconName("pan-down-symbolic")]));
         mbAdvanced.setPopover(createPopover(mbAdvanced));
         box.add(createBox(Orientation.Horizontal, 6, [cast(Widget) cbUseThemeColors, mbAdvanced]));
 

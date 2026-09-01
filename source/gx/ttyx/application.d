@@ -102,7 +102,7 @@ import gtk.link_button : LinkButton;
 import gtk.message_dialog : MessageDialog;
 import gtk.settings : Settings;
 import gtk.style_context : StyleContext;
-import gtk.types : IconSize, MessageType, ResponseType;
+import gtk.types : MessageType, ResponseType;
 import gtk.widget : Widget;
 import gtk.window : Window;
 
@@ -988,7 +988,7 @@ public:
             messageArea.add(new LinkButton("https://github.com/iqzer0/ttyx_/blob/master/docs/manual/vteconfig.md"));
             CheckButton cb = CheckButton.newWithLabel(_("Do not show this message again"));
             messageArea.add(cb);
-            dlg.setImage(Image.newFromIconName("dialog-warning", IconSize.Dialog));
+            dlg.setImage(Image.newFromIconName("dialog-warning"));
             dlg.showAll();
             dlg.run();
             if (cb.getActive()) {

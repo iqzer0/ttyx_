@@ -39,7 +39,7 @@ import gtk.global : getCurrentEventTime, showUri;
 import gtk.image : Image;
 import gtk.menu_button : MenuButton;
 import gtk.popover_menu : PopoverMenu;
-import gtk.types : IconSize, Orientation;
+import gtk.types : Orientation;
 
 import gx.gtk.actions;
 
@@ -83,7 +83,7 @@ private:
         add(entry);
 
         MenuButton mbVariables = new MenuButton();
-        mbVariables.add(Image.newFromIconName("pan-down-symbolic", IconSize.Menu));
+        mbVariables.add(Image.newFromIconName("pan-down-symbolic"));
         mbVariables.setFocusOnClick(false);
         mbVariables.setPopover(createPopover(tes));
         add(mbVariables);

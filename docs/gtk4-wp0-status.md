@@ -217,3 +217,43 @@ unused-import error.
 
 33 clean → **35 clean, 33 failing**. The two pilot modules moved, and nothing
 regressed.
+
+## IconSize sweep, and a lesson about the progress metric
+
+Scripted across 11 files: **38 `IconSize` arguments deleted** and 11
+`gtk.types` import lists pruned. `IconSize` is now **0** tree-wide, as are
+`setMarginLeft`/`Right`.
+
+The module counter did **not** move — still 35 clean, 33 failing. That is the
+predicted behaviour, not a failure: `IconSize` was never the *first* error in
+any of those files, so per-module "clean" cannot see the work. It is concrete
+confirmation of the metric warning above.
+
+**Track this table instead.** Remaining removed-API surface, tree-wide,
+excluding comments:
+
+| API | Sites left |
+|---|---:|
+| `showAll()` | 39 |
+| `connectGdkEvent` | 34 |
+| `ShadowType` | 25 |
+| `EventBox` | 16 |
+| `ReliefStyle` | 11 |
+| `IconSize` | **0** ✓ |
+| `setMarginLeft/Right` | **0** ✓ |
+
+### Scripted-sweep cautions, learned the hard way
+
+The first two attempts at this sweep introduced damage that type-checking does
+not catch, so it went in three times before it was right:
+
+1. Re-joining wrapped `import gtk.types : ...` statements into single 200+
+   character lines, violating the project's own 160 soft / 170 hard limit.
+2. A `\n\n\n+` → `\n\n` "tidy-up" that silently deleted **14** legitimate
+   blank lines separating unrelated statements.
+3. Removing `IconSize,` from the end of a wrapped line without keeping the
+   newline, leaving `FileChooserAction,     MessageType` joined inline.
+
+Any future sweep should assert all four afterwards: zero live uses remaining,
+zero lines over 171 chars added, zero blank lines removed, and zero
+`,\s{2,}[A-Z]` joins. Those checks are what caught all three.

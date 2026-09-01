@@ -51,7 +51,7 @@ import gtk.image : Image;
 import gtk.label : Label;
 import gtk.message_dialog : MessageDialog;
 import gtk.scrolled_window : ScrolledWindow;
-import gtk.types : Align, IconSize, MessageType, PolicyType, ResponseType, ShadowType;
+import gtk.types : Align, MessageType, PolicyType, ResponseType, ShadowType;
 import gtk.window : Window;
 
 import pango.types : EllipsizeMode;
@@ -435,7 +435,7 @@ public:
         messageArea.setMarginRight(0);
         string[3] msg = getUnsafePasteMessage();
         setMarkup("<span weight='bold' size='larger'>" ~ msg[0] ~ "</span>\n\n" ~ msg[1] ~ "\n" ~ msg[2] ~ "\n");
-        setImage(Image.newFromIconName("dialog-warning", IconSize.Dialog));
+        setImage(Image.newFromIconName("dialog-warning"));
 
         Label lblCmd = new Label(markupEscapeText(cmd));
         lblCmd.setUseMarkup(true);

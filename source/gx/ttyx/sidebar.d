@@ -80,7 +80,7 @@ import gtk.revealer : Revealer;
 import gtk.scrolled_window : ScrolledWindow;
 import gtk.selection_data : SelectionData;
 import gtk.target_entry : TargetEntry;
-import gtk.types : Align, DestDefaults, DragResult, IconSize, Orientation, PolicyType, ReliefStyle,
+import gtk.types : Align, DestDefaults, DragResult, Orientation, PolicyType, ReliefStyle,
                    RevealerTransitionType, SelectionMode, ShadowType, TargetFlags, WindowType;
 import gtk.widget : Widget;
 import gtk.window : Window;
@@ -591,7 +591,7 @@ private:
         grid.attach(wrapWidget(lblIndex, "ttyx-session-index"), 2, 2, 1, 1);
 
         //Add Close Button
-        btnClose = Button.newFromIconName("window-close-symbolic", IconSize.Menu);
+        btnClose = Button.newFromIconName("window-close-symbolic");
         btnClose.getStyleContext().addClass("ttyx-sidebar-close-button");
         btnClose.setTooltipText(_("Close"));
         btnClose.setRelief(ReliefStyle.None);

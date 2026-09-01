@@ -74,7 +74,7 @@ import gtk.tree_model : TreeModel;
 import gtk.tree_path : TreePath;
 import gtk.tree_view : TreeView;
 import gtk.tree_view_column : TreeViewColumn;
-import gtk.types : Align, IconSize, Orientation, PolicyType, ResponseType, ShadowType;
+import gtk.types : Align, Orientation, PolicyType, ResponseType, ShadowType;
 import gtk.window : Window;
 
 import gx.i18n.l10n;
@@ -185,7 +185,7 @@ private:
         Box buttons = new Box(Orientation.Horizontal, 0);
         buttons.getStyleContext().addClass("linked");
 
-        Button btnAdd = Button.newFromIconName("list-add-symbolic", IconSize.Button);
+        Button btnAdd = Button.newFromIconName("list-add-symbolic");
         btnAdd.setTooltipText(_("Add"));
         btnAdd.connectClicked(delegate() {
             TreeIter iter;
@@ -193,7 +193,7 @@ private:
             selectRow(tv, ls.iterNChildren(null) - 1, null);
         });
         buttons.add(btnAdd);
-        btnDelete = Button.newFromIconName("list-remove-symbolic", IconSize.Button);
+        btnDelete = Button.newFromIconName("list-remove-symbolic");
         btnDelete.setTooltipText(_("Delete"));
         btnDelete.connectClicked(delegate() {
             TreeIter selected = getSelectedIter(tv);
@@ -203,7 +203,7 @@ private:
         });
         buttons.add(btnDelete);
 
-        btnMoveUp = Button.newFromIconName("pan-up-symbolic", IconSize.Button);
+        btnMoveUp = Button.newFromIconName("pan-up-symbolic");
         btnMoveUp.setTooltipText(_("Move up"));
         btnMoveUp.connectClicked(delegate() {
             TreeIter selected = getSelectedIter(tv);
@@ -214,7 +214,7 @@ private:
         });
         buttons.add(btnMoveUp);
 
-        btnMoveDown = Button.newFromIconName("pan-down-symbolic", IconSize.Button);
+        btnMoveDown = Button.newFromIconName("pan-down-symbolic");
         btnMoveDown.setTooltipText(_("Move down"));
         btnMoveDown.connectClicked(delegate() {
             TreeIter selected = getSelectedIter(tv);
