@@ -12,6 +12,7 @@ __dummy.html
 data/gsettings/gschemas.compiled
 data/pkg/desktop/io.github.gwelr.ttyx.desktop
 data/metainfo/io.github.gwelr.ttyx.appdata.xml
+data/metainfo/io.github.gwelr.ttyx.rel.appdata.xml.in
 data/resources/ttyx.gresource
 data/man/man
 

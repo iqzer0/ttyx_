@@ -64,7 +64,10 @@ Features:
  * enable-wide-handle defaults to true so the splitter between split
    terminals is easier to see and grab on dark themes and HiDPI displays
  * Auto-equalize panes on split and close, sway-style
- * Documentation site at https://gwelr.github.io/ttyx_/
+ * A published documentation site covering install, the manual, security
+   reference, migration guide and changelog (linked from the project
+   homepage; a bare URL here trips AppStream's
+   description-has-plaintext-url validation)
  * Sensitive values redaction: passwords, tokens and proxy credentials are
    stripped from trace logs, command-line argv and hyperlink click events
    before reaching any log sink

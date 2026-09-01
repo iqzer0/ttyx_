@@ -109,6 +109,38 @@ enum APPLICATION_RESOURCE_ROOT = "/io/github/gwelr/ttyx";
 immutable string[] APPLICATION_CSS_RESOURCES = ["css/ttyx.base.css","css/ttyx.base320.css"];
 immutable string[] THEME_CSS_RESOURCES = ["css/ttyx.base.theme.css"];
 
+/**
+ * Prefix shared by every CSS file in data/resources/ttyx.gresource.xml.
+ *
+ * The GTK-theme-specific CSS lookups are built at runtime from the theme
+ * name, so they cannot be listed in the arrays above. Three call sites had
+ * been left spelling the prefix `tilix.` after the rebrand, so every
+ * theme-specific and scrollbar CSS file silently failed to resolve — which
+ * also left `sbProvider` permanently null and disabled transparent terminal
+ * scrollbars. Both URIs are built here now so the prefix has exactly one
+ * definition.
+ */
+private enum CSS_RESOURCE_PREFIX = "css/ttyx.";
+
+/// Resource URI of the CSS override for GTK theme `theme`, if one is shipped.
+string themeCssResourceURI(string theme) {
+    return APPLICATION_RESOURCE_ROOT ~ "/" ~ CSS_RESOURCE_PREFIX ~ theme ~ ".css";
+}
+
+/// Resource URI of the scrollbar CSS for GTK theme `theme`, if one is shipped.
+string scrollbarCssResourceURI(string theme) {
+    return APPLICATION_RESOURCE_ROOT ~ "/" ~ CSS_RESOURCE_PREFIX ~ theme ~ ".scrollbar.css";
+}
+
+unittest {
+    // Guards the rebrand regression: the prefix must match the file names in
+    // data/resources/ttyx.gresource.xml, not the upstream `tilix.` ones.
+    assert(themeCssResourceURI("Ambiance")
+        == "/io/github/gwelr/ttyx/css/ttyx.Ambiance.css");
+    assert(scrollbarCssResourceURI("Arc-Dark")
+        == "/io/github/gwelr/ttyx/css/ttyx.Arc-Dark.scrollbar.css");
+}
+
 immutable string SHORTCUT_UI_RESOURCE = APPLICATION_RESOURCE_ROOT ~ "/ui/shortcuts.ui";
 immutable string SHORTCUT_LOCALIZATION_CONTEXT = "shortcut window";
 

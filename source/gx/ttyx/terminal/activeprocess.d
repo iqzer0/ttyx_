@@ -49,10 +49,16 @@ class Process {
             string[] parsed = parseStatData(data);
             if (parsed !is null) return parsed;
             warningf("Malformed /proc/%d/stat (len=%s)", pid, data.length);
+        } catch (FileException e) {
+            // The process exited (or became inaccessible) between being
+            // enumerated and this read. That is a routine race for a polling
+            // monitor, not a fault: `warning(e)` logged a full ~15-frame
+            // backtrace every time, which buried genuine warnings.
+            tracef("/proc/%d/stat unavailable, process likely exited: %s", pid, e.msg);
         } catch (Exception e) {
-            // FileException from read() (process exited / not accessible),
-            // plus any future to!*-derived ConvException. RangeError from
-            // out-of-bounds slicing is prevented by parseStatData's checks.
+            // Anything else is unexpected (e.g. a to!*-derived ConvException).
+            // RangeError from out-of-bounds slicing is prevented by
+            // parseStatData's checks.
             warning(e);
         }
         return "? 0 0 0 0 0 0".split;

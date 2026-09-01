@@ -14,7 +14,10 @@
 
   <description>
     <p>
-      ttyx_ is an actively maintained fork of Tilix, the tiling terminal emulator.
+      ttyx_ is an actively maintained fork of Tilix, the tiling terminal emulator
+      for Linux. It keeps Tilix's tiling model — split terminals horizontally or
+      vertically, nest them arbitrarily, save and restore layouts — and adds a
+      focus on security hardening for people who spend the day on remote shells.
     </p>
     <p>It lets you:</p>
     <ul>
@@ -30,8 +33,9 @@
     </ul>
   </description>
 
-  <url type="homepage">https://github.com/gwelr/ttyx</url>
-  <url type="bugtracker">https://github.com/gwelr/ttyx/issues</url>
+  <url type="homepage">https://gwelr.github.io/ttyx_/</url>
+  <url type="bugtracker">https://github.com/gwelr/ttyx_/issues</url>
+  <url type="vcs-browser">https://github.com/gwelr/ttyx_</url>
 
   <translation type="gettext">ttyx</translation>
   <launchable type="desktop-id">io.github.gwelr.ttyx.desktop</launchable>

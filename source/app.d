@@ -227,10 +227,18 @@ int main(string[] args) {
             chdir(cwd);
         } else if (arg == "--new-process") {
             newProcess = true;
-        } else if (arg == "-g") {
-            group = args[i+1];
-        } else if (arg.startsWith("--group")) {
-            group = arg[8..$];
+        } else if (arg == "-g" || arg == "--group") {
+            // Value is the following argument. Guard the index: `ttyx -g` with
+            // no value used to read past the end of args, and a bare
+            // `--group` used to slice arg[8..$] out of a 7-char string, which
+            // segfaulted with no diagnostic. GLib's own option parser reports
+            // the missing-argument error properly once run() gets the args, so
+            // there is nothing to do here but not crash.
+            if (i + 1 < args.length) {
+                group = args[i + 1];
+            }
+        } else if (arg.startsWith("--group=")) {
+            group = arg["--group=".length .. $];
         } else if (arg == "-v" || arg == "--version") {
             outputVersions();
             return 0;

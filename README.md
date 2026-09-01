@@ -15,7 +15,7 @@ ttyx_ is an actively maintained fork of [Tilix](https://github.com/gnunn1/tilix)
 ## What you get
 
 - **Tiling terminal** — split horizontally, vertically, nest arbitrarily. Drag and drop between windows. Save and restore layouts as sessions. Synchronized input across terminals.
-- **Security-conscious by default** — paste review with dangerous-command detection, clipboard auto-clear, root/SSH visual indicators, core-dump protection, in-memory-only scrollback, one-shortcut `Secure Clear`. Full list on the [Security features page](https://gwelr.github.io/ttyx_/security/).
+- **Security-conscious by default** — multi-line paste review, bracketed-paste escape stripping, shell-quoted trigger substitutions, root/SSH visual indicators, core-dump protection and in-memory-only scrollback are all on out of the box; clipboard auto-clear and the dangerous-command paste alert are one toggle away. Plus a one-shortcut `Secure Clear`. Full list, including what is *not* covered, on the [Security features page](https://gwelr.github.io/ttyx_/security/).
 - **Actively maintained** — crash fixes, new color schemes, release-build optimizations, a growing unit-test suite. See [What's new vs Tilix](https://gwelr.github.io/ttyx_/whats-new/) for the feature-level comparison and the [changelog](https://gwelr.github.io/ttyx_/changelog/) for per-release notes.
 
 ## Install

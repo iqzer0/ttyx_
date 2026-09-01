@@ -200,9 +200,9 @@ private:
                 }
             }
 
-            //Check if tilix has a theme specific CSS file to load
+            //Check if ttyx_ has a theme specific CSS file to load
             string theme = getGtkTheme();
-            string cssURI = APPLICATION_RESOURCE_ROOT ~ "/css/tilix." ~ theme ~ ".css";
+            string cssURI = themeCssResourceURI(theme);
             themeCssProvider = addCssProvider(cssURI, ProviderPriority.APPLICATION);
             if (!themeCssProvider) {
                 tracef("No specific CSS found %s", cssURI);
@@ -524,8 +524,8 @@ private:
             StyleContext.removeProviderForScreen(Screen.getDefault(), themeCssProvider);
             themeCssProvider = null;
         }
-        //Check if tilix has a theme specific CSS file to load
-        string cssURI = APPLICATION_RESOURCE_ROOT ~ "/css/tilix." ~ theme ~ ".css";
+        //Check if ttyx_ has a theme specific CSS file to load
+        string cssURI = themeCssResourceURI(theme);
         themeCssProvider = addCssProvider(cssURI, ProviderPriority.APPLICATION);
         if (!themeCssProvider) {
             tracef("No specific CSS found %s", cssURI);
@@ -773,7 +773,12 @@ public:
                 tracef("Setting app id to %s", id);
                 setApplicationId(id);
             } else {
-                warningf(_("The application ID %s is not valid"));
+                // The %s argument was missing, which made std.format throw
+                // FormatException ("Orphan format specifier") out of this
+                // constructor — and main() calls `new Tilix` outside its
+                // try/catch, so `ttyx -g <invalid-id>` aborted instead of
+                // warning and falling back to the default application ID.
+                warningf(_("The application ID %s is not valid"), id);
             }
         }
 
@@ -977,7 +982,9 @@ public:
             messageArea.setMarginLeft(0);
             messageArea.setMarginRight(0);
             messageArea.add(new Label(msg));
-            messageArea.add(new LinkButton("https://gnunn1.github.io/tilix-web/manual/vteconfig/"));
+            // Was gnunn1.github.io/tilix-web — upstream Tilix's site, which
+            // this fork does not control. Point at our own copy of the page.
+            messageArea.add(new LinkButton("https://gwelr.github.io/ttyx_/manual/vteconfig/"));
             CheckButton cb = CheckButton.newWithLabel(_("Do not show this message again"));
             messageArea.add(cb);
             dlg.setImage(Image.newFromIconName("dialog-warning", IconSize.Dialog));

@@ -3,6 +3,7 @@ title: VTE Configuration
 parent: Manual
 nav_order: 9
 layout: default
+permalink: /manual/vteconfig/
 ---
 
 ## Background

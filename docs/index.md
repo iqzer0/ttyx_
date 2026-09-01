@@ -49,7 +49,7 @@ See [**What's new vs Tilix**]({{ site.baseurl }}/whats-new/) for the full compar
 
 ## Where to next
 
-- [**Install**]({{ site.baseurl }}/install/) — Flatpak (recommended) and source builds (Meson / Dub).
+- [**Install**]({{ site.baseurl }}/install/) — source build with Dub, installed with `install.sh`.
 - [**Manual**]({{ site.baseurl }}/manual/) — topic-by-topic reference: titles, Quake mode, triggers, color schemes, profile switching, and more.
 - [**Security features**]({{ site.baseurl }}/security/) — paste / clipboard / memory protections, threat model, and configuration reference.
 - [**What's new vs Tilix**]({{ site.baseurl }}/whats-new/) — feature-level differences from upstream.

@@ -23,26 +23,35 @@ if [ ! -f ttyx ]; then
     exit 1
 fi
 
-# Check availability of required commands
+# Check availability of required commands.
+#
+# The command -> package hint is an explicit case rather than two parallel
+# lists walked in lockstep by index. Two of the commands (glib-compile-schemas,
+# glib-compile-resources) ship in the same package, so the old index
+# arithmetic drifted by one and named the wrong package for 4 of the 7
+# commands — a missing msgfmt told you to install desktop-file-utils.
 COMMANDS="install glib-compile-schemas glib-compile-resources msgfmt desktop-file-validate gtk-update-icon-cache"
 if [ "$PREFIX" = '/usr' ] || [ "$PREFIX" = "/usr/local" ]; then
     COMMANDS="$COMMANDS xdg-desktop-menu"
 fi
-PACKAGES="coreutils glib2 gettext desktop-file-utils gtk-update-icon-cache xdg-utils"
-i=0
+
+package_for_command() {
+    case "$1" in
+        install)                                     echo 'coreutils' ;;
+        glib-compile-schemas|glib-compile-resources) echo 'glib2' ;;
+        msgfmt)                                      echo 'gettext' ;;
+        desktop-file-validate)                       echo 'desktop-file-utils' ;;
+        gtk-update-icon-cache)                       echo 'gtk-update-icon-cache' ;;
+        xdg-desktop-menu)                            echo 'xdg-utils' ;;
+        *)                                           echo "the package providing $1" ;;
+    esac
+}
+
 for COMMAND in $COMMANDS; do
-    type $COMMAND >/dev/null 2>&1 || {
-        j=0
-        for PACKAGE in $PACKAGES; do
-            if [ $i = $j ]; then
-                break
-            fi
-            j=$(( $j + 1 ))
-        done
-        echo "Your system is missing command $COMMAND, please install $PACKAGE"
+    if ! type "$COMMAND" >/dev/null 2>&1; then
+        echo "Your system is missing command $COMMAND, please install $(package_for_command "$COMMAND")"
         exit 1
-    }
-    i=$(( $i + 1 ))
+    fi
 done
 
 echo "Installing to prefix $PREFIX"
@@ -50,7 +59,7 @@ echo "Installing to prefix $PREFIX"
 # Copy and compile schema
 echo "Copying and compiling schema..."
 install -Dm 644 data/gsettings/io.github.gwelr.ttyx.gschema.xml -t "$PREFIX/share/glib-2.0/schemas/"
-glib-compile-schemas $PREFIX/share/glib-2.0/schemas/
+glib-compile-schemas "$PREFIX/share/glib-2.0/schemas/"
 
 export TTYX_SHARE="$PREFIX/share/ttyx"
 
@@ -71,34 +80,63 @@ install -Dm 755 data/scripts/* -t "$TTYX_SHARE/scripts/"
 echo "Copying color schemes..."
 install -Dm 644 data/schemes/* -t "$TTYX_SHARE/schemes/"
 
-# Create/Update LINGUAS file
-find po -name "*\.po" -printf "%f\\n" | sed "s/\.po//g" | sort > po/LINGUAS
+# Create/Update LINGUAS file. Uses a plain glob + basename rather than
+# `find -printf`, which is a GNU extension and not available under the
+# busybox/BSD `sh` this script's shebang allows.
+for f in po/*.po; do
+    basename "$f" .po
+done | sort > po/LINGUAS
 
 # Compile po files
 echo "Copying and installing localization files"
 for f in po/*.po; do
     echo "Processing $f"
     LOCALE=$(basename "$f" .po)
-    msgfmt $f -o "$LOCALE.mo"
+    msgfmt "$f" -o "$LOCALE.mo"
     install -Dm 644 "$LOCALE.mo" "$PREFIX/share/locale/$LOCALE/LC_MESSAGES/ttyx.mo"
     rm -f "$LOCALE.mo"
 done
 
-# Generate desktop file
-msgfmt --desktop --template=data/pkg/desktop/io.github.gwelr.ttyx.desktop.in -d po -o data/pkg/desktop/io.github.gwelr.ttyx.desktop
-if [ $? -ne 0 ]; then
-    echo "Note that localizating appdata requires a newer version of xgettext, copying instead"
+# Generate desktop file.
+#
+# The fallback has to be part of the condition. `set -o errexit` is active from
+# the top of this script, so the old trailing `if [ $? -ne 0 ]` could never
+# run: msgfmt failing aborted the whole install instead of falling back to a
+# plain copy, which is exactly the case the fallback existed to handle.
+if ! msgfmt --desktop --template=data/pkg/desktop/io.github.gwelr.ttyx.desktop.in -d po -o data/pkg/desktop/io.github.gwelr.ttyx.desktop; then
+    echo "Note that localizing the desktop file requires a newer version of gettext, copying instead"
     cp data/pkg/desktop/io.github.gwelr.ttyx.desktop.in data/pkg/desktop/io.github.gwelr.ttyx.desktop
 fi
 
 desktop-file-validate data/pkg/desktop/io.github.gwelr.ttyx.desktop
 
-# Generate appdata file, requires xgettext 0.19.7
-msgfmt --xml --template=data/metainfo/io.github.gwelr.ttyx.appdata.xml.in -d po -o data/metainfo/io.github.gwelr.ttyx.appdata.xml
-if [ $? -ne 0 ]; then
-    echo "Note that localizating appdata requires xgettext 0.19.7 or later, copying instead"
-    cp data/metainfo/io.github.gwelr.ttyx.appdata.xml.in data/metainfo/io.github.gwelr.ttyx.appdata.xml
+# Inject the release history from NEWS into the appdata template.
+#
+# The .in file carries no <releases> of its own; NEWS is the single source of
+# truth (extract-strings.sh already generates a throwaway copy this way for
+# string extraction). Without this step the *installed* appdata shipped with no
+# release history at all, so software centres showed no version information.
+# Optional, like the po4a man pages: skipped cleanly when appstreamcli is absent.
+APPDATA_IN=data/metainfo/io.github.gwelr.ttyx.appdata.xml.in
+APPDATA_SRC="$APPDATA_IN"
+if type appstreamcli >/dev/null 2>&1; then
+    echo "Injecting release history from NEWS into appdata..."
+    if appstreamcli news-to-metainfo NEWS "$APPDATA_IN" \
+            data/metainfo/io.github.gwelr.ttyx.rel.appdata.xml.in >/dev/null 2>&1; then
+        APPDATA_SRC=data/metainfo/io.github.gwelr.ttyx.rel.appdata.xml.in
+    else
+        echo "  appstreamcli could not convert NEWS, shipping appdata without release history"
+    fi
+else
+    echo "appstreamcli not found, shipping appdata without release history"
 fi
+
+# Generate appdata file, requires gettext 0.19.7 (same errexit caveat as above)
+if ! msgfmt --xml --template="$APPDATA_SRC" -d po -o data/metainfo/io.github.gwelr.ttyx.appdata.xml; then
+    echo "Note that localizing appdata requires gettext 0.19.7 or later, copying instead"
+    cp "$APPDATA_SRC" data/metainfo/io.github.gwelr.ttyx.appdata.xml
+fi
+rm -f data/metainfo/io.github.gwelr.ttyx.rel.appdata.xml.in
 
 # Copying Nautilus extension
 echo "Copying Nautilus extension"
@@ -107,13 +145,15 @@ install -Dm 644 data/nautilus/open-ttyx.py -t "$PREFIX/share/nautilus-python/ext
 # Copy D-Bus service descriptor
 install -Dm 644 data/dbus/io.github.gwelr.ttyx.service -t "$PREFIX/share/dbus-1/services/"
 
-# Copy man page
-. $(dirname $(realpath "$0"))/data/scripts/install-man-pages.sh
+# Copy man page (quoted: an unquoted command substitution here word-split on
+# any repository path containing whitespace)
+SCRIPT_DIR="$(dirname "$(realpath "$0")")"
+. "${SCRIPT_DIR}/data/scripts/install-man-pages.sh"
 
 # Copy Icons
 cd data/icons/hicolor
 
-find . -type f | while read f; do
+find . -type f | while IFS= read -r f; do
     install -Dm 644 "$f" "$PREFIX/share/icons/hicolor/$f"
 done
 

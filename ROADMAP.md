@@ -16,6 +16,14 @@ A security-focused tiling terminal emulator for Linux/GNOME. Competes with GNOME
 - [x] Multi-line paste review dialog (#42)
 - [x] Expanded dangerous command detection — sudo, su, doas, rm -rf, curl|bash, dd, mkfs, fork bombs (#42)
 - [x] Per-paste unsafe warning (no permanent dismissal) (#42)
+- [x] Shell-quote substitutions in trigger / custom-link templates — `g_shell_quote` is
+      applied to every regex capture group and every (remote-settable) title variable
+      before the result reaches `/bin/sh -c`, closing the terminal-output injection
+      vector on all three shell-exec paths (`ExecuteCommand`, `RunProcess`,
+      custom-link clicks). The template's own shell syntax is left intact, so
+      legitimate pipes/`&&`/redirects keep working. `SendText` is deliberately
+      exempt (fed to the PTY, never to a shell)
+- [x] Allow-list URI schemes for OSC 8 hyperlinks rather than opening them blindly
 
 ### Performance
 - [x] ProcessMonitor: targeted foreground process lookup instead of full /proc scan — idle CPU 1.4% → 0.1% (#41)

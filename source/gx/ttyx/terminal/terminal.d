@@ -399,6 +399,38 @@ private:
         return _useOverlayScrollbar < 0;
     }
 
+    // Tracks whether the root/SSH title-bar tint CSS has been installed.
+    // Thread-local `static` is deliberate and safe here (same as
+    // _useOverlayScrollbar above): terminals are only ever constructed on the
+    // GTK main thread.
+    static bool indicatorCssInstalled = false;
+
+    /**
+     * Install the screen-wide CSS for the root and SSH title-bar tints.
+     *
+     * The rules are constant, but createTitlePane() runs once per Terminal, so
+     * doing this inline there added two CssProviders to the default screen for
+     * every split and every tab — none of which were ever removed. GTK re-walks
+     * every provider on the screen when style is invalidated, so a long-lived
+     * window accumulated cost forever. Idempotent now.
+     */
+    static void installIndicatorCss() {
+        if (indicatorCssInstalled) return;
+        indicatorCssInstalled = true;
+
+        static immutable string[] rules = [
+            ".ttyx-root-title { background: rgba(204, 0, 0, 0.45); }",
+            ".ttyx-ssh-title { background: rgba(26, 95, 180, 0.50); }",
+        ];
+
+        Screen screen = Display.getDefault().getDefaultScreen();
+        foreach (rule; rules) {
+            CssProvider provider = new CssProvider();
+            provider.loadFromData(cast(ubyte[]) rule.dup);
+            StyleContext.addProviderForScreen(screen, provider, STYLE_PROVIDER_PRIORITY_APPLICATION);
+        }
+    }
+
     /**
      * Create the user interface of the TerminalPane
      */
@@ -500,12 +532,8 @@ private:
         imgNewOuput.setTooltipText(_("New output"));
         bTitle.packEnd(imgNewOuput, false, false, 0);
 
-        //Root Indicator - apply inline CSS for the root title bar tint
-        auto rootCss = new CssProvider();
-        rootCss.loadFromData(cast(ubyte[]) ".ttyx-root-title { background: rgba(204, 0, 0, 0.45); }".dup);
-        StyleContext.addProviderForScreen(
-            Display.getDefault().getDefaultScreen(),
-            rootCss, STYLE_PROVIDER_PRIORITY_APPLICATION);
+        //Root/SSH indicator tints are screen-wide and constant — install once
+        installIndicatorCss();
 
         //Root Indicator label
         lblRootIndicator = new Label("");
@@ -515,11 +543,6 @@ private:
         bTitle.packEnd(lblRootIndicator, false, false, 0);
 
         //SSH Indicator label
-        auto sshCss = new CssProvider();
-        sshCss.loadFromData(cast(ubyte[]) ".ttyx-ssh-title { background: rgba(26, 95, 180, 0.50); }".dup);
-        StyleContext.addProviderForScreen(
-            Display.getDefault().getDefaultScreen(),
-            sshCss, STYLE_PROVIDER_PRIORITY_APPLICATION);
         lblSSHIndicator = new Label("");
         lblSSHIndicator.setMarkup("<span weight=\"bold\">" ~ _("ssh") ~ "</span>");
         lblSSHIndicator.setTooltipText(_("Connected via SSH"));
@@ -2301,7 +2324,7 @@ private:
                 // every change (this handler runs after applyMainColors).
                 variables["$TERMINAL_BG"] = rgbaTo8bitHex(renderer.vteBG, false, true);
                 variables["$TERMINAL_OPACITY"] = to!string(renderer.vteBG.alpha);
-                sbProvider = createCssProvider(APPLICATION_RESOURCE_ROOT ~ "/css/tilix." ~ theme ~ ".scrollbar.css", variables);
+                sbProvider = createCssProvider(scrollbarCssResourceURI(theme), variables);
                 if (sbProvider !is null) {
                     sb.getStyleContext().addProvider(sbProvider, STYLE_PROVIDER_PRIORITY_APPLICATION);
                 }

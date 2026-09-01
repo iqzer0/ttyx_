@@ -509,12 +509,13 @@ private:
                 return equal(box1, maximizedInfo.parent) ? box2 : box1;
             }
 
-            Widget widget1 = gx.gtk.util.getChildren!(Widget)(box1, false)[0];
-
-            Terminal terminal1 = cast(Terminal) widget1;
-
-            int result = terminal == terminal1 ? 1 : 2;
-            return (result == 1 ? box2 : box1);
+            // Identify which side the terminal sits on by its direct parent.
+            // This used to inspect getChildren(box1)[0], which indexed an
+            // empty array — an out-of-bounds read, and a silent one in a
+            // -boundscheck=off release build — whenever box1 had no child.
+            // Per the hierarchy documented above, a terminal's parent *is*
+            // the Box, so comparing against box1 is equivalent and total.
+            return equal(cast(Box) terminal.getParent(), box1) ? box2 : box1;
         }
 
         Paned paned;
@@ -540,7 +541,16 @@ private:
         //Fixes segmentation fault where when added box we created another layer of Box which caused the cast
         //to Paned to fail
         //Get child widget, could be Terminal or Paned
-        Widget widget = gx.gtk.util.getChildren!(Widget)(otherBox, false)[0];
+        Widget[] otherChildren = gx.gtk.util.getChildren!(Widget)(otherBox, false);
+        if (otherChildren.length == 0) {
+            // Was an unguarded [0]. The sibling box should always hold exactly
+            // one widget; if it does not, the tree is already inconsistent and
+            // there is nothing to promote. Bail out rather than read out of
+            // bounds — the terminal is already detached from the paned above.
+            errorf("Sibling box of terminal %s has no child to promote; skipping re-parent", terminal.uuid);
+            return;
+        }
+        Widget widget = otherChildren[0];
         //Remove widget from original Box parent
         otherBox.remove(widget);
         //Add widget to new parent
@@ -811,7 +821,7 @@ private:
      */
     bool swapMaximized(Terminal terminal) {
         if (!maximizedInfo.isMaximized) {
-            error("No terminal is not maximized, ignoring");
+            error("No terminal is maximized, ignoring");
             return false;
         }
         if (maximizedInfo.terminal == terminal) {
@@ -826,7 +836,7 @@ private:
 
     bool restoreTerminal(Terminal terminal) {
         if (!maximizedInfo.isMaximized) {
-            error("No terminal is not maximized, ignoring");
+            error("No terminal is maximized, ignoring");
             return false;
         }
         if (maximizedInfo.terminal != terminal) {
@@ -952,11 +962,23 @@ private:
          */
         void serializeBox(string node, Box box) {
             Widget[] widgets = gx.gtk.util.getChildren!(Widget)(box, false);
-            if (widgets.length == 0 && maximizedInfo.isMaximized && equal(box, maximizedInfo.parent)) {
-                value.object[node] = serializeWidget(maximizedInfo.terminal, sizeInfo);
-            } else {
+            if (widgets.length > 0) {
                 value.object[node] = serializeWidget(widgets[0], sizeInfo);
+                return;
             }
+            // An empty box is expected in exactly one situation: the box a
+            // maximized terminal was re-parented out of. The old condition
+            // required all three of (empty && maximized && is-that-box) to
+            // take the safe branch, so an empty box that was *not* the
+            // maximized parent fell through to widgets[0] and read out of
+            // bounds. Fail loudly instead — a malformed tree should not be
+            // silently serialized from garbage.
+            if (maximizedInfo.isMaximized && equal(box, maximizedInfo.parent)) {
+                value.object[node] = serializeWidget(maximizedInfo.terminal, sizeInfo);
+                return;
+            }
+            throw new SessionCreationException(
+                "Cannot serialize session: paned child '" ~ node ~ "' has no child widget");
         }
 
         value[NODE_ORIENTATION] = JSONValue(paned.getOrientation());
@@ -1267,18 +1289,43 @@ public:
             paned.updateRatio();
         }
 
-        // Make sure that generated JSON won't be locale-specific
+        // Make sure that generated JSON won't be locale-specific.
+        //
+        // The old code paired `setlocale(LC_ALL, "C")` with a trailing
+        // `setlocale(LC_ALL, null)` intended as a restore — but a null locale
+        // argument *queries* the current locale and changes nothing. So the
+        // process was left in the C locale permanently after the first session
+        // save, which among other things switched LC_MESSAGES to C and left the
+        // UI untranslated for the rest of the run. Snapshot the current locale
+        // and restore it for real. setlocale returns a pointer to a static
+        // buffer that a later call may clobber, so the string must be copied.
+        string savedLocale;
+        if (char* current = setlocale(LC_ALL, null)) {
+            savedLocale = fromStringz(current).idup;
+        }
         setlocale(LC_ALL, "C");
+        scope(exit) {
+            if (savedLocale.length > 0) {
+                setlocale(LC_ALL, savedLocale.toStringz);
+            }
+        }
+
         JSONValue root = ["version" : "1.0"];
         root.object[NODE_NAME] = _name;
         root.object[NODE_SYNCHRONIZED_INPUT] = _synchronizeInput;
         root.object[NODE_WIDTH] = JSONValue(getAllocatedWidth());
         root.object[NODE_HEIGHT] = JSONValue(getAllocatedHeight());
         SessionSizeInfo sizeInfo = SessionSizeInfo(getAllocatedWidth(), getAllocatedHeight());
-        root.object[NODE_CHILD] = serializeWidget(gx.gtk.util.getChildren!(Widget)(groupChild, false)[0], sizeInfo);
+        // Guarded: this indexed the array directly, so a session whose group
+        // child had somehow lost its content read out of bounds rather than
+        // reporting a problem.
+        Widget[] rootChildren = gx.gtk.util.getChildren!(Widget)(groupChild, false);
+        if (rootChildren.length == 0) {
+            throw new SessionCreationException("Cannot serialize session: session has no root child widget");
+        }
+        root.object[NODE_CHILD] = serializeWidget(rootChildren[0], sizeInfo);
         root.object[NODE_UUID] = _sessionUUID;
         root[NODE_TYPE] = WidgetType.SESSION;
-        setlocale(LC_ALL, null);
         return root;
     }
 
@@ -1495,6 +1542,11 @@ public:
      */
     void focusDirection(string direction) {
         trace("Focusing ", direction);
+
+        // Every sibling focus method (focusNext/focusPrevious/focusRestore)
+        // null-checks currentTerminal; this one did not, and currentTerminal is
+        // set to null by removeTerminalReferences.
+        if (currentTerminal is null) return;
 
         Widget appWindow = currentTerminal.getToplevel();
         Allocation appWindowAllocation;
