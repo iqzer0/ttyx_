@@ -33,9 +33,9 @@
     </ul>
   </description>
 
-  <url type="homepage">https://gwelr.github.io/ttyx_/</url>
-  <url type="bugtracker">https://github.com/gwelr/ttyx_/issues</url>
-  <url type="vcs-browser">https://github.com/gwelr/ttyx_</url>
+  <url type="homepage">https://github.com/iqzer0/ttyx_</url>
+  <url type="bugtracker">https://github.com/iqzer0/ttyx_/issues</url>
+  <url type="vcs-browser">https://github.com/iqzer0/ttyx_</url>
 
   <translation type="gettext">ttyx</translation>
   <launchable type="desktop-id">io.github.gwelr.ttyx.desktop</launchable>
