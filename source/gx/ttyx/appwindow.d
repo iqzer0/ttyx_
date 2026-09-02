@@ -758,34 +758,47 @@ private:
     }
 
     /**
-     * Create actions that will be delegated to the active terminal.
-     * This is required due to a bug in GTK+ < 3.5.15.
+     * Mirror every terminal action on the window, forwarding it to whichever
+     * terminal is active.
      *
-     * https://bugzilla.gnome.org/show_bug.cgi?id=740682
-     * https://github.com/gnunn1/tilix/issues/342
+     * GTK4 requires this. An application accelerator is dispatched by a
+     * shortcut controller on the *window*, and its named action is resolved
+     * against the window's action muxer — which sees the window's own groups
+     * and the application's, but not a group inserted on a descendant widget.
+     * The per-terminal group that Terminal.createActions() installs is
+     * therefore unreachable by keyboard: registering `terminal.paste` with
+     * `<Ctrl><Shift>v` succeeds and pressing it does nothing. Menus are
+     * unaffected, because a menu item resolves from the widget it pops over,
+     * which is inside the terminal.
+     *
+     * This is the same limitation GTK+ had before 3.15.3, which is why this
+     * function already existed as a workaround for
+     * https://bugzilla.gnome.org/show_bug.cgi?id=740682 (tilix#342). It was
+     * guarded by a version check that GTK4 satisfies, so the workaround
+     * switched itself off exactly where it is needed again — the guard is gone
+     * rather than inverted, since both GTK3 >= 3.15.3 (where it is harmless
+     * duplication) and GTK4 (where it is required) are fine with it running.
      */
     void createDelegatedTerminalActions(GSettings gsShortcuts) {
         import gx.ttyx.terminal.terminal : Terminal;
 
-        if (!gtkAtLeast(3, 15, 3)) {
-            SimpleActionGroup terminalActions = new SimpleActionGroup();
+        SimpleActionGroup terminalActions = new SimpleActionGroup();
 
-            foreach (string action; gsShortcuts.listKeys) {
-                if (action.startsWith("terminal-")) {
-                    logf(LogLevel.trace, "Registering terminal shortcut delegation for action %s", action[9..$]);
-                    registerActionWithSettings(terminalActions, "terminal", action[9..$], gsShortcuts, delegate(GVariant va, SimpleAction sa) {
-                        string terminalUUID = getActiveTerminalUUID();
-                        logf(LogLevel.trace, "Delegating terminal action '%s' to terminal '%s'", sa.getName(), terminalUUID);
-                        auto terminal = cast(Terminal) findWidgetForUUID(terminalUUID);
-                        if (terminal !is null) {
-                            terminal.triggerAction(sa.getName(), va);
-                        }
-                    });
-                }
+        foreach (string action; gsShortcuts.listKeys) {
+            if (action.startsWith("terminal-")) {
+                logf(LogLevel.trace, "Registering terminal shortcut delegation for action %s", action[9..$]);
+                registerActionWithSettings(terminalActions, "terminal", action[9..$], gsShortcuts, delegate(GVariant va, SimpleAction sa) {
+                    string terminalUUID = getActiveTerminalUUID();
+                    logf(LogLevel.trace, "Delegating terminal action '%s' to terminal '%s'", sa.getName(), terminalUUID);
+                    auto terminal = cast(Terminal) findWidgetForUUID(terminalUUID);
+                    if (terminal !is null) {
+                        terminal.triggerAction(sa.getName(), va);
+                    }
+                });
             }
-
-            insertActionGroup("terminal", terminalActions);
         }
+
+        insertActionGroup("terminal", terminalActions);
     }
 
     /**

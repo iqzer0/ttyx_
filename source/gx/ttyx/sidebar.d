@@ -82,6 +82,7 @@ import gtk.gesture_click : GestureClick;
 import gtk.list_box : ListBox;
 import gtk.list_box_row : ListBoxRow;
 import gtk.overlay : Overlay;
+import gtk.picture : Picture;
 import gtk.revealer : Revealer;
 import gtk.scrolled_window : ScrolledWindow;
 import gtk.types : Align, Orientation, PolicyType, 
@@ -509,7 +510,7 @@ private:
     Label lblIndex;
     SideBar sidebar;
     Button btnClose;
-    Image img;
+    Picture img;
     Label lblName;
     Label lblNCount;
     Box evNotification;
@@ -531,7 +532,12 @@ private:
         Overlay overlay = new Overlay();
         setAllMargins(overlay, 2);
         Pixbuf pb = getWidgetImage(session.drawable, 0.20, width, height);
-        img = Image.newFromPixbuf(pb);
+        // GTK4: GtkImage renders at *icon* size, which collapsed the session
+        // thumbnail (and with it the whole sidebar row) to a ~24px stub.
+        // GtkPicture is the widget for arbitrary images and takes its natural
+        // size from the pixbuf, which is what the GTK3 GtkImage did here.
+        img = Picture.newForPixbuf(pb);
+        img.setCanShrink(false);
         Frame imgframe = new Frame();
         imgframe.setChild(img);
         overlay.setChild(imgframe);
@@ -624,7 +630,7 @@ private:
 
     void updateUI(Session session, SessionNotification[string] notifications, int width, int height) {
         Pixbuf pb = getWidgetImage(session.drawable, 0.20, width, height);
-        img.setFromPixbuf(pb);
+        img.setPixbuf(pb);
         // Fix #1637
         _sessionUUID = session.uuid;
         lblName.setText(session.displayName);

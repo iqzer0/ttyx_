@@ -743,10 +743,12 @@ Three fixes came out of it:
   `nb.setCanFocus(false)` on the Notebook meant "tabs are not focusable"; in
   GTK4 it means no descendant — no terminal — can take focus. The per-widget
   property is `focusable`. Audit every `setCanFocus(false)` on a container.
-- `XTEST` input from `xdotool` does not reach GTK4 windows in this X11/Cinnamon
-  session — confirmed against a stock python-GTK4 probe, not just ttyx — so
-  interaction cannot be driven or verified from the terminal. Everything under
-  "Behaviour changes to verify at runtime" is a manual test.
+- ~~`XTEST` input from `xdotool` does not reach GTK4 windows~~ — **wrong, and
+  the `can-focus` bug above was the reason.** With no widget able to take
+  focus, key events had nowhere to go; the stock python probe I checked
+  against had no focused widget either, so it agreed for a different reason.
+  Once focus worked, `xdotool` drove the application fine, and the interaction
+  list below has now been exercised (see "Driven verification").
 
 ### Running a development build
 
@@ -919,3 +921,64 @@ Still unavailable, and unchanged from the GTK3 build's own limits: quake under
 Wayland, and "open on the monitor the mouse is on" (GTK4 has no pointer query,
 so it falls back to the configured monitor — a `--quake` run with
 `quake-active-monitor` left on lands on monitor 0).
+
+## Driven verification, and two bugs it caught
+
+With focus fixed, `xdotool` does drive the application, so the interaction list
+was actually exercised. Two real defects turned up, both now fixed.
+
+### Terminal shortcuts did nothing (a regression from the version-gate sweep)
+
+Every terminal-scoped accelerator — paste, copy, find, zoom, close — was
+dead, while session ones (split, synchronize input) worked. A probe on
+accelerator registration showed `terminal.paste = ["<Ctrl><Shift>v"]`
+registered correctly, and the action never activating.
+
+The cause is a GTK4 dispatch rule: an application accelerator is handled by a
+shortcut controller on the **window**, and its action is resolved against the
+window's action muxer, which cannot see a group inserted on a descendant
+widget. `Terminal` inserts its actions on itself, so they are unreachable by
+keyboard (menus still work — a menu item resolves from the widget it pops
+over). `AppWindow.createDelegatedTerminalActions()` already existed to mirror
+those actions on the window, as a workaround for the same limitation in
+GTK+ < 3.15.3 — and it was guarded by a version check that GTK4 satisfies, so
+it switched itself off exactly where it is needed again.
+
+**This was self-inflicted.** Before the `checkVersion` → `gtkAtLeast` sweep,
+the guard read `checkVersion(3, 15, 3).length != 0`, which on GTK4 is "true"
+because a major-version mismatch reports an error — so the workaround ran *by
+accident* and terminal shortcuts worked. Rulebook 9: **when a version gate
+turns a workaround off, check whether the new toolkit needs it again**; a
+mechanical "the version is satisfied now" reading is not enough. All four
+inverted gates were audited: this one was wrong, the search-entry CSS and
+overlay-scrollbar ones are right, and the preferences-list one was actually
+*fixing* a bug (every version-gated shortcut had been hidden from the list).
+
+### Session thumbnails collapsed the sidebar
+
+The sidebar revealed as a ~40px strip. `GtkImage` in GTK4 renders at **icon**
+size, so the session thumbnail became a stub and took the row's width with it;
+`GtkPicture` is the widget for arbitrary images and takes its natural size
+from the pixbuf, as the GTK3 `GtkImage` did. With that swap the sidebar shows
+real session previews again.
+
+### What is now verified by driving the UI
+
+| Feature | Evidence |
+|---|---|
+| typing, splits | shell side effects; two panes render |
+| **synchronized input** | 1 shell ran the command before the toggle, 2 distinct PIDs after |
+| **synchronized scrollback** | after Shift+Page Up both panes show lines 255-278, not the tail |
+| paste | `Ctrl+Shift+V` runs the pasted command |
+| **paste review dialog** | multi-line paste opens "Review Paste"; nothing runs while it is up; Escape cancels |
+| **the WP3 invariant** | text edited *inside* the dialog is what reaches the prompt; the original clipboard text never appears |
+| close confirmation | a running process opens "Close Session"; the app stays alive; Escape cancels (the `deferClose` bridge) |
+| context menu | right-click and the Menu key both open the popover, with accelerator labels |
+| find bar | `Ctrl+Shift+F` reveals it |
+| zoom | `Ctrl++` changes the font |
+| sidebar | opens with thumbnails, and a click outside dismisses it (the capture-phase gesture) |
+| background image | shows through the terminal at the profile's transparency |
+| quake mode | placement, monitor choice, alignment, EWMH states |
+
+Still unexercised: drag and drop (terminal and session), the advanced paste
+dialog, bookmarks, preferences editing, and session save/load.
