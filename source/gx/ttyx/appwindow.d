@@ -302,7 +302,9 @@ private:
             nb.setScrollable(true);
             nb.setGroupName("ttyx");
             nb.connectCreateWindow(&onCreateWindow);
-            nb.setCanFocus(false);
+            // GTK4: can-focus now covers the whole subtree (it would make every
+            // terminal unfocusable); focusable is the per-widget property.
+            nb.setFocusable(false);
         }
         nb.connectPageAdded(&onPageAdded);
         nb.connectPageRemoved(&onPageRemoved);

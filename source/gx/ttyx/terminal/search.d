@@ -176,13 +176,13 @@ private:
         Button btnNext = Button.newFromIconName("go-up-symbolic");
         btnNext.setTooltipText(_("Find next"));
         btnNext.setActionName(getActionDetailedName(ACTION_PREFIX, ACTION_FIND_PREVIOUS));
-        btnNext.setCanFocus(false);
+        btnNext.setFocusable(false);
         bButtons.append(btnNext);
 
         Button btnPrevious = Button.newFromIconName("go-down-symbolic");
         btnPrevious.setTooltipText(_("Find previous"));
         btnPrevious.setActionName(getActionDetailedName(ACTION_PREFIX, ACTION_FIND_NEXT));
-        btnPrevious.setCanFocus(false);
+        btnPrevious.setFocusable(false);
         bButtons.append(btnPrevious);
 
         bSearch.append(bButtons);

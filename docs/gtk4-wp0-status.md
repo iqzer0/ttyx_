@@ -722,6 +722,32 @@ Right expands) is `gx.gtk.util.addTreeViewNavigation()` — a
 `ShortcutController` attached to the bookmark, shortcut and close-dialog
 trees. Startup is now silent.
 
+### First look (rendering verified, interaction not)
+
+Captured with `import -window` under `GSK_RENDERER=cairo` (the default GL
+renderer hands `XGetImage` a frozen first frame): the window renders
+correctly — header bar with session counter, custom title, add-terminal
+buttons, search and menu, window controls; terminal title row with maximize
+and close in the GTK3 order; a live shell prompt. Startup is silent and
+`dub test` passes 33 modules.
+
+Three fixes came out of it:
+
+- The two app icons showed the missing-icon glyph. Two causes: the gresource
+  stored them with `preprocess="to-pixdata"`, which GTK4 cannot load (now plain
+  PNG), and GtkApplication registers `<base-path>/icons/` with the icon theme
+  at its own startup, *before* `loadResources()` registers the bundle — the
+  theme enumerates resource directories when it loads, so the path was
+  recorded empty. `loadResources()` now re-adds the path after registration.
+- **Rulebook 8: GTK4 `can-focus` covers the whole subtree.** GTK3's
+  `nb.setCanFocus(false)` on the Notebook meant "tabs are not focusable"; in
+  GTK4 it means no descendant — no terminal — can take focus. The per-widget
+  property is `focusable`. Audit every `setCanFocus(false)` on a container.
+- `XTEST` input from `xdotool` does not reach GTK4 windows in this X11/Cinnamon
+  session — confirmed against a stock python-GTK4 probe, not just ttyx — so
+  interaction cannot be driven or verified from the terminal. Everything under
+  "Behaviour changes to verify at runtime" is a manual test.
+
 ### Running a development build
 
 The installed GTK3 ttyx owns both the system schema and the system gresource

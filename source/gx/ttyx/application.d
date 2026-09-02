@@ -97,6 +97,7 @@ import gtk.check_button : CheckButton;
 import gtk.css_provider : CssProvider;
 import gtk.dialog : Dialog;
 import gtk.global : checkVersion;
+import gtk.icon_theme : IconTheme;
 import gtk.image : Image;
 import gtk.label : Label;
 import gtk.link_button : LinkButton;
@@ -184,6 +185,13 @@ private:
     void loadResources() {
         //Load resources
         if (findResource(APPLICATION_RESOURCES, true)) {
+            // GTK4: GtkApplication registers <base-path>/icons/ with the icon
+            // theme at its own startup, before this bundle exists, and the theme
+            // enumerates resource directories when it loads — so the app icons
+            // came up missing. Re-adding the path now forces a rescan.
+            if (Display.getDefault() !is null) {
+                IconTheme.getForDisplay(Display.getDefault()).addResourcePath(APPLICATION_RESOURCE_ROOT ~ "/icons");
+            }
             foreach (cssFile; APPLICATION_CSS_RESOURCES) {
                 string cssURI = APPLICATION_RESOURCE_ROOT ~ "/" ~ cssFile;
                 if (!addCssProvider(cssURI, ProviderPriority.APPLICATION)) {
