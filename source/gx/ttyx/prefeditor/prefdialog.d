@@ -850,6 +850,7 @@ private:
         });
 
         tvShortcuts = TreeView.newWithModel(filter);
+        addTreeViewNavigation(tvShortcuts);
         tvShortcuts.setActivateOnSingleClick(false);
         tvShortcuts.connectCursorChanged(delegate() {
             updateUI();

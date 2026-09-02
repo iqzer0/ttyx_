@@ -139,6 +139,7 @@ private:
         loadProcesses();
 
         tv = TreeView.newWithModel(ts);
+        addTreeViewNavigation(tv);
         // GTK4: key-release-event -> EventControllerKey's key-released, whose
         // callback returns void. The GTK3 handler returned false throughout,
         // so nothing is lost.

@@ -1,16 +1,6 @@
-/* Easier navigation in tree view */
-@binding-set TtyxTreeViewBinding
-{
-    bind "Left" {
-      "select-cursor-parent" ()
-      "expand-collapse-cursor-row" (0,0,0)
-    };
-    bind "Right" {
-      "expand-collapse-cursor-row" (0,1,0)
-    };
-}
-
-treeview
-{
-    -gtk-key-bindings: TtyxTreeViewBinding;
-}
+/*
+ * GTK4 has no CSS key bindings (@binding-set / -gtk-key-bindings are gone).
+ * The tree-view navigation this file used to install — Left collapses the row
+ * or moves to its parent, Right expands — now lives in
+ * gx.gtk.util.addTreeViewNavigation(), attached per tree view in code.
+ */

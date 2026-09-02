@@ -25,6 +25,7 @@
  */
 module gx.gtk.util;
 
+import glib.variant : Variant;
 import std.conv;
 import std.datetime.stopwatch : AutoStart, StopWatch;
 import std.experimental.logger;
@@ -32,6 +33,7 @@ import std.process : environment;
 import std.typecons : No;
 
 import gdk.rgba : RGBA;
+import gdk.types : ModifierType, KEY_Left, KEY_Right;
 
 import gio.file : File;
 
@@ -41,13 +43,18 @@ import gobject.types : GType, GTypeEnum;
 import gobject.value : Value;
 
 import gtk.box : Box;
+import gtk.callback_action : CallbackAction;
 import gtk.cell_renderer_text : CellRendererText;
 import gtk.combo_box : ComboBox;
+import gtk.keyval_trigger : KeyvalTrigger;
 import gtk.list_store : ListStore;
 import gtk.settings : Settings;
+import gtk.shortcut : Shortcut;
+import gtk.shortcut_controller : ShortcutController;
 import gtk.style_context : StyleContext;
 import gtk.tree_iter : TreeIter;
 import gtk.tree_model : TreeModel;
+import gtk.tree_path : TreePath;
 import gtk.tree_store : TreeStore;
 import gtk.tree_view : TreeView;
 import gtk.tree_view_column : TreeViewColumn;
@@ -461,4 +468,47 @@ public bool gtkAtLeast(uint major, uint minor, uint micro = 0) {
     if (rMajor != major) return rMajor > major;
     if (rMinor != minor) return rMinor > minor;
     return rMicro >= micro;
+}
+
+/**
+ * Left collapses the cursor row or, if it is already collapsed, moves the
+ * cursor to its parent; Right expands it. This is the tree-view navigation
+ * ttyx.base320.css installed for every TreeView with a GTK3 @binding-set.
+ * GTK4 has no CSS key bindings, so it is a ShortcutController per view that
+ * drives the TreeView directly (the action signals the binding fired are
+ * still there, but a Shortcut carries one action and Left needed two).
+ */
+public void addTreeViewNavigation(TreeView tv) {
+    ShortcutController sc = new ShortcutController();
+
+    Shortcut left = new Shortcut(new KeyvalTrigger(KEY_Left, cast(ModifierType) 0),
+        new CallbackAction(delegate bool(Widget w, Variant args) {
+            TreePath path;
+            TreeViewColumn column;
+            tv.getCursor(path, column);
+            if (path is null) return false;
+            if (tv.rowExpanded(path)) {
+                tv.collapseRow(path);
+                return true;
+            }
+            if (path.getDepth() > 1 && path.up()) {
+                tv.setCursor(path, null, false);
+                return true;
+            }
+            return false;
+        }));
+    sc.addShortcut(left);
+
+    Shortcut right = new Shortcut(new KeyvalTrigger(KEY_Right, cast(ModifierType) 0),
+        new CallbackAction(delegate bool(Widget w, Variant args) {
+            TreePath path;
+            TreeViewColumn column;
+            tv.getCursor(path, column);
+            if (path is null) return false;
+            tv.expandRow(path, false);
+            return true;
+        }));
+    sc.addShortcut(right);
+
+    tv.addController(sc);
 }

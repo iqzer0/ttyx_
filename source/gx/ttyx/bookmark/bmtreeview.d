@@ -67,6 +67,7 @@ import gtk.widget : Widget;
 import gx.i18n.l10n;
 
 import gx.ttyx.bookmark.manager;
+import gx.gtk.util : addTreeViewNavigation;
 
 enum Columns : uint {
     ICON = 0,
@@ -249,6 +250,7 @@ public:
             }
         }
         createColumns();
+        addTreeViewNavigation(this);
     }
 
     Bookmark getSelectedBookmark() {

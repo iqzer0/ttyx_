@@ -714,7 +714,27 @@ helper, or anchor them away from it). Note that a running GTK3 ttyx is the
 primary instance on the session bus — a GTK4 binary launched without
 `--new-process` forwards its command line to it and exits 0.
 
-Remaining startup noise: four CSS parser warnings for GTK3-only constructs —
-`@binding-set`/`-gtk-key-bindings` in `ttyx.base320.css` (tree-view Left/Right
-navigation, needs a `ShortcutController`) and two `-gtk-gradient(radial …)`
-backgrounds in `ttyx.base.css`.
+The four CSS parser warnings at startup were GTK3-only constructs:
+`-gtk-gradient(radial …)` on the two badge classes is now standard
+`radial-gradient(circle closest-side, …)`, and the `@binding-set` tree-view
+navigation from `ttyx.base320.css` (Left collapses or moves to the parent,
+Right expands) is `gx.gtk.util.addTreeViewNavigation()` — a
+`ShortcutController` attached to the bookmark, shortcut and close-dialog
+trees. Startup is now silent.
+
+### Running a development build
+
+The installed GTK3 ttyx owns both the system schema and the system gresource
+(`/usr/share/ttyx/resources/ttyx.gresource`), and is the primary instance on
+the session bus while it runs. A development run therefore compiles its own
+copies and puts them first:
+
+```bash
+dub build --compiler=ldc2
+glib-compile-schemas --targetdir=build/schemas data/gsettings
+mkdir -p build/share/ttyx/resources
+glib-compile-resources --sourcedir=data/resources \
+    --target=build/share/ttyx/resources/ttyx.gresource data/resources/ttyx.gresource.xml
+XDG_DATA_DIRS=$PWD/build/share:/usr/local/share:/usr/share \
+GSETTINGS_SCHEMA_DIR=$PWD/build/schemas ./ttyx --new-process
+```
