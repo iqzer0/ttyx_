@@ -94,6 +94,19 @@ void activateX11Window(GtkWindow window) {
     }
 }
 
+/**
+ * X11 window id of a realized surface, or 0 when not on X11.
+ *
+ * GtkD exposed this as gdk.X11.getXid on a GdkWindow. giD binds no X11
+ * backend at all, so the raw gdk_x11_surface_get_xid is declared below and
+ * wrapped here for the one caller (terminal.d, which exports WINDOWID to the
+ * child process). Callers should already have checked !isWayland().
+ */
+ulong surfaceXid(GdkSurfaceWrap surface) {
+    if (surface is null) return 0;
+    return cast(ulong) gdk_x11_surface_get_xid(cast(GdkSurface*) surface._cPtr);
+}
+
 private:
 
 // GDK X11 backend helpers. giD does not bind the GDK X11 backend, so declare

@@ -122,18 +122,17 @@ import gid.gid : Flag, No, Yes, fromCString;
 import cairo.context : Context;
 import cairo.types : Operator;
 
-import gdk.atom : Atom;
-import gdk.c.functions : gdk_drag_context_list_targets;
-import gdk.c.types : GdkDragContext, GdkEvent, GdkEventButton;
 import gdk.display : Display;
-import gdk.drag_context : DragContext;
 import gdk.event : Event;
 import gdk.rectangle : Rectangle;
 import gdk.rgba : RGBA;
-import gdk.screen : Screen;
+import gdk.content_formats : ContentFormats;
+import gdk.content_provider : ContentProvider;
+import gdk.drag : Drag;
+import gdk.drop : Drop;
 import gdk.types : BUTTON_MIDDLE, BUTTON_PRIMARY, BUTTON_SECONDARY, CursorType,
-    DragAction, EventType, KEY_c, KEY_Return, ModifierType, ScrollDirection;
-import gdk.window : GdkWindow = Window;
+    DragAction, DragCancelReason, KEY_c, KEY_Return, ModifierType;
+import gdk.surface : GdkSurfaceWrap = Surface;
 
 import gdkpixbuf.pixbuf : Pixbuf;
 
@@ -142,10 +141,13 @@ import gio.menu : GMenu = Menu;
 import gio.menu_item : GMenuItem = MenuItem;
 import gio.output_stream : OutputStream;
 import gio.settings : GSettings = Settings;
+import gio.async_result : AsyncResult;
+import gio.input_stream : InputStream;
 import gio.simple_action : SimpleAction;
 import gio.simple_action_group : SimpleActionGroup;
 import gio.types : FileCreateFlags;
 
+import glib.bytes : Bytes;
 import glib.error : ErrorWrap;
 import glib.c.types : GList;
 import glib.global : filenameFromUri, filenameToUri, getCurrentDir,
@@ -158,12 +160,12 @@ import glib.variant : GVariant = Variant;
 import glib.variant_type : GVariantType = VariantType;
 
 import gobject.c.functions : g_object_new;
+import gobject.object : ObjectWrap;
 import gobject.value : Value;
 import gobject.c.types : GTypeInstance;
 import gobject.global : signalHandlerBlock, signalHandlerDisconnect, signalHandlerUnblock;
 
 import gtk.adjustment : Adjustment;
-import gtk.bin : Bin;
 import gtk.box : Box;
 import gtk.button : Button;
 import gtk.c.types : GtkWidget, GtkWidgetClass;
@@ -176,8 +178,11 @@ import gtk.event_controller_scroll : EventControllerScroll;
 import gtk.gesture_click : GestureClick;
 import gtk.file_chooser_dialog : FileChooserDialog;
 import gtk.file_filter : FileFilter;
-import gtk.global : checkVersion, dragGetSourceWidget, dragSetIconPixbuf,
-    dragSetIconWidget, getCurrentEvent, getCurrentEventTime, showUri;
+import gtk.global : checkVersion;
+import gtk.drag_source : DragSource;
+import gtk.drop_target_async : DropTargetAsync;
+import gtk.uri_launcher : UriLauncher;
+import gtk.widget_paintable : WidgetPaintable;
 import gtk.image : Image;
 import gtk.info_bar : InfoBar;
 import gtk.label : Label;
@@ -187,16 +192,13 @@ import gtk.overlay : Overlay;
 import gtk.popover : Popover;
 import gtk.scrollbar : Scrollbar;
 import gtk.scrolled_window : ScrolledWindow;
-import gtk.selection_data : SelectionData;
 import gtk.spinner : Spinner;
 import gtk.style_context : StyleContext;
-import gtk.target_entry : TargetEntry;
-import gtk.target_list : TargetList;
 import gtk.toggle_button : ToggleButton;
-import gtk.types : Align, DestDefaults, DragResult, EventControllerScrollFlags,
+import gtk.types : Align, EventControllerScrollFlags,
     EventSequenceState, FileChooserAction,
     MessageType, Orientation, PolicyType, PositionType, ReliefStyle,
-    ResponseType, StateFlags, TargetFlags, WindowType,
+    ResponseType, StateFlags,
     STYLE_PROVIDER_PRIORITY_APPLICATION;
 import gtk.widget : Widget;
 import gtk.window : Window;
@@ -221,6 +223,7 @@ import gx.gtk.clipboard : ClipboardSelection, selectionClipboard;
 import gx.gtk.dialog;
 import gx.gtk.resource;
 import gx.gtk.util;
+import gx.gtk.x11 : surfaceXid;
 import gx.gtk.vte;
 import gx.i18n.l10n;
 import gx.util.array;
@@ -428,11 +431,21 @@ private:
             ".ttyx-ssh-title { background: rgba(26, 95, 180, 0.50); }",
         ];
 
-        Screen screen = Display.getDefault().getDefaultScreen();
-        foreach (rule; rules) {
-            CssProvider provider = new CssProvider();
-            provider.loadFromData(cast(ubyte[]) rule.dup);
-            StyleContext.addProviderForScreen(screen, provider, STYLE_PROVIDER_PRIORITY_APPLICATION);
+        // GTK4: GdkScreen is gone; providers attach to the display.
+        //
+        // Also fixes a long-standing leak: this ran for EVERY terminal created,
+        // adding two more display-wide providers each time and never removing
+        // them, so a long session accumulated hundreds of identical providers
+        // that GTK re-evaluated on every style invalidation. The rules are
+        // constant, so install them exactly once per process.
+        static bool indicatorCssInstalled = false;
+        if (!indicatorCssInstalled) {
+            indicatorCssInstalled = true;
+            foreach (rule; rules) {
+                CssProvider provider = new CssProvider();
+                provider.loadFromData(rule);
+                StyleContext.addProviderForDisplay(Display.getDefault(), provider, STYLE_PROVIDER_PRIORITY_APPLICATION);
+            }
         }
     }
 
@@ -670,7 +683,7 @@ private:
 
         saPaste = registerActionWithSettings(group, ACTION_PREFIX, ACTION_PASTE, gsShortcuts, delegate(GVariant value, SimpleAction sa) {
             // Check to see if something other then terminal has focus
-            Window window = cast(Window) getToplevel();
+            Window window = cast(Window) getRoot();
             if (window !is null) {
                 Entry entry = cast(Entry) window.getFocus();
                 if (entry !is null) {
@@ -687,7 +700,7 @@ private:
 
         registerActionWithSettings(group, ACTION_PREFIX, ACTION_PASTE_PRIMARY, gsShortcuts, delegate(GVariant value, SimpleAction sa) {
             // Check to see if something other then terminal has focus
-            Window window = cast(Window) getToplevel();
+            Window window = cast(Window) getRoot();
             if (window !is null) {
                 Entry entry = cast(Entry) window.getFocus();
                 if (entry !is null) {
@@ -761,7 +774,7 @@ private:
 
         //Override terminal title
         registerActionWithSettings(group, ACTION_PREFIX, ACTION_LAYOUT, gsShortcuts, delegate(GVariant value, SimpleAction sa) {
-            LayoutDialog dialog = new LayoutDialog(cast(Window) getToplevel());
+            LayoutDialog dialog = new LayoutDialog(cast(Window) getRoot());
             scope (exit) {
                 dialog.destroy();
             }
@@ -785,7 +798,7 @@ private:
             string name;
             if (processQuery.isProcessRunning(gpid, name)) {
                 ProcessInformation pi = ProcessInformation(ProcessInfoSource.TERMINAL, (name.length > 0? name: getDisplayText("")), uuid, []);
-                if (!promptCanCloseProcesses(gsSettings, cast(Window)getToplevel(), pi)) return;
+                if (!promptCanCloseProcesses(gsSettings, cast(Window)getRoot(), pi)) return;
             }
             notifyTerminalClose();
         });
@@ -810,7 +823,9 @@ private:
             // Only support local directories for now
             string uri = filenameToUri(gst.currentLocalDirectory, null);
             tracef("Opening directory: %s, hostname: %s, uri: %s", gst.currentDirectory, gst.currentHostname, uri);
-            showUri(null, uri, getCurrentEventTime());
+            // GTK4: gtk_show_uri is deprecated (4.10) and gtk_get_current_event_time
+            // is gone; GtkUriLauncher needs no timestamp.
+            new UriLauncher(uri).launch(cast(Window) getRoot(), null, null);
         });
 
         //Clear Terminal && Reset and Clear Terminal
@@ -865,7 +880,7 @@ private:
             if (secretLib !is null) {
                 dlclose(secretLib);
                 tracef("Library %s was loaded", LIBRARY_SECRET);
-                PasswordManagerDialog pdm = new PasswordManagerDialog(cast(Window)this.getToplevel());
+                PasswordManagerDialog pdm = new PasswordManagerDialog(cast(Window)this.getRoot());
                 scope(exit) {pdm.destroy();}
                 pdm.showAll();
                 if (pdm.run() == ResponseType.Apply) {
@@ -879,7 +894,7 @@ private:
                     }
                 }
             } else {
-                showErrorDialog(cast(Window)getToplevel(), format(_("The library %s could not be loaded, password functionality is unavailable."), LIBRARY_SECRET), _("Library Not Loaded"));
+                showErrorDialog(cast(Window)getRoot(), format(_("The library %s could not be loaded, password functionality is unavailable."), LIBRARY_SECRET), _("Library Not Loaded"));
             }
         }, null, null);
 
@@ -1061,7 +1076,7 @@ private:
             // Originally planned on not showing bell when window is not active but too many edge cases
             // like window is active in different monitor, window is visible but not active, just a message
             // to deal with IMHO. Notifications right solution for that
-            // Window window = cast(Window)getToplevel();
+            // Window window = cast(Window)getRoot();
             if (vte.getMapped()) { //&& (window !is null && window.isVisible() && window.isActive())) {
                 showBell();
             } else {
@@ -1587,7 +1602,7 @@ private:
      * terminal.
      */
     void selectBookmark() {
-        BookmarkChooser bc = new BookmarkChooser(cast(Window)getToplevel(), BMSelectionMode.LEAF);
+        BookmarkChooser bc = new BookmarkChooser(cast(Window)getRoot(), BMSelectionMode.LEAF);
         scope(exit) {bc.destroy();}
         bc.showAll();
         if (bc.run() == ResponseType.Ok && bc.bookmark !is null) {
@@ -1623,7 +1638,7 @@ private:
             pb.path = gst.currentDirectory();
             bm = pb;
         }
-        BookmarkEditor be = new BookmarkEditor(cast(Window)getToplevel(), BookmarkEditorMode.ADD, bm, true);
+        BookmarkEditor be = new BookmarkEditor(cast(Window)getRoot(), BookmarkEditorMode.ADD, bm, true);
         scope(exit) {be.destroy();}
         be.showAll();
         if (be.run() == ResponseType.Ok) {
@@ -2167,7 +2182,7 @@ private:
                 }
 
                 if (filename.length != 0 && hostname.length !=0 && hostname != "localhost" && hostname != gst.localHostname()) {
-                    showErrorDialog(cast(Window)getToplevel(),
+                    showErrorDialog(cast(Window)getRoot(),
                                     format(_("Remote file URIs are not supported with hyperlinks.\nURI was '%s'"), uri),
                                     _("Remote File URI Unsupported"));
                     return;
@@ -2209,7 +2224,7 @@ private:
                             }
                         } catch (ErrorWrap ge) {
                             string message = format(_("Custom link regex '%s' has an error, ignoring"), cr.pattern);
-                            showErrorDialog(cast(Window)getToplevel(), message, _("Regular Expression Error"));
+                            showErrorDialog(cast(Window)getRoot(), message, _("Regular Expression Error"));
                             error(message);
                             error(ge.msg);
                         }
@@ -2233,16 +2248,18 @@ private:
         // rather than opening it blindly.
         if (!isAllowedUriScheme(uri)) {
             string message = format(_("Refusing to open link with a disallowed scheme.\nURI was '%s'"), stripUrlUserinfo(uri));
-            showErrorDialog(cast(Window) getToplevel(), message, _("Link Scheme Not Allowed"));
+            showErrorDialog(cast(Window) getRoot(), message, _("Link Scheme Not Allowed"));
             warning(message);
             return;
         }
         try {
             tracef("Showing URI %s", uri);
-            showUri(null, uri, getCurrentEventTime());
+            // GTK4: gtk_show_uri is deprecated (4.10) and gtk_get_current_event_time
+            // is gone; GtkUriLauncher needs no timestamp.
+            new UriLauncher(uri).launch(cast(Window) getRoot(), null, null);
         } catch (Exception e) {
             string message = format(_("Could not open match '%s'"), match.match);
-            showErrorDialog(cast(Window)getToplevel(), message, _("Error Opening Match"));
+            showErrorDialog(cast(Window)getRoot(), message, _("Error Opening Match"));
             error(message);
             error(e.msg);
         }
@@ -2748,12 +2765,14 @@ private:
             // See Issues #540 and #525
 
             // Add Window ID
-            Window tw = cast(Window)getToplevel();
+            // GTK4: getRoot() -> getRoot(); GdkWindow -> GdkSurface; and the
+            // GtkD-era gdk.X11.getXid is replaced by gx.gtk.x11.surfaceXid,
+            // which wraps the raw backend call giD does not bind.
+            Window tw = cast(Window) getRoot();
             if (tw !is null && !isWayland(tw)) {
-                GdkWindow window = tw.getWindow();
-                if (window !is null) {
-                    import gdk.X11: getXid;
-                    uint xid = getXid(window);
+                GdkSurfaceWrap surface = tw.getSurface();
+                if (surface !is null) {
+                    ulong xid = surfaceXid(surface);
                     tracef("WINDOWID=%d",xid);
                     envv ~= ["WINDOWID=" ~ to!string(xid)];
                 }
@@ -2883,12 +2902,16 @@ private:
         _dragInfo = info;
         if (renderer !is null) renderer.setDragInfo(info);
     }
-    bool isRootWindow = false;
-    static if (USE_PIXBUF_DND) {
-        Pixbuf dragImage;
-    } else {
-        Window dragImage;
-    }
+    /**
+     * UUID of the terminal currently being dragged from its title bar, or null.
+     *
+     * GTK4 has no gtk_drag_get_source_widget; the drop side cannot ask the
+     * drag which widget started it. Every terminal drag in this process runs
+     * through onTitleDragPrepare, so recording the source there and clearing it
+     * on end/cancel gives motion handlers the same-app source identity that
+     * GTK3's TargetFlags.SameApp + dragGetSourceWidget provided.
+     */
+    static string _draggingTerminalUUID;
 
     /**
      * Sets up the DND by registering the TargetEntry objects as source and destinations
@@ -2898,28 +2921,28 @@ private:
      */
     void setupDragAndDrop(Widget title) {
         trace("Setting up drag and drop");
-        //DND
-        TargetEntry uriEntry = new TargetEntry("text/uri-list", TargetFlags.OtherApp, DropTargets.URILIST);
-        TargetEntry stringEntry = new TargetEntry("STRING", TargetFlags.OtherApp, DropTargets.STRING);
-        TargetEntry textEntry = new TargetEntry("text/plain", TargetFlags.OtherApp, DropTargets.TEXT);
-        TargetEntry utf8TextEntry = new TargetEntry("UTF8_STRING", TargetFlags.OtherApp, DropTargets.UTF8_TEXT);
-        TargetEntry colorEntry = new TargetEntry("application/x-color", TargetFlags.OtherApp, DropTargets.COLOR);
-        TargetEntry vteEntry = new TargetEntry(VTE_DND, TargetFlags.SameApp, DropTargets.VTE);
-        TargetEntry sessionEntry = new TargetEntry(SESSION_DND, TargetFlags.SameApp, DropTargets.SESSION);
-        TargetEntry[] targets = [uriEntry, utf8TextEntry, stringEntry, textEntry, colorEntry, vteEntry, sessionEntry];
-        vte.dragDestSet(DestDefaults.All, targets, cast(DragAction)(DragAction.Copy | DragAction.Move));
-        dragSourceSet(ModifierType.Button1Mask, [vteEntry], DragAction.Move);
+        // GTK4 DnD is controller-based. The payloads stay mime-typed byte blobs
+        // (VTE_DND / SESSION_DND carrying a UUID) delivered via
+        // ContentProvider.newForBytes and received by a DropTargetAsync. That is
+        // deliberate: a GType-based DropTarget with a plain-string payload would
+        // let a dragged terminal drop into any text entry as its UUID. Our own
+        // mime types give the GTK3 TargetFlags.SameApp semantics for free.
+        DragSource dragSource = new DragSource();
+        dragSource.setActions(DragAction.Move);
+        dragSource.connectPrepare(&onTitleDragPrepare);
+        dragSource.connectDragBegin(&onTitleDragBegin);
+        dragSource.connectDragCancel(&onTitleDragCancel, Yes.After);
+        dragSource.connectDragEnd(&onTitleDragEnd, Yes.After);
+        title.addController(dragSource);
 
-        //Title bar events
-        connectDragBegin(&onTitleDragBegin);
-        connectDragDataGet(&onTitleDragDataGet);
-        connectDragFailed(&onTitleDragFailed, Yes.After);
-        connectDragEnd(&onTitleDragEnd, Yes.After);
-
-        //VTE Drop events
-        vte.connectDragDataReceived(&onVTEDragDataReceived);
-        vte.connectDragMotion(&onVTEDragMotion);
-        vte.connectDragLeave(&onVTEDragLeave);
+        ContentFormats accepted = new ContentFormats([
+            VTE_DND, SESSION_DND, "text/uri-list", "application/x-color",
+            "UTF8_STRING", "text/plain", "STRING"]);
+        DropTargetAsync dropTarget = new DropTargetAsync(accepted, cast(DragAction)(DragAction.Copy | DragAction.Move));
+        dropTarget.connectDrop(&onVTEDrop);
+        dropTarget.connectDragMotion(&onVTEDragMotion);
+        dropTarget.connectDragLeave(&onVTEDragLeave);
+        vte.addController(dropTarget);
 
         // Let VTE paint the terminal background natively. Required for
         // OSC 11 (dynamic background-color) support — apps like neovim and
@@ -2941,167 +2964,88 @@ private:
         trace("Drag and drop completed");
     }
 
-    /**
-     * Called to set the selection data, which is later returned in the drag received
-     * so it knows which terminal was dropped, in this case the terminal UUID
-     */
-    void onTitleDragDataGet(DragContext dc, SelectionData data, uint info, uint time, Widget widget) {
-        char[] buffer = (uuid ~ '\0').dup;
-        Atom gdkAtom = data.getTarget();
-        string name = gdkAtom.name();
-        if (name == "application/x-rootwindow-drop") {
-            trace("Root window drop");
-            isRootWindow = true;
-        } else {
-            tracef("onTitleDragDataGet atom: %s", name);
-            isRootWindow = false;
-        }
-        data.set(Atom.intern(VTE_DND, false), 8, cast(ubyte[]) buffer);
+    /// The drag payload: this terminal's UUID under our own mime type.
+    ContentProvider onTitleDragPrepare(double x, double y, DragSource source) {
+        _draggingTerminalUUID = uuid;
+        return ContentProvider.newForBytes(VTE_DND, new Bytes(cast(ubyte[]) uuid.dup));
     }
 
     /**
-     * Begin the drag operation from the use dragging the title bar, renders the
-     * terminal image into a scaled Pixbuf to use as the drag icon.
-     *
-     * Cribbed idea from Terminator, my original implementation worked
-     * but had an issue in Fedora 23 potentially due to a Cario bug,
-     * see Issue #19
-     *
-     * TODO - Add some transparency
+     * Begin the drag operation from the user dragging the title bar. GTK4: the
+     * drag icon is a live paintable of this terminal, which replaces the GTK3
+     * detour of snapshotting to a Pixbuf and, on non-Pixbuf builds, wrapping it
+     * in an Image inside a popup Window for dragSetIconWidget.
      */
-    void onTitleDragBegin(DragContext dc, Widget widget) {
+    void onTitleDragBegin(Drag drag, DragSource source) {
         trace("Title Drag begin");
-        isRootWindow = false;
-        if (dragImage !is null) {
-            trace("*** Destroying the previous dragImage");
-            dragImage.destroy();
-            dragImage = null;
-        }
-        static if (USE_PIXBUF_DND) {
-            dragImage = getWidgetImage(this, 0.20);
-            dragSetIconPixbuf(dc, dragImage, 0, 0);
-        } else {
-            Image image = Image.newFromPixbuf(getWidgetImage(this, 0.20));
-            image.show();
-            dragImage = new Window(WindowType.Popup);
-            dragImage.add(image);
-            dragSetIconWidget(dc, dragImage, 0, 0);
-        }
+        source.setIcon(new WidgetPaintable(this), 0, 0);
     }
 
-    void onTitleDragEnd(DragContext dc, Widget widget) {
+    void onTitleDragEnd(Drag drag, bool deleteData, DragSource source) {
         trace("Title drag end");
-        if (isRootWindow) {
-            detachTerminalOnDrop(dc);
-        }
-        trace("*** Destroying dragImage");
-        isRootWindow = false;
-        if (dragImage !is null) {
-            dragImage.destroy();
-            dragImage = null;
-        }
-        // GtkD needed a `dc.destroy()` here to release its reference to the
-        // GTK DragContext under Wayland (cursor stuck); giD releases its
-        // wrapper reference normally, so no equivalent is required.
+        _draggingTerminalUUID = null;
     }
 
     /**
-     * Called when drag failed, used this to detach a terminal into a new window
+     * A drag that ends with no target is how GTK4 expresses "dropped on the
+     * desktop" — there is no root-window drop target any more. That is the
+     * detach-into-new-window gesture, allowed only if the whole hierarchy
+     * (application, window, session) agrees.
      */
-    bool onTitleDragFailed(DragContext dc, DragResult dr, Widget widget) {
-        trace("Drag Failed with ", dr);
-        scope(exit) {
-            isRootWindow = false;
-            if (dragImage !is null) {
-                dragImage.destroy();
-                dragImage = null;
-            }
-        }
-        //Only allow detach if whole hierarchy agrees (application, window, session)
-        if (notifyIsActionAllowed(ActionType.DETACH_TERMINAL)) {
-            if (detachTerminalOnDrop(dc)) return true;
-        }
-        return false;
-    }
-
-    bool detachTerminalOnDrop(DragContext dc) {
-        trace("Detaching terminal");
-        Screen screen;
-        int x, y;
-        dc.getDevice().getPosition(screen, x, y);
-        //Detach here
-        Terminal terminal = getDragTerminal(dc);
-        if (terminal !is null) {
-            notifyTerminalRequestDetach(terminal, x, y);
+    bool onTitleDragCancel(Drag drag, DragCancelReason reason, DragSource source) {
+        trace("Drag cancelled with ", reason);
+        scope(exit) _draggingTerminalUUID = null;
+        if (reason == DragCancelReason.NoTarget && notifyIsActionAllowed(ActionType.DETACH_TERMINAL)) {
+            trace("Detaching terminal");
+            // GTK3 placed the new window at the pointer. GTK4 has no client-side
+            // window positioning (WP5) and no global pointer query, so the
+            // coordinates are meaningless; the compositor places the window.
+            notifyTerminalRequestDetach(this, 0, 0);
             terminalWindowState = TerminalWindowState.NORMAL;
             updateActions();
             return true;
-        } else {
-            error("Failed to get terminal therefore detach request failed");
         }
         return false;
     }
 
-    Terminal getDragTerminal(DragContext dc) {
-        Terminal terminal = cast(Terminal) dragGetSourceWidget(dc);
-        if (terminal is null) {
-            error("Oops, something went wrong not a terminal drag");
-            return null;
-        }
-        return terminal;
-    }
-
-    bool isSourceAndDestEqual(DragContext dc, Terminal dest) {
-        Terminal dragTerminal = getDragTerminal(dc);
-        return (dragTerminal.uuid == _terminalUUID);
-    }
-
-    /**
-     * True when the drag source offers the terminal (VTE_DND) target. giD
-     * does not bind gdk_drag_context_list_targets, so walk the raw GList of
-     * interned atoms (atom pointers are unique, pointer compare suffices).
-     */
-    bool dragSourceOffersVteTarget(DragContext dc) {
-        void* vteAtom = Atom.intern(VTE_DND, false)._cPtr;
-        for (GList* l = gdk_drag_context_list_targets(cast(GdkDragContext*) dc._cPtr); l !is null; l = l.next) {
-            if (l.data is vteAtom) return true;
-        }
-        return false;
+    /// True when the in-flight drag started from this very terminal.
+    bool isSourceAndDestEqual() {
+        return _draggingTerminalUUID == _terminalUUID;
     }
 
     /**
      * Keeps track of where the cursor is and sets dragInfo so the correct
-     * quandrant can be highlighted.
+     * quadrant can be highlighted. Returns the action the drop would take, or
+     * 0 to refuse it.
      */
-    bool onVTEDragMotion(DragContext dc, int x, int y, uint time, Widget widget) {
+    DragAction onVTEDragMotion(Drop drop, double x, double y, DropTargetAsync target) {
         //Is this a terminal drag or something else?
-        if (!dragSourceOffersVteTarget(dc)) {
-            return true;
+        if (!drop.getFormats().containMimeType(VTE_DND)) {
+            return DragAction.Copy;
         }
         //Don't allow drop on the same terminal or if it is maximized
-        if (isSourceAndDestEqual(dc, this) || terminalWindowState == TerminalWindowState.MAXIMIZED) {
-            //trace("Invalid drop");
-            return false;
+        if (isSourceAndDestEqual() || terminalWindowState == TerminalWindowState.MAXIMIZED) {
+            return cast(DragAction) 0;
         }
-        DragQuadrant dq = getDragQuadrant(x, y, vte);
+        DragQuadrant dq = getDragQuadrant(cast(int) x, cast(int) y, vte);
 
         setDragInfo(DragInfo(true, dq));
         vte.queueDraw();
         //Uncomment this if debugging motion otherwise generates annoying amount of trace noise
-        tracef("Drag motion: %s %d, %d, %d", _terminalUUID, x, y, dq);
+        tracef("Drag motion: %s %d, %d, %d", _terminalUUID, cast(int) x, cast(int) y, dq);
 
-        return true;
+        return DragAction.Move;
     }
 
-    void onVTEDragLeave(DragContext dc, uint time, Widget widget) {
+    void onVTEDragLeave(Drop drop, DropTargetAsync target) {
         trace("Drag Leave " ~ _terminalUUID);
         setDragInfo(DragInfo(false, DragQuadrant.LEFT));
         vte.queueDraw();
     }
 
     /**
-     * Given a point x,y which quandrant (left, top, right, bottom) should
-     * the drag snap too.
+     * Given a point x,y which quadrant (left, top, right, bottom) should
+     * the drag snap to.
      */
     DragQuadrant getDragQuadrant(int x, int y, Widget widget) {
         Point cursor = Point(x, y);
@@ -3124,70 +3068,107 @@ private:
         if (pointInTriangle(cursor, bottomLeft, bottomRight, center))
             return DragQuadrant.BOTTOM;
 
-        trace("Error with drag quandrant calculation, no quandrant calculated");
+        trace("Error with drag quadrant calculation, no quadrant calculated");
         return DragQuadrant.LEFT;
     }
 
     /**
-     * Called when the drag operation ends and a drop occurred
+     * Called when a drop occurs. GTK4 drops are asynchronous: the offered
+     * formats are inspected synchronously to pick ONE mime type in priority
+     * order, its bytes are read, and the drop is finished in the callback. The
+     * GTK3 `info` enum dispatch becomes a dispatch on the mime type actually
+     * delivered.
      */
-    void onVTEDragDataReceived(DragContext dc, int x, int y, SelectionData data, uint info, uint time, Widget widget) {
-        trace("Drag data received for " ~ to!string(info));
-        final switch (info) {
-        case DropTargets.URILIST:
-            string[] uris = data.getUris();
-            if (uris) {
-                foreach (uri; uris) {
-                    trace("Dropped filename " ~ uri);
-                    GFile file = parseName(uri);
-                    string filename;
-                    if (file !is null) {
-                        filename = file.getPath();
-                        trace("Converted filename " ~ filename);
-                    } else {
-                        string hostname;
-                        try {
-                            filename = filenameFromUri(uri, hostname);
-                        } catch (Exception e) {
-                            warning("Failed to parse dropped URI '" ~ uri ~ "': " ~ e.msg);
-                            continue;
-                        }
+    bool onVTEDrop(Drop drop, double x, double y, DropTargetAsync target) {
+        ContentFormats offered = drop.getFormats();
+        string[] wanted;
+        foreach (mime; [VTE_DND, SESSION_DND, "text/uri-list", "application/x-color", "UTF8_STRING", "text/plain", "STRING"]) {
+            if (offered.containMimeType(mime)) { wanted ~= mime; break; }
+        }
+        if (wanted.length == 0) return false;
+
+        // Terminal drops are refused up front (motion already reported 0, but a
+        // drop can still arrive if the source ignored it).
+        if (wanted[0] == VTE_DND && (isSourceAndDestEqual() || terminalWindowState == TerminalWindowState.MAXIMIZED)) {
+            return false;
+        }
+
+        // Capture the quadrant now; the callback runs after the pointer has gone.
+        DragQuadrant dq = getDragQuadrant(cast(int) x, cast(int) y, vte);
+
+        drop.readAsync(wanted, PRIORITY_DEFAULT, null, delegate(ObjectWrap src, AsyncResult res) {
+            try {
+                string mime;
+                InputStream stream = drop.readFinish(res, mime);
+                // Drop payloads are tiny (a UUID, a colour, a few URIs / lines of
+                // text); one bounded read is enough and keeps this simple.
+                Bytes bytes = stream.readBytes(1024 * 1024, null);
+                ubyte[] data = bytes.getData();
+                trace("Drag data received for " ~ mime);
+                handleDrop(mime, data, dq);
+                drop.finish(mime == VTE_DND || mime == SESSION_DND ? DragAction.Move : DragAction.Copy);
+            } catch (Exception e) {
+                warning("Drop failed: " ~ e.msg);
+                setDragInfo(DragInfo(false, DragQuadrant.LEFT));
+                drop.finish(cast(DragAction) 0);
+            }
+        });
+        return true;
+    }
+
+    void handleDrop(string mime, ubyte[] data, DragQuadrant dq) {
+        switch (mime) {
+        case "text/uri-list":
+            // One URI per line, CRLF-separated per RFC 2483; '#' lines are comments.
+            import std.string : lineSplitter, strip, startsWith;
+            foreach (line; (cast(char[]) data).idup.lineSplitter) {
+                string uri = line.strip;
+                if (uri.length == 0 || uri.startsWith("#")) continue;
+                trace("Dropped filename " ~ uri);
+                GFile file = parseName(uri);
+                string filename;
+                if (file !is null) {
+                    filename = file.getPath();
+                    trace("Converted filename " ~ filename);
+                } else {
+                    string hostname;
+                    try {
+                        filename = filenameFromUri(uri, hostname);
+                    } catch (Exception e) {
+                        warning("Failed to parse dropped URI '" ~ uri ~ "': " ~ e.msg);
+                        continue;
                     }
-                    string quoted = shellQuote(filename) ~ " ";
-                    vte.feedChild(cast(ubyte[]) quoted.dup);
                 }
+                string quoted = shellQuote(filename) ~ " ";
+                vte.feedChild(cast(ubyte[]) quoted.dup);
             }
             break;
-        case DropTargets.UTF8_TEXT, DropTargets.STRING, DropTargets.TEXT:
-            string text = data.getText();
-            tracef("Text dropped %s,%d,%d", text, text.length, data.getLength);
+        case "UTF8_STRING", "STRING", "text/plain":
+            string text = (cast(char[]) data).idup;
+            tracef("Text dropped %s,%d", text, text.length);
             if (text.length > 0) {
                 vte.feedChild(cast(ubyte[]) text.dup);
             }
             break;
-        case DropTargets.COLOR:
-            if (data.getLength() != 8) return;
-            // giD: getDataWithLength → getData(), already length-sliced.
-            ubyte[] colors = data.getData();
-            string hexColor = format("#%02X%02X%02X", colors[0], colors[1], colors[2]);
+        case "application/x-color":
+            // Four 16-bit channels, RGBA; the high byte of each is the 8-bit value.
+            if (data.length != 8) return;
+            string hexColor = format("#%02X%02X%02X", data[1], data[3], data[5]);
             trace("Hex Color " ~ hexColor);
-            tracef("Red=%d,Green=%d,Blue=%d,Alpha=%d", colors[0], colors[1], colors[2], colors[3]);
             gsProfile.setString(SETTINGS_PROFILE_BG_COLOR_KEY, hexColor);
             applyPreference(SETTINGS_PROFILE_BG_COLOR_KEY);
             break;
-        case DropTargets.VTE:
-            //Don't allow drop on the same terminal
-            if (isSourceAndDestEqual(dc, this) || terminalWindowState == TerminalWindowState.MAXIMIZED)
-                return;
-            string uuid = to!string(cast(char[]) data.getData()[0 .. $ - 1]);
-            DragQuadrant dq = getDragQuadrant(x, y, vte);
-            tracef("Receiving Terminal %s, Dropped terminal %s, x=%d, y=%d, dq=%d", _terminalUUID, uuid, x, y, dq);
+        case VTE_DND:
+            string uuid = (cast(char[]) data).idup;
+            tracef("Receiving Terminal %s, Dropped terminal %s, dq=%d", _terminalUUID, uuid, dq);
             notifyTerminalRequestMove(uuid, this, dq);
             setDragInfo(DragInfo(false, dq));
             break;
-        case DropTargets.SESSION:
-            string uuid = to!string(cast(char[]) data.getData()[0 .. $ - 1]);
+        case SESSION_DND:
+            string uuid = (cast(char[]) data).idup;
             notifySessionRequestAttach(uuid);
+            break;
+        default:
             break;
         }
     }
@@ -3206,7 +3187,7 @@ private:
      */
     void saveTerminalOutput(bool showSaveAsDialog = true) {
         if (outputFilename.length == 0 || showSaveAsDialog) {
-            Window window = cast(Window) getToplevel();
+            Window window = cast(Window) getRoot();
             // giD binds no FileChooserDialog(title, parent, action, buttons)
             // convenience ctor; construct raw and configure via setters
             // (the advpaste raw-construct pattern).
@@ -3413,7 +3394,7 @@ public:
      * Shell) is the default response.
      */
     bool confirmSessionCommand(string command) {
-        Window parent = cast(Window) getToplevel();
+        Window parent = cast(Window) getRoot();
         // GtkD's MessageDialog(parent, flags, type, buttons, msg, null) ctor
         // wraps non-introspectable varargs; construct raw with the
         // construct-only use-header-bar property (DialogFlags.USE_HEADER_BAR)
@@ -3537,10 +3518,11 @@ public:
         }
 
         if (vte !is null && !inDestruction()) {
-            //Workaround for #589
-            Bin bin = cast(Bin)vte.getParent();
-            if (bin !is null) {
-                bin.remove(vte);
+            //Workaround for #589. GTK4: GtkBin is gone and there is no generic
+            //Container.remove; Widget.unparent() is the direct "detach from
+            //whatever parent this has" idiom.
+            if (vte.getParent() !is null) {
+                vte.unparent();
             }
         }
         vte = null;
@@ -3847,7 +3829,7 @@ public:
     @property GSettings contextGsShortcuts() { return gsShortcuts; }
     @property GlobalTerminalState terminalState() { return gst; }
     @property string terminalUUID() { return _terminalUUID; }
-    @property Widget toplevelWidget() { return getToplevel(); }
+    @property Widget toplevelWidget() { return cast(Widget) getRoot(); }
 
 // ISyncInputEmitter implementation
 public:

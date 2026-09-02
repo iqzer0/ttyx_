@@ -482,3 +482,47 @@ likely to be noticed by the compiler and most likely to be noticed by a user.
 these six modules, and it gates 8 modules transitively — including `session.d`,
 whose container `add`/`remove` calls **cannot be type-checked until events.d is
 gone**, because compilation stops at the import error.
+
+## Checkpoint: 48 / 68 clean — DnD, WP6, icons, remaining WP2 done
+
+Landed since the 44/25 checkpoint:
+
+- **WP2 complete.** `appwindow.d`, `terminal.d`, `customtitle.d`, `sidebar.d`,
+  `session.d` converted; `gx/gtk/events.d` — the Kymorphia/gid#52 workaround
+  — **deleted** (no `*-event` signals in GTK4, nothing left for the bug to
+  bite). `Terminal` itself extended `GtkEventBox`; it is now a `Box`.
+- **WP6 complete.** `widgetimage.d` on `WidgetPaintable → Snapshot →
+  RenderNode → Native.getRenderer().renderTexture → pixbufGetFromTexture`.
+  Unrealized widgets yield null instead of an offscreen render.
+- **DnD reworked** in `terminal.d` and `sidebar.d` on `DragSource` +
+  `DropTargetAsync` with `ContentProvider.newForBytes`. The payloads stay
+  mime-typed (`VTE_DND` / `SESSION_DND`), deliberately: a GType-based
+  `DropTarget` with a string payload would let a dragged terminal drop into any
+  text entry as its UUID. Our own mime types give the old `SameApp` semantics
+  for free. Source identity for motion-time checks comes from a static
+  `_draggingTerminalUUID` set in `prepare` (GTK4 has no
+  `gtk_drag_get_source_widget`). "Dropped on the desktop → detach" is
+  `connectDragCancel` with `DragCancelReason.NoTarget`; the new window can no
+  longer be placed at the pointer (no positioning in GTK4, WP5).
+- **Bookmark drag-reordering is DISABLED**, not faked. GTK4 `TreeView` keeps
+  `enableModelDrag*` but has no `drag-data-received`; the model reorders its
+  own rows without consulting the app, which would desync the persisted
+  BookmarkManager. A half-working reorder is worse than none. Re-enable once
+  the manager can observe the model or a custom `TreeDragDest` exists.
+- **Bookmark and close-dialog icons** are theme *names* in the model, rendered
+  by `CellRendererPixbuf`'s `icon-name`. Deletes the IconTheme probing, the
+  hand-rolled symbolic recolouring, and the cache.
+- **Fixed a real leak while porting:** the root/SSH indicator CSS providers
+  were added to the screen once *per terminal* and never removed. Now once per
+  process, on the display.
+- `getToplevel()` → `getRoot()`; `showUri` → `UriLauncher`; `WINDOWID` via
+  `gx.gtk.x11.surfaceXid`.
+
+### What gates the rest
+
+`terminal.d` has no removed-module imports left. Its whole dependency chain now
+stops at **`terminal/clipboard.d`'s `gdk.atom`** — WP3. That module's paste
+path also calls `dialog.run()` (WP1), so the two collide there, on the
+security-critical approve-then-send invariant. ~8 modules chain through it.
+It is the next target and the one to do most carefully: the callback must paste
+the text it read and showed the user, never re-read the clipboard.

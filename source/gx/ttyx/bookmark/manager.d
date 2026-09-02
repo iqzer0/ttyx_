@@ -34,16 +34,10 @@ import std.json;
 import std.path;
 import std.uuid;
 
-import gdk.rgba : RGBA;
-import gdk.display : Display;
 
-import gdkpixbuf.pixbuf : Pixbuf;
 
 import glib.global : getUserConfigDir;
 
-import gtk.icon_info : IconInfo;
-import gtk.icon_theme : IconTheme;
-import gtk.types : IconLookupFlags;
 import gtk.widget : Widget;
 
 import gx.i18n.l10n;
@@ -660,39 +654,28 @@ void initBookmarkManager() {
     bmMgr = new BookmarkManager();
 }
 
-Pixbuf[] getBookmarkIcons(Widget widget) {
-    if (bmIcons.length > 0) return bmIcons;
-    string[] names = ["folder-symbolic","mark-location-symbolic","folder-remote-symbolic", "application-x-executable-symbolic"];
-    Pixbuf[] icons;
-    IconTheme iconTheme = IconTheme.getForDisplay(Display.getDefault());
-    if (iconTheme is null) {
-        error("IconTheme could not be loaded");
-        return [null, null, null, null];
-    }
-
-    RGBA fg;
-    if (!widget.getStyleContext().lookupColor("theme_fg_color", fg)) {
-        error("theme_fg_color could not be loaded");
-        return [null, null, null, null];
-    }
-    foreach(name; names) {
-        IconInfo iconInfo = iconTheme.lookupIcon(name, 16, IconLookupFlags.GenericFallback);
-        bool wasSymbolic;
-        // giD's RGBA is a value struct, so loadSymbolic's use-default (null)
-        // success/warning/error colors cannot be expressed; the ForContext
-        // variant derives fg and the optional colors from the style context,
-        // matching the original's fg + defaults behavior.
-        icons ~= iconInfo.loadSymbolicForContext(widget.getStyleContext(), wasSymbolic);
-    }
-    bmIcons = icons;
-    return icons;
+/**
+ * Themed icon names for each bookmark type, indexed by BookmarkType.
+ *
+ * GTK4: GtkIconTheme.lookupIcon returns a GtkIconPaintable with no loadIcon /
+ * loadSymbolicForContext — icons are not Pixbufs any more. Rather than
+ * rasterise paintables back into Pixbufs, the tree model column holds the icon
+ * *name* and CellRendererPixbuf renders it via its "icon-name" property. That
+ * also means the symbolic recolouring that the GTK3 code did by hand against
+ * theme_fg_color now happens in the renderer, automatically and per state, so
+ * the foreground lookup, the theme probe and the cache all disappear.
+ */
+string[] getBookmarkIconNames() {
+    return ["folder-symbolic", "mark-location-symbolic", "folder-remote-symbolic", "application-x-executable-symbolic"];
 }
 
 /**
  * Clears the bookmark icon cache.
  */
 void clearBookmarkIconCache() {
-    bmIcons.length = 0;
+    // No-op since the GTK4 port: icons are rendered from theme names at draw
+    // time, so a theme change needs nothing invalidated. Kept so the
+    // theme-change hook in application.d needs no edit.
 }
 
 /**
@@ -711,8 +694,7 @@ private:
     enum NODE_BOOKMARK_TYPE = "type";
 
     string[5] localizedBookmarks = [N_("Folder"), N_("Path"), N_("Remote"), N_("Command")];
-    Pixbuf[] bmIcons;
-
+    
 unittest {
     initBookmarkManager();
     FolderBookmark root = bmMgr.root;

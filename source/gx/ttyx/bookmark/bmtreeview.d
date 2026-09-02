@@ -47,11 +47,7 @@ import std.string;
 import std.traits;
 import std.typecons : No;
 
-import gdk.atom : Atom;
-import gdk.drag_context : DragContext;
-import gdk.types : DragAction, ModifierType;
 
-import gdkpixbuf.pixbuf : Pixbuf;
 
 import gobject.types : GType, GTypeEnum;
 import gobject.value : Value;
@@ -59,8 +55,6 @@ import gobject.value : Value;
 import gtk.cell_renderer : CellRenderer;
 import gtk.cell_renderer_pixbuf : CellRendererPixbuf;
 import gtk.cell_renderer_text : CellRendererText;
-import gtk.selection_data : SelectionData;
-import gtk.target_entry : TargetEntry;
 import gtk.tree_view_column : TreeViewColumn;
 import gtk.tree_iter : TreeIter;
 import gtk.tree_model : TreeModel;
@@ -68,7 +62,6 @@ import gtk.tree_model_filter : TreeModelFilter;
 import gtk.tree_path : TreePath;
 import gtk.tree_store : TreeStore;
 import gtk.tree_view : TreeView;
-import gtk.types : TargetFlags, TreeViewDropPosition;
 import gtk.widget : Widget;
 
 import gx.i18n.l10n;
@@ -82,8 +75,9 @@ enum Columns : uint {
     FILTER = 3
 }
 
-TreeStore createBMTreeModel(Pixbuf[] icons, bool foldersOnly) {
-    TreeStore ts = TreeStore.new_([Pixbuf._getGType(), cast(GType) GTypeEnum.String, cast(GType) GTypeEnum.String, cast(GType) GTypeEnum.Boolean]);
+TreeStore createBMTreeModel(string[] icons, bool foldersOnly) {
+    // GTK4: the icon column holds a theme icon NAME (see manager.getBookmarkIconNames).
+    TreeStore ts = TreeStore.new_([cast(GType) GTypeEnum.String, cast(GType) GTypeEnum.String, cast(GType) GTypeEnum.String, cast(GType) GTypeEnum.Boolean]);
     loadBookmarks(ts, null, bmMgr.root, foldersOnly, icons);
     return ts;
 }
@@ -93,7 +87,7 @@ private:
     TreeStore ts;
     TreeModelFilter filter;
     string _filterText;
-    Pixbuf[] icons;
+    string[] icons;
 
     bool ignoreOperationFlag = false;
     string deletedBookmarkUUID;
@@ -117,8 +111,9 @@ private:
 
     void createColumns() {
         CellRendererPixbuf crp = new CellRendererPixbuf();
-        crp.stockSize = 16;
-        TreeViewColumn column = createColumn(_("Icon"), crp, "pixbuf", Columns.ICON);
+        // GTK4 dropped CellRendererPixbuf's stock-size; an icon-name renders at
+        // its natural themed size.
+        TreeViewColumn column = createColumn(_("Icon"), crp, "icon-name", Columns.ICON);
         appendColumn(column);
 
         column = createColumn(_("Name"), new CellRendererText(), "text", Columns.NAME);
@@ -219,108 +214,28 @@ private:
 // Drag and drop functionality
 private:
 
-    void onDragDataGet(DragContext dc, SelectionData data, uint x, uint y, Widget) {
-        TreeIter iter = getSelectedIter();
-        if (iter !is null) {
-            //string uuid = getValueString(ts, iter, Columns.UUID);
-            string path = getModel().getPath(iter).toString_();
-            ubyte[] buffer = cast(ubyte[]) (path ~ '\0').dup;
-            data.set(Atom.intern(BOOKMARK_DND, false), 8, buffer);
-        }
-    }
 
-    void onDragDataReceived(DragContext dc, int x, int y, SelectionData data, uint info, uint time, Widget widget) {
-        if (info != DropTargets.BOOKMARK) return;
-
-        TreePath pathTarget;
-        TreeViewDropPosition tvdp;
-        if (!getDestRowAtPos(x, y, pathTarget, tvdp)) return;
-        TreeIter target;
-        ts.getIter(target, pathTarget);
-
-        string dataPath = to!string(cast(char[]) data.getData()[0 .. $ - 1]);
-        tracef("Data received %s", dataPath);
-        TreePath pathSource = TreePath.newFromString(dataPath);
-        TreeIter source;
-        ts.getIter(source, pathSource);
-
-        //Move bookmark first
-        Bookmark bmTarget = bmMgr.get(getValueString(ts, target, Columns.UUID));
-        Bookmark bmSource = bmMgr.get(getValueString(ts, source, Columns.UUID));
-        try {
-            switch (tvdp) {
-                case TreeViewDropPosition.Before:
-                    bmMgr.moveBefore(bmTarget, bmSource);
-                    break;
-                case TreeViewDropPosition.After:
-                    bmMgr.moveAfter(bmTarget, bmSource);
-                    break;
-                case TreeViewDropPosition.IntoOrBefore:
-                ..
-                case TreeViewDropPosition.IntoOrAfter:
-                    FolderBookmark fb = cast(FolderBookmark) bmTarget;
-                    if (fb is null) {
-                        error("Unexpected, not a folder bookmark, bookmark not moved");
-                        return;
-                    }
-                    bmMgr.moveInto(fb, bmSource);
-                    break;
-                default:
-                    error("Unexpected value for TreeViewDropPosition, should never get here");
-                    return;
-
-            }
-        } catch (Exception e) {
-            error("Could not perform operation, error occurred");
-            error(e);
-            return;
-        }
-
-        TreeIter iter;
-        final switch (tvdp) {
-            case TreeViewDropPosition.Before:
-                TreeIter iterParent;
-                if (!ts.iterParent(iterParent, target)) {
-                    iterParent = null;
-                }
-                ts.insertBefore(iter, iterParent, target);
-                break;
-            case TreeViewDropPosition.After:
-                TreeIter iterParent;
-                if (!ts.iterParent(iterParent, target)) {
-                    iterParent = null;
-                }
-                ts.insertAfter(iter, iterParent, target);
-                break;
-            case TreeViewDropPosition.IntoOrBefore:
-                ts.append(iter, target);
-                break;
-            case TreeViewDropPosition.IntoOrAfter:
-                ts.append(iter, target);
-                break;
-        }
-
-        foreach(column; EnumMembers!Columns) {
-            Value value;
-            ts.getValue(source, column, value);
-            ts.setValue(iter, column, value);
-        }
-        ts.remove(source);
-    }
 
     void setupDragAndDrop() {
-        TargetEntry bmEntry = new TargetEntry(BOOKMARK_DND, TargetFlags.SameWidget, DropTargets.BOOKMARK);
-        TargetEntry[] targets = [bmEntry];
-        enableModelDragDest(targets, DragAction.Move);
-        enableModelDragSource(ModifierType.Button1Mask, targets, DragAction.Move);
-        connectDragDataGet(&onDragDataGet);
-        connectDragDataReceived(&onDragDataReceived);
+        // TODO(DnD-bookmarks): DELIBERATELY DISABLED under GTK4.
+        //
+        // GTK3 reordered bookmarks by drag using TreeView's drag-data-get /
+        // drag-data-received signals, whose handler both moved the tree row
+        // AND updated the persisted BookmarkManager (moveBefore / moveAfter /
+        // into-folder). GTK4 TreeView keeps enableModelDrag{Source,Dest} but
+        // has no such signals: the TreeStore reorders its own rows through the
+        // GtkTreeDragDest interface and the application is not consulted.
+        // Wiring only that half would make the tree show a new order while the
+        // saved bookmarks kept the old one — a data-consistency bug worse than
+        // the missing feature. Re-enable once the manager can observe the
+        // model's row-inserted/row-deleted pair or a custom TreeDragDest exists.
+        trace("Bookmark drag-reordering is not available on GTK4 (TODO DnD-bookmarks)");
     }
 
 public:
     this(bool enableFilter = false, bool foldersOnly = false, bool reorganizeable = false) {
         super();
-        icons = getBookmarkIcons(this);
+        icons = getBookmarkIconNames();
         ts = createBMTreeModel(icons, foldersOnly);
 
         if (enableFilter) {
@@ -438,7 +353,7 @@ TreeViewColumn createColumn(string title, CellRenderer renderer, string attribut
     return result;
 }
 
-void loadBookmarks(TreeStore ts, TreeIter current, FolderBookmark parent, bool foldersOnly, Pixbuf[] icons) {
+void loadBookmarks(TreeStore ts, TreeIter current, FolderBookmark parent, bool foldersOnly, string[] icons) {
     foreach(bm; parent) {
         FolderBookmark fm = cast(FolderBookmark)bm;
         if (foldersOnly && fm is null) {
@@ -451,7 +366,7 @@ void loadBookmarks(TreeStore ts, TreeIter current, FolderBookmark parent, bool f
     }
 }
 
-TreeIter addBookmarktoParent(TreeStore ts, TreeIter parent, Bookmark bm, Pixbuf[] icons) {
+TreeIter addBookmarktoParent(TreeStore ts, TreeIter parent, Bookmark bm, string[] icons) {
     TreeIter result;
     ts.append(result, parent);
     ts.setValue(result, Columns.ICON, new Value(icons[cast(uint)bm.type()]));

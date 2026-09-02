@@ -47,27 +47,33 @@ import std.format;
 import std.experimental.logger;
 import std.typecons : Yes;
 
-import gdk.atom : Atom;
-import gdk.drag_context : DragContext;
-import gdk.screen : Screen;
-import gdk.types : DragAction, ModifierType, KEY_0, KEY_9, KEY_Escape, KEY_Page_Down, KEY_Page_Up;
-import gdk.window : GdkWindow = Window;
+import gdk.content_formats : ContentFormats;
+import gdk.content_provider : ContentProvider;
+import gdk.drag : Drag;
+import gdk.drop : Drop;
+import gdk.types : DragAction, DragCancelReason, ModifierType, KEY_0, KEY_9, KEY_Escape, KEY_Page_Down, KEY_Page_Up;
 
 import gdkpixbuf.pixbuf : Pixbuf;
 
 import gid.basictypes : gulong;
 
+import gio.async_result : AsyncResult;
+import gio.input_stream : InputStream;
 import gio.settings : GSettings = Settings;
 
+import glib.bytes : Bytes;
+import glib.types : PRIORITY_DEFAULT;
+
 import gobject.global : signalHandlerDisconnect;
+import gobject.object : ObjectWrap;
 
 import gtk.adjustment : Adjustment;
 import gtk.aspect_frame : AspectFrame;
 import gtk.box : Box;
 import gtk.button : Button;
-import gtk.event_box : EventBox;
+import gtk.drag_source : DragSource;
+import gtk.drop_target_async : DropTargetAsync;
 import gtk.frame : Frame;
-import gtk.global : dragSetIconWidget;
 import gtk.grid : Grid;
 import gtk.image : Image;
 import gtk.label : Label;
@@ -78,11 +84,10 @@ import gtk.list_box_row : ListBoxRow;
 import gtk.overlay : Overlay;
 import gtk.revealer : Revealer;
 import gtk.scrolled_window : ScrolledWindow;
-import gtk.selection_data : SelectionData;
-import gtk.target_entry : TargetEntry;
-import gtk.types : Align, DestDefaults, DragResult, Orientation, PolicyType, ReliefStyle,
-                   RevealerTransitionType, SelectionMode, ShadowType, TargetFlags, WindowType;
+import gtk.types : Align, Orientation, PolicyType, ReliefStyle,
+                   RevealerTransitionType, SelectionMode, ShadowType;
 import gtk.widget : Widget;
+import gtk.widget_paintable : WidgetPaintable;
 import gtk.window : Window;
 
 import pango.types : EllipsizeMode;
@@ -201,7 +206,7 @@ private:
         if (!after) {
             lbSessions.insert(source, index);
         } else {
-            if (index == lbSessions.getChildren().length - 1) {
+            if (index == cast(int) childWidgets(lbSessions).length - 1) {
                 lbSessions.add(source);
             } else {
                 lbSessions.insert(source, index + 1);
@@ -373,7 +378,7 @@ public:
             threadsAddTimeoutDelegate(20, delegate() {
                 //Make sure row is visible
                 Adjustment adj = sw.getVadjustment();
-                double increment = adj.getUpper() / lbSessions.getChildren().length;
+                double increment = adj.getUpper() / childWidgets(lbSessions).length;
                 double value = lbSessions.getSelectedRow().getIndex() * increment;
                 tracef("Adjustment Values: Lower=%f, Upper=%f, Value=%f, Row=%f", adj.getLower(), adj.getUpper(), adj.getValue(), value);
                 if (value + increment > adj.getValue() + adj.getPageSize()) {
@@ -513,19 +518,15 @@ private:
     string _sessionUUID;
     Label lblIndex;
     SideBar sidebar;
-    Window dragImage;
-    EventBox eb;
     Button btnClose;
     Image img;
     Label lblName;
     Label lblNCount;
-    EventBox evNotification;
+    Box evNotification;
     AspectFrame afNotification;
 
-    gulong[] ebEventHandlerId;
     gulong closeButtonHandler;
 
-    bool isRootWindow = false;
 
     AspectFrame wrapWidget(Widget widget, string cssClass) {
         AspectFrame af = new AspectFrame(null, 0.5, 0.5, 1.0, false);
@@ -558,8 +559,10 @@ private:
         lblNCount.setUseMarkup(true);
         lblNCount.setWidthChars(2);
         setAllMargins(lblNCount, 4);
-        evNotification = new EventBox();
-        evNotification.add(lblNCount);
+        // GTK4: GtkEventBox is gone. This one only carried a CSS class into
+        // wrapWidget(), so a plain Box does the same job.
+        evNotification = new Box(Orientation.Horizontal, 0);
+        evNotification.append(lblNCount);
         afNotification = wrapWidget(evNotification, "ttyx-notification-count");
         afNotification.setNoShowAll(true);
         grid.attach(afNotification, 0, 2, 1, 1);
@@ -603,20 +606,31 @@ private:
 
         overlay.addOverlay(grid);
 
-        //Setup drag and drop
-        eb = new EventBox();
-        eb.add(overlay);
-        // Drag and Drop
-        TargetEntry[] targets = [new TargetEntry(SESSION_DND, TargetFlags.SameApp, 0)];
-        eb.dragSourceSet(ModifierType.Button1Mask, targets, DragAction.Move);
-        eb.dragDestSet(DestDefaults.All, targets, DragAction.Move);
-        ebEventHandlerId ~= eb.connectDragDataGet(&onRowDragDataGet);
-        ebEventHandlerId ~= eb.connectDragDataReceived(&onRowDragDataReceived);
-        ebEventHandlerId ~= eb.connectDragBegin(&onRowDragBegin);
-        ebEventHandlerId ~= eb.connectDragEnd(&onRowDragEnd);
-        ebEventHandlerId ~= eb.connectDragFailed(&onRowDragFailed);
+        // GTK4: GtkEventBox is gone; the row itself carries the DnD controllers.
+        //
+        // The payload stays a mime-typed byte blob (SESSION_DND carrying the
+        // session UUID) via ContentProvider.newForBytes, received through a
+        // DropTargetAsync. That is deliberate: a GType-based DropTarget with a
+        // plain string payload would let a dragged session drop onto any text
+        // entry in the app as its UUID. Keeping our own mime type means only
+        // our targets accept it — the GTK3 TargetFlags.SameApp semantics for
+        // free, since no foreign source offers this mime.
+        DragSource dragSource = new DragSource();
+        dragSource.setActions(DragAction.Move);
+        dragSource.connectPrepare(&onRowDragPrepare);
+        dragSource.connectDragBegin(&onRowDragBegin);
+        dragSource.connectDragEnd(&onRowDragEnd);
+        dragSource.connectDragCancel(&onRowDragCancel);
+        addController(dragSource);
 
-        add(eb);
+        DropTargetAsync dropTarget = new DropTargetAsync(new ContentFormats([SESSION_DND]), DragAction.Move);
+        dropTarget.connectAccept(delegate bool(Drop drop, DropTargetAsync t) {
+            return drop.getFormats().containMimeType(SESSION_DND);
+        });
+        dropTarget.connectDrop(&onRowDrop);
+        addController(dropTarget);
+
+        setChild(overlay);
 
         closeButtonHandler = btnClose.connectClicked(delegate(Button button) {
             if (sidebar !is null) sidebar.removeSession(_sessionUUID);
@@ -649,77 +663,60 @@ private:
         }
     }
 
-    void onRowDragBegin(DragContext dc, Widget widget) {
-        isRootWindow = false;
-        Image image = Image.newFromPixbuf(getWidgetImage(this, 1.00));
-        image.show();
-
-        if (dragImage !is null) {
-            trace("*** Destroying the previous dragImage");
-            dragImage.destroy();
-            dragImage = null;
-        }
-
-        dragImage = new Window(WindowType.Popup);
-        dragImage.add(image);
-        dragSetIconWidget(dc, dragImage, 0, 0);
+    /// The drag payload: this row's session UUID under our own mime type.
+    ContentProvider onRowDragPrepare(double x, double y, DragSource source) {
+        return ContentProvider.newForBytes(SESSION_DND, new Bytes(cast(ubyte[]) sessionUUID.dup));
     }
 
-    void onRowDragEnd(DragContext dc, Widget widget) {
-        if (isRootWindow && sidebar.notifyIsActionAllowed(ActionType.DETACH_SESSION)) {
-            detachSessionOnDrop(dc);
-        }
+    void onRowDragBegin(Drag drag, DragSource source) {
+        // GTK4: the drag icon is a paintable of the row, rendered live. This
+        // replaces the GTK3 dance of snapshotting to a Pixbuf, wrapping it in an
+        // Image inside a popup Window and handing that to dragSetIconWidget.
+        source.setIcon(new WidgetPaintable(this), 0, 0);
+    }
 
-        dragImage.destroy();
-        dragImage = null;
-
-        // Under Wayland needed to fix cursor sticking due to
-        // GtkD holding reference to GTK DragReference
-        dc.destroy();
+    void onRowDragEnd(Drag drag, bool deleteData, DragSource source) {
+        // Nothing to tear down: no popup window, and giD releases the drag
+        // wrapper normally (GtkD needed an explicit dc.destroy() under Wayland).
     }
 
     /**
-     * Called when drag failed, used this to detach a session into a new window
+     * A drag that ended with no target is how GTK4 expresses "dropped on the
+     * desktop" — there is no root-window drop target any more. That is the
+     * detach-into-new-window gesture, allowed only if the whole hierarchy
+     * agrees.
      */
-    bool onRowDragFailed(DragContext dc, DragResult dr, Widget widget) {
-        trace("Drag Failed with ", dr);
-        isRootWindow = false;
-        //Only allow detach if whole hierarchy agrees (application, window, session)
-        if (sidebar.notifyIsActionAllowed(ActionType.DETACH_SESSION)) {
-            if (detachSessionOnDrop(dc)) return true;
+    bool onRowDragCancel(Drag drag, DragCancelReason reason, DragSource source) {
+        trace("Drag cancelled with ", reason);
+        if (reason == DragCancelReason.NoTarget && sidebar.notifyIsActionAllowed(ActionType.DETACH_SESSION)) {
+            trace("Detaching session");
+            // GTK3 placed the new window at the pointer. GTK4 has no client-side
+            // window positioning (WP5) and no global pointer query, so the
+            // coordinates are meaningless; the compositor places the window.
+            sidebar.notifyRequestDetach(sessionUUID, 0, 0);
+            return true;
         }
         return false;
     }
 
-    bool detachSessionOnDrop(DragContext dc) {
-        trace("Detaching session");
-        Screen screen;
-        int x, y;
-        dc.getDevice().getPosition(screen, x, y);
-        //Detach here
-        sidebar.notifyRequestDetach(sessionUUID, x, y);
+    bool onRowDrop(Drop drop, double x, double y, DropTargetAsync target) {
+        // GTK4 drops are asynchronous: request our mime type and finish the
+        // drop once the bytes arrive.
+        drop.readAsync([SESSION_DND], PRIORITY_DEFAULT, null, delegate(ObjectWrap src, AsyncResult res) {
+            try {
+                string mime;
+                InputStream stream = drop.readFinish(res, mime);
+                Bytes bytes = stream.readBytes(4096, null);
+                string sourceUUID = (cast(char[]) bytes.getData()).idup;
+                tracef("Session UUID %s dropped", sourceUUID);
+                sidebar.reorderSessions(sourceUUID, sessionUUID);
+                drop.finish(DragAction.Move);
+            } catch (Exception e) {
+                warning("Session drop failed: " ~ e.msg);
+                drop.finish(cast(DragAction) 0);
+            }
+        });
         return true;
-    }
-
-    void onRowDragDataGet(DragContext dc, SelectionData data, uint info, uint time, Widget widget) {
-        Atom gdkAtom = data.getTarget();
-        string name = gdkAtom.name();
-        if (name == "application/x-rootwindow-drop") {
-            trace("onRowDragDataGet Root window drop");
-            isRootWindow = true;
-        } else {
-            tracef("onRowDragDataGet atom: %s", name);
-            isRootWindow = false;
-        }
-        char[] buffer = (sessionUUID ~ '\0').dup;
-        data.set(Atom.intern(SESSION_DND, false), 8, cast(ubyte[]) buffer);
-
-    }
-
-    void onRowDragDataReceived(DragContext dc, int x, int y, SelectionData data, uint info, uint time, Widget widget) {
-        string sourceUUID = to!string(cast(char[]) data.getData()[0 .. $ - 1]);
-        tracef("Session UUID %s dropped", sourceUUID);
-        sidebar.reorderSessions(sourceUUID, sessionUUID);
     }
 
 public:
@@ -745,9 +742,8 @@ public:
      * and then set the reference to null.
      */
     public void release() {
-        foreach(id; ebEventHandlerId) {
-            signalHandlerDisconnect(eb, id);
-        }
+        // The DnD controllers are owned by the row widget and go with it; only
+        // the button handler holds the sidebar reference that blocked GC.
         signalHandlerDisconnect(btnClose, closeButtonHandler);
         this.sidebar = null;
     }
