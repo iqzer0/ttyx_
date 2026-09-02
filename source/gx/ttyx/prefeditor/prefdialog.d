@@ -272,10 +272,22 @@ private:
         bSide.append(new Separator(Orientation.Horizontal));
         bSide.append(bButtons);
 
+        // GTK4 measures strictly: with the pages added straight to the box, the
+        // tallest page set the window's minimum height, and GTK warned that the
+        // box reported a natural height below its minimum (the stack takes its
+        // minimum from every page but its natural size from the visible one).
+        // A scroller in between gives the box a small, consistent minimum and
+        // lets a tall page scroll instead of dictating the window size.
+        ScrolledWindow swPages = new ScrolledWindow();
+        swPages.setChild(pages);
+        swPages.setPolicy(PolicyType.Never, PolicyType.Automatic);
+        swPages.setHexpand(true);
+        swPages.setVexpand(true);
+
         Box box = new Box(Orientation.Horizontal, 0);
         box.append(bSide);
         box.append(new Separator(Orientation.Vertical));
-        box.append(pages);
+        box.append(swPages);
 
         setChild(box);
 
@@ -285,7 +297,7 @@ private:
 
         SizeGroup sgMain = new SizeGroup(SizeGroupMode.Horizontal);
         sgMain.addWidget(hbMain);
-        sgMain.addWidget(pages);
+        sgMain.addWidget(swPages);
 
         //Set initial title
         lblMainTitle.setText(_("Global"));
@@ -492,6 +504,10 @@ public:
     this(ApplicationWindow window) {
         super(tilix);
         setTitle(_("Preferences"));
+        // The pages scroll now (see createUI), so the tallest page no longer
+        // dictates the window size — without a default the window opens
+        // collapsed to the height of whichever page is showing.
+        setDefaultSize(1000, 780);
         // GTK4: GdkWindowTypeHint is gone; transient-for + modal is what marks
         // this as a dialog to the compositor.
         //setTransientFor(window);
