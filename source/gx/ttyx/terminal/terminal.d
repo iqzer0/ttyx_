@@ -22,7 +22,8 @@
  *    (raw-C escape hatch; vteDefaultButtonPress was removed in the GTK4 port).
  *  - Commit signal: giD's marshal is (string text, Terminal) — VTE's separate
  *    guint length arg is folded into text.length (only compiled when
- *    USE_COMMIT_SYNCHRONIZATION is enabled).
+ *    USE_COMMIT_SYNCHRONIZATION is enabled, which it now is on GTK4 — see
+ *    the constant's documentation and applyScrollAction).
  *  - Signals.handlerBlock/Unblock/Disconnect → gobject.global.signalHandler*.
  *
  *  Timers / raw glib
@@ -131,7 +132,7 @@ import gdk.content_provider : ContentProvider;
 import gdk.drag : Drag;
 import gdk.drop : Drop;
 import gdk.types : BUTTON_MIDDLE, BUTTON_PRIMARY, BUTTON_SECONDARY,
-    DragAction, DragCancelReason, KEY_c, KEY_Return, ModifierType, KEY_Menu, KEY_F10;
+    DragAction, DragCancelReason, KEY_c, KEY_Return, ModifierType, KEY_Menu, KEY_F10, KEY_Home, KEY_End, KEY_Up, KEY_Down, KEY_Page_Up, KEY_Page_Down;
 import gdk.surface : GdkSurfaceWrap = Surface;
 
 import gdkpixbuf.pixbuf : Pixbuf;
@@ -1259,25 +1260,16 @@ private:
                 tracef("Added prompt position %d", row);
             }
 
-            // WP9 — SYNCHRONIZED INPUT NEEDS A GTK4 REDESIGN.
-            // GTK3 marked replayed keystrokes with event.sendEvent = SYNC so a
-            // receiving terminal would not re-broadcast them. GTK4 events are
-            // immutable and carry no such flag, and the replay side
-            // (gtk_widget_event) no longer exists — see the SyncKeyPressEvent
-            // handler further down. Until sync is rebuilt on feedChild + escape
-            // sequences, this still EMITS but the receiving end cannot inject,
-            // and the guard against echo is gone too.
-            if (isSynchronizedInput()) {
-                static if (USE_COMMIT_SYNCHRONIZATION) {
-                    // Only synchronize hard code VTE keys otherwise let commit event take care of it
-                    if (!isVTEHandledKeystroke(keyval, state)) return false;
-                }
-                tracef("Synchronizing key %d", keyval);
-                Event current = c.getCurrentEvent();
-                if (current !is null) {
-                    SyncInputEvent se = SyncKeyPressEvent(_terminalUUID, current);
-                    onSyncInput.emit(this, se);
-                }
+            // WP9: everything typed reaches the other terminals through VTE's
+            // commit signal (see USE_COMMIT_SYNCHRONIZATION). Only the keys VTE
+            // consumes itself need forwarding here, and they are scrollback
+            // movements, so they travel as an action rather than as a replayed
+            // keystroke — which GTK4 could not inject anyway.
+            SyncScrollAction scrollAction;
+            if (isSynchronizedInput() && vteScrollAction(keyval, state, scrollAction)) {
+                tracef("Synchronizing scroll action %s", scrollAction);
+                SyncInputEvent se = SyncScrollEvent(_terminalUUID, scrollAction);
+                onSyncInput.emit(this, se);
             }
             return false;
         });
@@ -1589,6 +1581,39 @@ private:
     /**
      * Scroll the window to the bottom
      */
+    /**
+     * Repeat a scrollback movement that another synchronized terminal made.
+     *
+     * The sizes are this terminal's own, not the sender's: a smaller pane
+     * scrolls by its own page, which is what the user sees on each terminal
+     * when the key is pressed there directly.
+     */
+    void applyScrollAction(SyncScrollAction action) {
+        if (vte is null) return;
+        Adjustment adj = vte.getVadjustment();
+        if (adj is null) return;
+        final switch (action) {
+            case SyncScrollAction.lineUp:
+                adj.setValue(adj.getValue() - 1);
+                break;
+            case SyncScrollAction.lineDown:
+                adj.setValue(adj.getValue() + 1);
+                break;
+            case SyncScrollAction.pageUp:
+                adj.setValue(adj.getValue() - adj.getPageSize());
+                break;
+            case SyncScrollAction.pageDown:
+                adj.setValue(adj.getValue() + adj.getPageSize());
+                break;
+            case SyncScrollAction.top:
+                adj.setValue(adj.getLower());
+                break;
+            case SyncScrollAction.bottom:
+                adj.setValue(adj.getUpper() - adj.getPageSize());
+                break;
+        }
+    }
+
     void scrollToBottom() {
         if (vte is null) return;
 
@@ -3728,17 +3753,8 @@ public:
                     feedChild(e.text, true);
                 }
             },
-            (SyncKeyPressEvent e) {
-                // WP9: GTK3 forged a copy of the event, flagged it SYNC and
-                // injected it with gtk_widget_event(). GTK4 removed
-                // gtk_widget_event() and made GdkEvent immutable, so a
-                // keystroke cannot be replayed into another widget. The
-                // GTK4-viable design is to translate the keyval to the bytes
-                // the terminal would have sent and feedChild() them. Until that
-                // lands, synchronized input of VTE-handled keys (arrows,
-                // Page Up/Down, Home/End, ...) is a KNOWN REGRESSION; ordinary
-                // typed text still syncs through SyncTextEvent.
-                trace("SyncKeyPressEvent dropped: keystroke replay is not available on GTK4 (WP9)");
+            (SyncScrollEvent e) {
+                applyScrollAction(e.action);
             },
             (SyncResetEvent e) {
                 vte.reset(false, false);

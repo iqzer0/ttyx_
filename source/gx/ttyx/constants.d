@@ -31,12 +31,25 @@ immutable bool CLIPBOARD_BTN_IN_CONTEXT = false;
 immutable bool USE_FILE_LOGGING = false;
 
 /**
- * Determines whether synchronization of multiple terminals
- * is driven off of the commit event or by keystrokes. The commit
- * event allows for IME to work but causes some issues with
- * certain programs like VIM. See #888
+ * Whether synchronization of multiple terminals is driven off VTE's commit
+ * event or by replaying keystrokes.
+ *
+ * GTK4 leaves no choice: keystroke replay needed gtk_widget_event() to inject
+ * a forged, SYNC-flagged copy of the event into the other terminals, and GTK4
+ * removed that function and made GdkEvent immutable. Commit is also the better
+ * mechanism — it carries the exact bytes VTE was about to send to the child,
+ * so encoded keys (arrows, Enter, Tab, Ctrl+C) and IME input synchronize as
+ * plain text, and because feedChild() does not emit commit, replaying into the
+ * receivers cannot echo back. That is what the SYNC flag was for.
+ *
+ * Scrollback keys are the one thing commit does not cover, since VTE handles
+ * them itself and sends nothing to the child; they travel as SyncScrollEvent.
+ *
+ * The GTK3-era caveat about VIM (#888) applied to the commit *text* of certain
+ * terminal replies, and the two known offenders are still filtered in the
+ * commit handler.
  */
-immutable bool USE_COMMIT_SYNCHRONIZATION = false;
+immutable bool USE_COMMIT_SYNCHRONIZATION = true;
 
 /**************************************
  * Application Constants

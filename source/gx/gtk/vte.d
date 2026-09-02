@@ -23,10 +23,12 @@ module gx.gtk.vte;
 
 import std.format;
 
-import gdk.types : ModifierType, KEY_Page_Up, KEY_Page_Down, KEY_Home, KEY_End, KEY_Up, KEY_Down;
+import gdk.types : ModifierType, KEY_Page_Up, KEY_Page_Down, KEY_Home, KEY_End, KEY_Up, KEY_Down, KEY_c;
 
 import gobject.global : signalLookup;
 import gobject.types : GType;
+
+import gx.ttyx.terminal.types : SyncScrollAction;
 
 import vte.terminal : Terminal;
 import vte.global : getMajorVersion, getMinorVersion;
@@ -88,6 +90,50 @@ bool isVTEHandledKeystroke(uint keyval, ModifierType modifier) {
             return true;
         }
     return false;
+}
+
+/**
+ * Which scrollback movement a VTE-handled keystroke performs.
+ *
+ * Returns false for anything isVTEHandledKeystroke() does not claim, so the
+ * two stay in step: a key that is "handled by VTE" but has no movement here
+ * would otherwise be forwarded to synchronized terminals as a no-op.
+ *
+ * Lives here, next to isVTEHandledKeystroke, because the two encode the same
+ * knowledge: which keys VTE consumes instead of sending to the child.
+ */
+bool vteScrollAction(uint keyval, ModifierType modifier, out SyncScrollAction action) {
+    if (!isVTEHandledKeystroke(keyval, modifier)) return false;
+    switch (keyval) {
+        case KEY_Page_Up:   action = SyncScrollAction.pageUp;   return true;
+        case KEY_Page_Down: action = SyncScrollAction.pageDown; return true;
+        case KEY_Home:      action = SyncScrollAction.top;      return true;
+        case KEY_End:       action = SyncScrollAction.bottom;   return true;
+        case KEY_Up:        action = SyncScrollAction.lineUp;   return true;
+        case KEY_Down:      action = SyncScrollAction.lineDown; return true;
+        default: return false;
+    }
+}
+
+unittest {
+    // Every key isVTEHandledKeystroke claims must map to a movement, or
+    // synchronized terminals would receive an event that does nothing.
+    SyncScrollAction a;
+    assert(vteScrollAction(KEY_Page_Up, ModifierType.ShiftMask, a) && a == SyncScrollAction.pageUp);
+    assert(vteScrollAction(KEY_Page_Down, ModifierType.ShiftMask, a) && a == SyncScrollAction.pageDown);
+    assert(vteScrollAction(KEY_Home, ModifierType.ShiftMask, a) && a == SyncScrollAction.top);
+    assert(vteScrollAction(KEY_End, ModifierType.ShiftMask, a) && a == SyncScrollAction.bottom);
+    assert(vteScrollAction(KEY_Up, ModifierType.ShiftMask | ModifierType.ControlMask, a) && a == SyncScrollAction.lineUp);
+    assert(vteScrollAction(KEY_Down, ModifierType.ShiftMask | ModifierType.ControlMask, a) && a == SyncScrollAction.lineDown);
+}
+
+unittest {
+    // The modifiers are part of the claim: unmodified Page Up goes to the
+    // child (commit synchronizes it), so it must not scroll the others too.
+    SyncScrollAction a;
+    assert(!vteScrollAction(KEY_Page_Up, cast(ModifierType) 0, a));
+    assert(!vteScrollAction(KEY_Up, ModifierType.ShiftMask, a));
+    assert(!vteScrollAction(KEY_c, ModifierType.ControlMask, a));
 }
 
 /**

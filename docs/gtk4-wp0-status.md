@@ -674,10 +674,9 @@ cannot check, roughly in order of user visibility:
 
 ### Still open (tracked)
 
-WP9 (synchronized input redesign), WP5 proper (quake placement strategy),
-bookmark drag-reorder, `use-theme-colors` background lookup, `text-deleted`
-prompt reset, and terminal transparency *without* a background image (see
-below).
+WP5 proper (quake placement strategy), bookmark drag-reorder,
+`use-theme-colors` background lookup, `text-deleted` prompt reset, and
+terminal transparency *without* a background image (see below).
 
 Resolved after the first build: the saved window state now lives under its
 own GTK4 key (`toplevel-state`) so GTK3-written `window-state` bits are never
@@ -823,3 +822,46 @@ as it was (re-measured: `srgb(34,34,34)`, unchanged). The consequence is that
 that needs the toplevel itself to be transparent, since `.ttyx-background`
 paints an opaque `@theme_bg_color`, and it is now tracked as its own item
 rather than folded in here.
+
+## WP9 resolved: synchronized input moves to VTE's commit signal
+
+The GTK3 mechanism was keystroke replay: forge a copy of the `GdkEventKey`,
+set `send_event = SYNC` so the receiver would not re-broadcast it, and inject
+it into each synchronized terminal with `gtk_widget_event()`. GTK4 removed
+that function and made events immutable, so neither half survives.
+
+The replacement was already half-built in the tree. `USE_COMMIT_SYNCHRONIZATION`
+— upstream's alternative mechanism, off by default — is **now on, and on GTK4
+it is not a choice**. VTE's `commit` signal carries the exact bytes the
+terminal is about to send to the child, so typed text, encoded keys (arrows,
+Enter, Tab, Ctrl+C) and IME input all synchronize as plain text with no event
+forging at all. It is also *why the SYNC flag is unnecessary*: replaying into
+a receiver goes through `feedChild()`, which brackets the write with
+`signalHandlerBlock`/`Unblock` on the commit handler, so a receiver cannot
+echo the text back. The paste, password and bookmark paths already carried
+`static if (!USE_COMMIT_SYNCHRONIZATION)` guards around their explicit
+`SyncTextEvent` emissions, because commit covers them once it is on.
+
+What commit does *not* cover is the keys VTE consumes itself: Shift+Page
+Up/Down, Shift+Home/End and Ctrl+Shift+Up/Down scroll the view and send
+nothing to the child. Those were the whole reason for replay. They now travel
+as a **`SyncScrollEvent`** carrying a `SyncScrollAction`
+(`lineUp`/`lineDown`/`pageUp`/`pageDown`/`top`/`bottom`), which the receiver
+applies to its own adjustment — deliberately its own, so a smaller pane
+scrolls by its own page, which is what pressing the key in that pane does.
+`SyncKeyPressEvent` is gone from the sum type, and with it the last use of a
+`GdkEvent` as a payload.
+
+`gx.gtk.vte.vteScrollAction()` does the keyval→action mapping, next to
+`isVTEHandledKeystroke()` because the two encode the same knowledge, and it
+returns false for anything that function does not claim so the two cannot
+drift. It carries **unit tests, which do run here** — including that
+unmodified Page Up must *not* scroll the other terminals, since that one goes
+to the child and commit already handles it. The tests were verified to
+actually execute by breaking an assertion on purpose and watching it fail
+(`AssertError@vte.d(122)`), then restoring it.
+
+Not verifiable from this machine: whether two synchronized terminals agree in
+practice needs typing into one of them, and XTEST input does not reach GTK4
+windows here. Manual test: split a terminal, enable Synchronize Input on both,
+type, paste, then Shift+Page Up.

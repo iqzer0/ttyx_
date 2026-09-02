@@ -49,19 +49,36 @@ enum TerminalWindowState {
  * variants reject null payloads.
  */
 
-/// Sent when a key press should be replayed in a synchronized terminal.
-struct SyncKeyPressEvent {
-    string senderUUID;
-    Event event;
+/// Scrollback movements that VTE performs itself, so they never reach the
+/// child process and cannot be synchronized as committed text.
+enum SyncScrollAction {
+    lineUp,
+    lineDown,
+    pageUp,
+    pageDown,
+    top,
+    bottom
+}
 
-    this(string senderUUID, Event event)
+/**
+ * Sent when a synchronized terminal should repeat a scrollback movement.
+ *
+ * Replaces SyncKeyPressEvent: GTK4 cannot replay a keystroke into another
+ * widget (no gtk_widget_event, immutable events), and it never needed to —
+ * everything the terminal sends to the child arrives as committed text, and
+ * what is left is scrolling, which is expressed directly here.
+ */
+struct SyncScrollEvent {
+    string senderUUID;
+    SyncScrollAction action;
+
+    this(string senderUUID, SyncScrollAction action)
     in {
         assert(senderUUID !is null && senderUUID.length > 0);
-        assert(event !is null);
     }
     do {
         this.senderUUID = senderUUID;
-        this.event = event;
+        this.action = action;
     }
 }
 
@@ -116,7 +133,7 @@ struct SyncResetAndClearEvent {
  * an explicit `eventType` discriminator.
  */
 alias SyncInputEvent = SumType!(
-    SyncKeyPressEvent,
+    SyncScrollEvent,
     SyncTextEvent,
     SyncInsertTerminalNumberEvent,
     SyncResetEvent,
@@ -444,7 +461,7 @@ unittest {
     se.match!(
         (SyncTextEvent e) { captured = "text:" ~ e.text; },
         (SyncInsertTerminalNumberEvent e) { captured = "num"; },
-        (SyncKeyPressEvent e) { captured = "key"; },
+        (SyncScrollEvent e) { captured = "scroll"; },
         (SyncResetEvent e) { captured = "reset"; },
         (SyncResetAndClearEvent e) { captured = "rac"; }
     );
