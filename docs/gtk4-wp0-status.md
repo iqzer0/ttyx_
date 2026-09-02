@@ -980,5 +980,60 @@ real session previews again.
 | background image | shows through the terminal at the profile's transparency |
 | quake mode | placement, monitor choice, alignment, EWMH states |
 
-Still unexercised: drag and drop (terminal and session), the advanced paste
-dialog, bookmarks, preferences editing, and session save/load.
+Since verified as well: **drag and drop** (dragging a terminal's title bar
+onto another re-arranged the split from side-by-side to stacked), the
+**preferences dialog** (all pages render; see the layout fix below), and
+**session save/load** — which found two more defects, below.
+
+Still unexercised: the advanced paste dialog, bookmarks, session DnD in the
+sidebar, and profile editing beyond rendering.
+
+## File dialogs: FileChooserDialog is not merely deprecated here, it is unusable
+
+Driving the session dialogs turned up a defect no compiler could: with
+`GtkFileChooserDialog`, **double-clicking a file did nothing and Return in the
+location bar did nothing** — only the accept button confirmed. The reason is
+that GTK4 removed the widget's `file-activated` signal outright (it is absent
+from the GIR), so there is no longer any way for activation to become a
+response. Adding `setDefaultResponse` did not help, because nothing emits the
+response in the first place.
+
+So the four remaining choosers moved to **`GtkFileDialog`**, the modern async
+API, behind three helpers in `gx.gtk.dialog` — `showOpenFileDialog`,
+`showOpenFilesDialog`, `showSaveFileDialog`, plus `jsonFileFilters()` /
+`textFileFilters()`. Call sites shrank a lot: session load and save, saving
+terminal output, and exporting a colour scheme are each now a title, a folder,
+a filter list and a continuation. `FileChooserDialog` is gone from the tree.
+
+On this desktop `GtkFileDialog` is served by **xdg-desktop-portal**, so the
+dialog is a window of another process. Worth knowing when driving it: it will
+never appear among your own process's toplevels.
+
+### Rulebook 10: a giD interface type needs the templated `getItem!T`
+
+With the port in place, loading still silently did nothing: the dialog closed,
+the callback ran, no exception, no files. The cause was mine, and it is a trap
+worth stating plainly.
+
+```d
+File f = cast(File) files.getItem(i);   // always null
+File f = files.getItem!File(i);         // correct
+```
+
+`ListModel.getItem` returns a base `ObjectWrap`. giD's templated
+`getItem!T` resolves through `_getDObject!T`, which knows how to produce an
+interface proxy; a plain D cast does not. `gio.file.File` **is an interface**
+in giD, and a GFile's concrete class (`GLocalFile`) has no D counterpart, so
+the cast yields null and the selection evaporates without a trace. It is
+silent precisely because nothing fails — the loop simply finds no items.
+
+The same code shape appears for monitors (`getItem!MonitorWrap`) and happens
+to work as a cast, because `MonitorWrap` is a class giD generates — which is
+exactly why the bug was easy to write and hard to see. Both now use the
+template. The helpers also no longer swallow failures: dismissal stays at
+trace level, anything else is a warning, so a future "nothing happened" says
+so in the log.
+
+Verified after the fix: save writes the file (Return in the name field
+confirms, as it should), load restores the saved two-terminal layout and the
+session counter goes to 2/2, and saving terminal output writes its file.

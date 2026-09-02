@@ -39,10 +39,9 @@
  *    and ButtonsType are construct-only -> MessageDialog.builder()
  *    .useHeaderBar(1).buttons(ButtonsType.OkCancel).build() + messageType/text
  *    property setters; getMessageArea() returns Widget -> cast to Box.
- *  - FileChooserDialog: the GtkD convenience ctor (varargs
- *    gtk_file_chooser_dialog_new) is unbound -> raw
- *    g_object_new(FileChooserDialog._getGType(), null) + this(ptr, No.Take),
- *    then setAction/setTitle/addButton. Button/response mapping preserved from
+ *  - Session load/save use GTK4's FileDialog (gx.gtk.dialog helpers); the
+ *    deprecated FileChooserDialog lost file-activated, so double-click and
+ *    Return no longer confirmed it.
  *    GtkD's default: first button -> ResponseType.Ok, second ->
  *    ResponseType.Cancel. getFilenames() returns string[] directly (no
  *    ListSG.toArray).
@@ -129,7 +128,6 @@ import gtk.event_controller_focus : EventControllerFocus;
 import gtk.event_controller_key : EventControllerKey;
 import gtk.event_controller_scroll : EventControllerScroll;
 import gtk.gesture_click : GestureClick;
-import gtk.file_chooser_dialog : FileChooserDialog;
 import gtk.file_filter : FileFilter;
 import gtk.global : checkVersion;
 import gtk.header_bar : HeaderBar;
@@ -143,8 +141,7 @@ import gtk.popover : Popover;
 import gtk.popover_menu : PopoverMenu;
 import gtk.stack : Stack;
 import gtk.toggle_button : ToggleButton;
-import gtk.types : Allocation, ButtonsType, EventControllerScrollFlags, EventSequenceState, FileChooserAction,
-    MessageType, Orientation, PositionType, ResponseType, PropagationPhase;
+import gtk.types : Allocation, ButtonsType, EventControllerScrollFlags, EventSequenceState, MessageType, Orientation, PositionType, ResponseType, PropagationPhase;
 import gtk.widget : Widget;
 import gtk.window : Window;
 import gtk.window_group : WindowGroup;
@@ -1576,7 +1573,10 @@ private:
             warning("No monitors reported by the display; cannot size quake window");
             return;
         }
-        MonitorWrap mon = cast(MonitorWrap) monitors.getItem(cast(uint) monitor);
+        // Templated accessor, as in gx.gtk.dialog: this one happens to work as a
+        // plain cast because MonitorWrap is a class giD knows, but the template
+        // is correct for classes and interfaces alike.
+        MonitorWrap mon = monitors.getItem!MonitorWrap(cast(uint) monitor);
         mon.getGeometry(rect);
         tracef("Monitor geometry: monitor=%d, x=%d, y=%d, width=%d, height=%d", monitor, rect.x, rect.y, rect.width, rect.height);
 
@@ -1646,16 +1646,6 @@ private:
         return null;
     }
 
-    void addFilters(FileChooserDialog fcd) {
-        FileFilter ff = new FileFilter();
-        ff.addPattern("*.json");
-        ff.setName(_("All JSON Files"));
-        fcd.addFilter(ff);
-        ff = new FileFilter();
-        ff.addPattern("*");
-        ff.setName(_("All Files"));
-        fcd.addFilter(ff);
-    }
 
     /**
      * Loads session from a file
@@ -1687,69 +1677,32 @@ private:
         addSession(session);
     }
 
-    FileChooserDialog fcd;
 
-    /**
-     * Creates a FileChooserDialog. The GtkD convenience ctor wraps the
-     * varargs gtk_file_chooser_dialog_new which giD does not bind, so the
-     * dialog is constructed raw and configured with property setters.
-     * Button/response mapping matches GtkD's defaults:
-     * first button = ResponseType.Ok, second = ResponseType.Cancel.
-     */
-    FileChooserDialog createFileChooserDialog(string title, FileChooserAction action, string acceptLabel) {
-        FileChooserDialog dialog = new FileChooserDialog(
-            cast(void*) g_object_new(FileChooserDialog._getGType(), cast(const(char)*) null), No.Take);
-        dialog.setTitle(title);
-        dialog.setAction(action);
-        dialog.addButton(acceptLabel, ResponseType.Ok);
-        dialog.addButton(_("Cancel"), ResponseType.Cancel);
-        return dialog;
-    }
 
     /**
      * Loads session from a file, prompt user to select file
      */
     void loadSession() {
-        fcd = createFileChooserDialog(_("Load Session"), FileChooserAction.Open, _("Open"));
-        if (DialogPath.LOAD_SESSION in dialogPaths) {
-            fcd.setCurrentFolder(File.newForPath(dialogPaths[DialogPath.LOAD_SESSION]));
-        }
-        fcd.setModal(true);
-        fcd.setTransientFor(this);
-
-        addFilters(fcd);
-        fcd.setSelectMultiple(true);
-        fcd.connectResponse(delegate(int response, Dialog d) {
-            if (response == ResponseType.Ok) {
-                try {
-                    // GTK4: getFiles() is a ListModel of GFile.
-                    ListModel files = fcd.getFiles();
-                    string[] filenames;
-                    foreach (i; 0 .. files.getNItems()) {
-                        File f = cast(File) files.getItem(i);
-                        if (f !is null && f.getPath().length > 0) filenames ~= f.getPath();
-                    }
-                    foreach(filename; filenames) {
+        // GTK4: FileDialog rather than the deprecated FileChooserDialog, which
+        // lost its file-activated signal — a double-click or Return there did
+        // not confirm the dialog. See gx.gtk.dialog.
+        string initialFolder;
+        if (DialogPath.LOAD_SESSION in dialogPaths) initialFolder = dialogPaths[DialogPath.LOAD_SESSION];
+        showOpenFilesDialog(this, _("Load Session"), _("Open"), initialFolder, jsonFileFilters(),
+            delegate(string[] filenames) {
+                foreach (filename; filenames) {
+                    try {
                         loadSession(filename);
                         addRecentSessionFile(filename);
+                        dialogPaths[DialogPath.LOAD_SESSION] = dirName(filename);
                     }
-                    if (fcd.getCurrentFolder() !is null) dialogPaths[DialogPath.LOAD_SESSION] = fcd.getCurrentFolder().getPath();
+                    catch (Exception e) {
+                        removeRecentSessionFile(filename);
+                        error(e);
+                        showErrorDialog(this, _("Could not load session due to unexpected error.") ~ "\n" ~ e.msg, _("Error Loading Session"));
+                    }
                 }
-                catch (Exception e) {
-                    fcd.hide();
-                    if (fcd.getFile() !is null) removeRecentSessionFile(fcd.getFile().getPath());
-                    error(e);
-                    showErrorDialog(this, _("Could not load session due to unexpected error.") ~ "\n" ~ e.msg, _("Error Loading Session"));
-                }
-            }
-            fcd.hide();
-            fcd.destroy();
-        });
-        fcd.connectClose(delegate(Dialog d) {
-            fcd.destroy();
-            fcd = null;
-        });
-        fcd.present();
+            });
     }
 
     /**
@@ -1766,50 +1719,33 @@ private:
         // session.serialize(). Return early so both branches are covered.
         if (session is null) return;
         if (session.filename.length <= 0 || showSaveAsDialog) {
-            fcd = createFileChooserDialog(_("Save Session"), FileChooserAction.Save, _("Save"));
-            fcd.setModal(true);
-            fcd.setTransientFor(this);
-
-            addFilters(fcd);
-
-            fcd.setDefaultResponse(ResponseType.Ok);
+            string initialFolder;
+            string initialName = session.displayName ~ ".json";
             if (session.filename.length > 0) {
-                fcd.setCurrentFolder(File.newForPath(dirName(session.filename)));
-                fcd.setCurrentName(session.filename.length > 0 ? baseName(session.filename) : session.displayName ~ ".json");
+                initialFolder = dirName(session.filename);
+                initialName = baseName(session.filename);
             } else if (DialogPath.SAVE_SESSION in dialogPaths) {
-                fcd.setCurrentFolder(File.newForPath(dialogPaths[DialogPath.SAVE_SESSION]));
+                initialFolder = dialogPaths[DialogPath.SAVE_SESSION];
             }
-
-            fcd.connectResponse(delegate(int response, Dialog d) {
-                if (response == ResponseType.Ok) {
+            showSaveFileDialog(this, _("Save Session"), _("Save"), initialFolder, initialName, jsonFileFilters(),
+                delegate(string chosen) {
+                    string filename = chosen;
+                    if (!filename.endsWith(".json")) {
+                        filename ~= ".json";
+                    }
                     try {
-                        File chosen = fcd.getFile();
-                        if (chosen is null) return;
-                        string filename = chosen.getPath();
-                        if (!filename.endsWith(".json")) {
-                            filename ~= ".json";
-                        }
-                        if (fcd.getCurrentFolder() !is null) dialogPaths[DialogPath.SAVE_SESSION] = fcd.getCurrentFolder().getPath();
+                        dialogPaths[DialogPath.SAVE_SESSION] = dirName(filename);
                         addRecentSessionFile(filename);
                         string json = session.serialize().toPrettyString();
                         write(filename, json);
                         session.filename = filename;
                     }
                     catch (Exception e) {
-                        fcd.hide();
-                        if (fcd.getFile() !is null) removeRecentSessionFile(fcd.getFile().getPath());
+                        removeRecentSessionFile(filename);
                         error(e);
                         showErrorDialog(this, _("Could not save session due to unexpected error.") ~ "\n" ~ e.msg, _("Error Saving Session"));
                     }
-                }
-                fcd.hide();
-                fcd.destroy();
-            });
-            fcd.connectClose(delegate(Dialog d) {
-                fcd.destroy();
-                fcd = null;
-            });
-            fcd.present();
+                });
         }
         else {
             try {

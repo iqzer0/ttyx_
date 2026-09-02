@@ -87,8 +87,6 @@ import gtk.combo_box : ComboBox;
 import gtk.combo_box_text : ComboBoxText;
 import gtk.dialog : Dialog;
 import gtk.entry : Entry;
-import gtk.file_chooser_dialog : FileChooserDialog;
-import gtk.file_filter : FileFilter;
 import gtk.font_button : FontButton;
 import gtk.global : checkVersion;
 
@@ -108,7 +106,7 @@ import gtk.tree_iter : TreeIter;
 import gtk.tree_model : TreeModel;
 import gtk.tree_view : TreeView;
 import gtk.tree_view_column : TreeViewColumn;
-import gtk.types : Align, FileChooserAction, Orientation, PolicyType,
+import gtk.types : Align, Orientation, PolicyType,
                    ResponseType, SizeGroupMode;
 import gtk.widget : Widget;
 import gtk.window : Window;
@@ -1000,44 +998,18 @@ private:
     void exportColorScheme(Button button) {
         // GtkD's varargs FileChooserDialog ctor is unbound in giD; the GtkD
         // ctor mapped the [Save, Cancel] button list to responses [OK, CANCEL]
-        FileChooserDialog fcd = FileChooserDialog.builder()
-            .action(FileChooserAction.Save)
-            .title(_("Export Color Scheme"))
-            .transientFor(cast(Window)this.getRoot())
-            .build();
-        fcd.addButton(_("Save"), ResponseType.Ok);
-        fcd.addButton(_("Cancel"), ResponseType.Cancel);
-
         string path = buildPath(getUserConfigDir(), APPLICATION_CONFIG_FOLDER, SCHEMES_FOLDER);
         if (!exists(path)) {
             mkdirRecurse(path);
         }
-
-        fcd.setCurrentFolder(File.newForPath(path));
-
-        FileFilter ff = new FileFilter();
-        ff.addPattern("*.json");
-        ff.setName(_("All JSON Files"));
-        fcd.addFilter(ff);
-        ff = new FileFilter();
-        ff.addPattern("*");
-        ff.setName(_("All Files"));
-        fcd.addFilter(ff);
-
-        fcd.setDefaultResponse(ResponseType.Ok);
-        fcd.setCurrentName("Custom.json");
-
-        // GTK4: no Dialog.run(), and the chooser confirms overwrites itself.
-        fcd.connectResponse(delegate(int response, Dialog d) {
-            if (response == ResponseType.Ok) {
-                string filename = fcd.getFile().getPath();
+        // GTK4: FileDialog, not the deprecated FileChooserDialog (gx.gtk.dialog).
+        showSaveFileDialog(cast(Window) this.getRoot(), _("Export Color Scheme"), _("Save"),
+            path, "Custom.json", jsonFileFilters(),
+            delegate(string filename) {
                 ColorScheme scheme = getColorSchemeFromUI();
                 scheme.save(filename);
                 reload();
-            }
-            fcd.destroy();
-        });
-        fcd.present();
+            });
     }
 
     void reload() {

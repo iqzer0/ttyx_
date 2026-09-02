@@ -180,8 +180,6 @@ import gtk.event_controller_key : EventControllerKey;
 import gtk.event_controller_motion : EventControllerMotion;
 import gtk.event_controller_scroll : EventControllerScroll;
 import gtk.gesture_click : GestureClick;
-import gtk.file_chooser_dialog : FileChooserDialog;
-import gtk.file_filter : FileFilter;
 import gtk.global : checkVersion;
 import gtk.drag_source : DragSource;
 import gtk.drop_target_async : DropTargetAsync;
@@ -201,8 +199,7 @@ import gtk.spinner : Spinner;
 import gtk.style_context : StyleContext;
 import gtk.toggle_button : ToggleButton;
 import gtk.types : Align, EventControllerScrollFlags,
-    EventSequenceState, FileChooserAction,
-    MessageType, Orientation, PolicyType, PositionType, 
+    EventSequenceState, MessageType, Orientation, PolicyType, PositionType, 
     ResponseType, StateFlags,
     STYLE_PROVIDER_PRIORITY_APPLICATION;
 import gtk.widget : Widget;
@@ -3238,43 +3235,14 @@ private:
      */
     void saveTerminalOutput(bool showSaveAsDialog = true) {
         if (outputFilename.length == 0 || showSaveAsDialog) {
-            Window window = cast(Window) getRoot();
-            // giD binds no FileChooserDialog(title, parent, action, buttons)
-            // convenience ctor; construct raw and configure via setters
-            // (the advpaste raw-construct pattern).
-            FileChooserDialog fcd = new FileChooserDialog(
-                cast(void*) g_object_new(FileChooserDialog._getGType(), cast(const(char)*) null), No.Take);
-            fcd.setTitle(_("Save Terminal Output"));
-            if (window !is null) fcd.setTransientFor(window);
-            fcd.setAction(FileChooserAction.Save);
-            fcd.addButton(_("Save"), ResponseType.Ok);
-            fcd.addButton(_("Cancel"), ResponseType.Cancel);
-
-            FileFilter ff = new FileFilter();
-            ff.addPattern("*.txt");
-            ff.setName(_("All Text Files"));
-            fcd.addFilter(ff);
-            ff = new FileFilter();
-            ff.addPattern("*");
-            ff.setName(_("All Files"));
-            fcd.addFilter(ff);
-
-            fcd.setDefaultResponse(ResponseType.Ok);
-            if (outputFilename.length == 0) {
-            } else {
-                fcd.setCurrentName("output.txt");
-            }
-
-            // GTK4: no Dialog.run(); write once the response arrives. The
-            // chooser confirms overwrites itself.
-            fcd.connectResponse(delegate(int response, Dialog d) {
-                if (response == ResponseType.Ok && fcd.getFile() !is null) {
-                    outputFilename = fcd.getFile().getPath();
+            // GTK4: FileDialog, not the deprecated FileChooserDialog — see
+            // gx.gtk.dialog for why (no file-activated signal any more).
+            showSaveFileDialog(cast(Window) getRoot(), _("Save Terminal Output"), _("Save"),
+                null, "output.txt", textFileFilters(),
+                delegate(string path) {
+                    outputFilename = path;
                     writeTerminalOutput();
-                }
-                fcd.destroy();
-            });
-            fcd.present();
+                });
             return;
         }
         writeTerminalOutput();
