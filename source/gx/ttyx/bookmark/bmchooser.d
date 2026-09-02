@@ -46,7 +46,7 @@ import gtk.check_button : CheckButton;
 import gtk.dialog : Dialog;
 import gtk.scrolled_window : ScrolledWindow;
 import gtk.search_entry : SearchEntry;
-import gtk.types : Orientation, PolicyType, ResponseType, SelectionMode, ShadowType;
+import gtk.types : Orientation, PolicyType, ResponseType, SelectionMode;
 import gtk.window : Window;
 
 import gx.gtk.util;
@@ -90,8 +90,8 @@ private:
         tv.addController(tvKeys);
 
         ScrolledWindow sw = new ScrolledWindow();
-        sw.add(tv);
-        sw.setShadowType(ShadowType.EtchedIn);
+        sw.setChild(tv);
+        sw.setHasFrame(true);
         sw.setPolicy(PolicyType.Never, PolicyType.Automatic);
         sw.setHexpand(true);
         sw.setVexpand(true);
@@ -108,17 +108,17 @@ private:
 
         Box box = new Box(Orientation.Vertical, 6);
         setAllMargins(box, 18);
-        box.add(se);
-        box.add(sw);
+        box.append(se);
+        box.append(sw);
 
         if (mode != BMSelectionMode.FOLDER) {
             gsSettings = new GSettings(SETTINGS_ID);
             CheckButton cbIncludeEnter = CheckButton.newWithLabel(_("Include return character with bookmark"));
             gsSettings.bind(SETTINGS_BOOKMARK_INCLUDE_RETURN_KEY, cbIncludeEnter, "active", SettingsBindFlags.Default);
-            box.add(cbIncludeEnter);
+            box.append(cbIncludeEnter);
         }
 
-        getContentArea().add(box);
+        getContentArea().append(box);
     }
 
     void updateUI() {

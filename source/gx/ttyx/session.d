@@ -67,6 +67,8 @@ import cairo.types : Content, Format, Operator;
 import gio.settings : GSettings = Settings;
 
 import gobject.c.functions : g_object_new;
+import gobject.object : ObjectWrap;
+import gobject.param_spec : ParamSpec;
 import gobject.value : Value;
 
 import gtk.box : Box;
@@ -248,7 +250,7 @@ private:
     }
 
     void createUI(Terminal terminal) {
-        groupChild.add(terminal);
+        groupChild.append(terminal);
         currentTerminal = terminal;
     }
 
@@ -260,7 +262,7 @@ private:
         stackMaximized.getStyleContext().addClass("ttyx-background");
         addNamed(stackMaximized, STACK_MAX_NAME);
         groupChild = new Box(Orientation.Vertical, 0);
-        stackGroup.add(groupChild);
+        stackGroup.append(groupChild);
         // Need this to switch the stack in case we loaded a layout
         // with a maximized terminal since stack can't be switched until realized
         connectRealize(delegate() {
@@ -343,12 +345,11 @@ private:
             tracef("Only %d pane, not redistributing", model.count);
             return;
         }
-        Value handleSize = new Value(0);
-        root.styleGetProperty("handle-size", handleSize);
-        tracef("Handle size is %d", handleSize.getInt());
+        int handleSize = panedHandleSize(root);
+        tracef("Handle size is %d", handleSize);
 
         int size = root.getOrientation() == Orientation.Horizontal ? root.getAllocatedWidth() : root.getAllocatedHeight();
-        int baseSize = (size - (handleSize.getInt() * model.count)) / (model.count + 1);
+        int baseSize = (size - (handleSize * model.count)) / (model.count + 1);
         tracef("Redistributing %d terminals with pos %d out of total size %d", model.count + 1, baseSize, size);
 
         model.calculateSize(baseSize);
@@ -455,7 +456,6 @@ private:
         if (maximizedTerminal !is null) {
             maximizeTerminal(maximizedTerminal);
         }
-        showAll();
     }
 
     /**
@@ -540,8 +540,8 @@ private:
         * splitter with it.
         */
         Box findOtherChild(Terminal terminal, Paned paned) {
-            Box box1 = cast(Box) paned.getChild1();
-            Box box2 = cast(Box) paned.getChild2();
+            Box box1 = cast(Box) paned.getStartChild();
+            Box box2 = cast(Box) paned.getEndChild();
 
             //If terminal is maximized we can short-circuit check since
             // we know terminal's parent already
@@ -572,7 +572,10 @@ private:
             return;
         }
         Box otherBox = findOtherChild(terminal, paned);
-        paned.remove(otherBox);
+        // GTK4: Paned has no remove; clear whichever slot holds the sibling.
+        // (The old call silently UFCS-bound to std.algorithm.remove.)
+        if (paned.getStartChild() !is null && paned.getStartChild()._cPtr == otherBox._cPtr) paned.setStartChild(null);
+        else paned.setEndChild(null);
 
         Box parent = cast(Box) paned.getParent();
         parent.remove(paned);
@@ -594,13 +597,17 @@ private:
         //Remove widget from original Box parent
         otherBox.remove(widget);
         //Add widget to new parent
-        parent.add(widget);
+        parent.append(widget);
         //Clean up terminal parent, use container as base class since
         //terminal can be parented to either Box or Stack which both
         //descend from Container
-        Widget container = cast(Widget) terminal.getParent();
-        container.remove(terminal);
-        container.destroy();
+        Widget container = terminal.getParent();
+        // GTK4: no Container.remove — the parent is a Box or a Stack, each with
+        // its own remove. gtk_widget_destroy is gone too: unparenting the
+        // now-empty container releases it through its refcount.
+        if (auto box = cast(Box) container) box.remove(terminal);
+        else if (auto stack = cast(Stack) container) stack.remove(terminal);
+        if (container !is null) container.unparent();
 
         // Auto-equalize panes on close when enabled: after removing a
         // paned from a chain, re-equalize the remaining panes.
@@ -641,17 +648,21 @@ private:
         Box b2 = new Box(Orientation.Vertical, 0);
 
         Paned paned = createPaned(orientation);
-        paned.pack1(b1, PANED_RESIZE_MODE, PANED_SHRINK_MODE);
-        paned.pack2(b2, PANED_RESIZE_MODE, PANED_SHRINK_MODE);
+        // GTK4: pack1/pack2 -> start/end child plus per-child resize/shrink.
+        paned.setStartChild(b1);
+        paned.setResizeStartChild(PANED_RESIZE_MODE);
+        paned.setShrinkStartChild(PANED_SHRINK_MODE);
+        paned.setEndChild(b2);
+        paned.setResizeEndChild(PANED_RESIZE_MODE);
+        paned.setShrinkEndChild(PANED_SHRINK_MODE);
 
         parent.remove(dest);
-        parent.showAll();
         if (child == 1) {
-            b1.add(src);
-            b2.add(dest);
+            b1.append(src);
+            b2.append(dest);
         } else {
-            b1.add(dest);
-            b2.add(src);
+            b1.append(dest);
+            b2.append(src);
         }
 
         final switch (orientation) {
@@ -663,8 +674,7 @@ private:
             break;
 
         }
-        parent.add(paned);
-        parent.showAll();
+        parent.append(paned);
         //Fix for issue #33
         focusTerminal(src.terminalID);
 
@@ -706,12 +716,12 @@ private:
             trace("Moving terminal from different session");
             src = cast(Terminal) tilix.findWidgetForUUID(srcUUID);
             if (src is null) {
-                showErrorDialog(cast(Window) this.getToplevel(), _("Could not locate dropped terminal"));
+                showErrorDialog(cast(Window) this.getRoot(), _("Could not locate dropped terminal"));
                 return;
             }
             Session session = getSession(src);
             if (session is null) {
-                showErrorDialog(cast(Window) this.getToplevel(), _("Could not locate session for dropped terminal"));
+                showErrorDialog(cast(Window) this.getRoot(), _("Could not locate session for dropped terminal"));
                 return;
             }
             trace("Removing Terminal from other session");
@@ -729,8 +739,8 @@ private:
     void closeTerminal(Terminal terminal) {
         removeTerminal(terminal);
         terminal.finalizeTerminal();
-        //Try to avoid destroying things explicitly due to GtkD issue
-        terminal.destroy();
+        // GTK4: no gtk_widget_destroy. removeTerminal() unparented it and
+        // finalizeTerminal() released its resources; the refcount frees it.
     }
 
     /**
@@ -778,7 +788,6 @@ private:
 
             //Update terminal IDs to fill in hole
             sequenceTerminalID();
-            showAll();
         }
     }
 
@@ -840,7 +849,7 @@ private:
         maximizedInfo.parent = cast(Box) terminal.getParent();
         maximizedInfo.isMaximized = true;
         maximizedInfo.parent.remove(terminal);
-        stackMaximized.add(terminal);
+        stackMaximized.append(terminal);
         trace("Switching stack to maximized page");
         terminal.show();
         // gtk_stack_set_visible_child is a silent no-op if the target child
@@ -885,7 +894,7 @@ private:
         }
         trace("Restoring terminal");
         stackMaximized.remove(maximizedInfo.terminal);
-        maximizedInfo.parent.add(maximizedInfo.terminal);
+        maximizedInfo.parent.append(maximizedInfo.terminal);
         maximizedInfo.isMaximized = false;
         maximizedInfo.parent = null;
         maximizedInfo.terminal = null;
@@ -1027,9 +1036,9 @@ private:
         value[NODE_SCALED_POSITION] = JSONValue(positionPercent);
         value[NODE_TYPE] = WidgetType.PANED;
         value[NODE_RATIO] = JSONValue(paned.ratio);
-        Box box1 = cast(Box) paned.getChild1();
+        Box box1 = cast(Box) paned.getStartChild();
         serializeBox(NODE_CHILD1, box1);
-        Box box2 = cast(Box) paned.getChild2();
+        Box box2 = cast(Box) paned.getEndChild();
         serializeBox(NODE_CHILD2, box2);
         return value;
     }
@@ -1088,11 +1097,16 @@ private:
         Orientation orientation = parseOrientation(value[NODE_ORIENTATION].integer());
         TerminalPaned paned = createPaned(orientation);
         Box b1 = new Box(Orientation.Vertical, 0);
-        b1.add(parseNode(value[NODE_CHILD1], sizeInfo));
+        b1.append(parseNode(value[NODE_CHILD1], sizeInfo));
         Box b2 = new Box(Orientation.Vertical, 0);
-        b2.add(parseNode(value[NODE_CHILD2], sizeInfo));
-        paned.pack1(b1, PANED_RESIZE_MODE, PANED_SHRINK_MODE);
-        paned.pack2(b2, PANED_RESIZE_MODE, PANED_SHRINK_MODE);
+        b2.append(parseNode(value[NODE_CHILD2], sizeInfo));
+        // GTK4: pack1/pack2 -> start/end child plus per-child resize/shrink.
+        paned.setStartChild(b1);
+        paned.setResizeStartChild(PANED_RESIZE_MODE);
+        paned.setShrinkStartChild(PANED_SHRINK_MODE);
+        paned.setEndChild(b2);
+        paned.setResizeEndChild(PANED_RESIZE_MODE);
+        paned.setShrinkEndChild(PANED_SHRINK_MODE);
         // Fix for issue #49
         JSONValue position = value[NODE_SCALED_POSITION];
         double percent;
@@ -1127,7 +1141,7 @@ private:
         }
         JSONValue child = value[NODE_CHILD];
         trace(child.toPrettyString());
-        groupChild.add(parseNode(child, sizeInfo));
+        groupChild.append(parseNode(child, sizeInfo));
 
         // Seed currentTerminal. The interactive paths get this from
         // createUI(Terminal); deserialization never goes through it, so
@@ -1182,42 +1196,11 @@ private:
         });
         getStyleContext.addClass("ttyx-background");
 
-        connectDraw(&onDraw);
-    }
-
-    bool onDraw(Context cr, Widget w) {
-        AppWindow window = cast(AppWindow)getToplevel();
-        if (window is null) return false;
-        Widget child = cast(Widget) getVisibleChild();
-        if (child is null) return false;
-
-        //Cached render
-        Surface isBGImage = window.getBackgroundImage(child);
-        if (isBGImage is null) return false;
-
-        cr.save();
-        cr.setSourceSurface(isBGImage, 0, 0);
-        // Line below was causing issue for #83-, doesn't seem to be any ill effect removing it
-        //cr.setOperator(Operator.Source);
-        cr.paint();
-
-        //Draw child onto temporary image so it doesn't overdraw background
-        Surface isChildSurface = cr.getTarget().createSimilar(Content.ColorAlpha, child.getAllocatedWidth(), child.getAllocatedHeight());
-        if (isChildSurface is null) {
-            trace("****** ImageSurface is null");
-            isChildSurface = imageSurfaceCreate(Format.Argb32, child.getAllocatedWidth(), child.getAllocatedHeight());
-        }
-        Context crChild = createContext(isChildSurface);
-        // Note: the GtkD original explicitly destroyed crChild/isChildSurface
-        // via scope(exit); giD cairo wrappers are GC-managed (gx.gtk.cairo
-        // precedent), so the explicit destroys are dropped.
-        propagateDraw(child, crChild);
-        cr.setSourceSurface(isChildSurface, 0, 0);
-        cr.setOperator(Operator.Over);
-        cr.paint();
-
-        cr.restore();
-        return true;
+        // GTK4: no draw signal, so the GTK3 onDraw that painted the cached
+        // background image behind the visible group (and composited the
+        // children over it) is gone. Background images need a Picture behind
+        // the pane tree in an Overlay — tracked as WP4-bg in
+        // docs/gtk4-wp0-status.md; until then the setting has no effect.
     }
 
     void updateWideHandle(bool value) {
@@ -1258,7 +1241,7 @@ public:
             terminals.length = 0;
             mruTerminals.length = 0;
 
-            gsSettings.destroy();
+            gsSettings = null; // GTK4/giD: no ObjectG.destroy; dropping the reference releases it
             gsSettings = null;
         });
     }
@@ -1620,19 +1603,22 @@ public:
         // set to null by removeTerminalReferences.
         if (currentTerminal is null) return;
 
-        Widget appWindow = currentTerminal.getToplevel();
-        Allocation appWindowAllocation;
-        appWindow.getClip(appWindowAllocation);
+        // GTK4: Root is an interface, coordinates are doubles, and there is no
+        // clip allocation — the widget size is what the hit test needs.
+        Widget appWindow = cast(Widget) currentTerminal.getRoot();
+        if (appWindow is null) return;
+        int windowWidth = appWindow.getWidth();
+        int windowHeight = appWindow.getHeight();
 
         // Start at the top left of the current terminal
-        int xPos, yPos;
-        currentTerminal.translateCoordinates(appWindow, 0, 0, xPos, yPos);
+        double startX, startY;
+        currentTerminal.translateCoordinates(appWindow, 0, 0, startX, startY);
         //Offset 5 pixels to avoid edge matches
-        xPos = xPos + 5;
-        yPos = yPos + 5;
+        int xPos = cast(int) startX + 5;
+        int yPos = cast(int) startY + 5;
 
         // While still in the application window, move 20 pixels per loop
-        while (xPos >= 0 && xPos < appWindowAllocation.width && yPos >= 0 && yPos < appWindowAllocation.height) {
+        while (xPos >= 0 && xPos < windowWidth && yPos >= 0 && yPos < windowHeight) {
             switch (direction) {
             case "up":
                 yPos -= 20;
@@ -1655,13 +1641,12 @@ public:
                 if (terminal == currentTerminal)
                     continue;
 
-                int termX, termY;
-                terminal.translateCoordinates(appWindow, 0, 0, termX, termY);
+                double termXd, termYd;
+                terminal.translateCoordinates(appWindow, 0, 0, termXd, termYd);
+                int termX = cast(int) termXd;
+                int termY = cast(int) termYd;
 
-                Allocation termAllocation;
-                terminal.getClip(termAllocation);
-
-                if (xPos >= termX && yPos >= termY && xPos <= (termX + termAllocation.width) && yPos <= (termY + termAllocation.height)) {
+                if (xPos >= termX && yPos >= termY && xPos <= (termX + terminal.getWidth()) && yPos <= (termY + terminal.getHeight())) {
                     focusTerminal(terminal);
                     return;
                 }
@@ -1800,8 +1785,8 @@ private:
         grid.setRowSpacing(6);
         grid.setMarginTop(18);
         grid.setMarginBottom(18);
-        grid.setMarginLeft(18);
-        grid.setMarginRight(18);
+        grid.setMarginStart(18);
+        grid.setMarginEnd(18);
 
         Label label = new Label(format("<b>%s</b>", _("Name")));
         label.setUseMarkup(true);
@@ -1831,7 +1816,7 @@ private:
         cbProfile.setHexpand(true);
         grid.attach(cbProfile, 1, 1, 1, 1);
 
-        getContentArea().add(grid);
+        getContentArea().append(grid);
     }
 
 public:
@@ -1882,7 +1867,9 @@ private:
 public:
     this(Orientation orientation) {
         super(orientation);
-        connectSizeAllocate(delegate() {
+        // GTK4: no size-allocate signal. Paned recomputes max-position from
+        // its allocation, so its notify fires on every resize.
+        connectNotify("max-position", delegate(ParamSpec pspec, ObjectWrap obj) {
             updatePosition();
         });
 
@@ -1905,11 +1892,11 @@ public:
         //trace("Updating ratio");
         double newRatio = ratio;
         if (getOrientation() == Orientation.Horizontal) {
-            newRatio = to!double(getChild1().getAllocatedWidth()) / to!double(getAllocatedWidth());
-            //tracef("Child1 Width=%d, Paned Width=%d, newRatio=%f",getChild1().getAllocatedWidth(),getAllocatedWidth(), newRatio);
+            newRatio = to!double(getStartChild().getAllocatedWidth()) / to!double(getAllocatedWidth());
+            //tracef("Child1 Width=%d, Paned Width=%d, newRatio=%f",getStartChild().getAllocatedWidth(),getAllocatedWidth(), newRatio);
         } else {
-            newRatio = to!double(getChild1().getAllocatedHeight()) / to!double(getAllocatedHeight());
-            //tracef("Child1 Height=%d, Paned Height=%d, newRatio=%f",getChild1().getAllocatedHeight(),getAllocatedHeight(), newRatio);
+            newRatio = to!double(getStartChild().getAllocatedHeight()) / to!double(getAllocatedHeight());
+            //tracef("Child1 Height=%d, Paned Height=%d, newRatio=%f",getStartChild().getAllocatedHeight(),getAllocatedHeight(), newRatio);
         }
         if (newRatio > 0.0 && newRatio < 1.0) {
             ratio = newRatio;
@@ -2022,8 +2009,8 @@ private:
     PanedNode createModel(Paned node) {
         _count++;
         PanedNode result = new PanedNode(node);
-        Box box1 = cast(Box) node.getChild1();
-        Box box2 = cast(Box) node.getChild2();
+        Box box1 = cast(Box) node.getStartChild();
+        Box box2 = cast(Box) node.getEndChild();
         Paned[] paned1 = gx.gtk.util.getChildren!(Paned)(box1, false);
         Paned[] paned2 = gx.gtk.util.getChildren!(Paned)(box2, false);
         if (paned1.length > 0 && paned1[0].getOrientation() == node.getOrientation())
@@ -2114,8 +2101,9 @@ private:
                 threadsAddIdleDelegate(delegate() {
                     tracef("    2nd pass, Node set to pos %d from pos %d", n.pos, n.paned.getPosition());
                     n.paned.setPosition(n.pos);
-                    n.paned.childSetProperty(n.paned.getChild1(), "resize", new Value(cast(bool) PANED_RESIZE_MODE));
-                    n.paned.childSetProperty(n.paned.getChild2(), "resize", new Value(cast(bool) PANED_RESIZE_MODE));
+                    // GTK4: child properties became per-child Paned setters.
+                    n.paned.setResizeStartChild(PANED_RESIZE_MODE);
+                    n.paned.setResizeEndChild(PANED_RESIZE_MODE);
                     return false;
                 });
             }
@@ -2125,8 +2113,8 @@ private:
     void updateResizeProperty(PanedNode node) {
         trace("Updating resize property");
         //Thanks to tip from egmontkob, see issue https://github.com/gnunn1/tilix/issues/161
-        node.paned.childSetProperty(node.paned.getChild1(), "resize", new Value(false));
-        node.paned.childSetProperty(node.paned.getChild2(), "resize", new Value(true));
+        node.paned.setResizeStartChild(false);
+        node.paned.setResizeEndChild(true);
         foreach(child; node.child) {
             if (child !is null) {
                 updateResizeProperty(child);
@@ -2263,4 +2251,19 @@ unittest {
     assert(outermost.pos * 4 == outermost.size * 3, "4-pane: outermost ratio is 3/4, not the old 1/2 default");
     assert(middle.pos    * 3 == middle.size    * 2, "4-pane: middle ratio is 2/3, not the old 1/2 default");
     assert(innermost.pos * 2 == innermost.size * 1, "4-pane: innermost ratio is 1/2 (correct for leaf pair)");
+}
+
+/**
+ * GTK4 has no style properties, so the paned handle size cannot be queried;
+ * it is whatever the allocation leaves between the two children along the
+ * paned's orientation (0 before the paned is allocated).
+ */
+private int panedHandleSize(Paned paned) {
+    Widget a = paned.getStartChild();
+    Widget b = paned.getEndChild();
+    if (a is null || b is null) return 0;
+    if (paned.getOrientation() == Orientation.Horizontal) {
+        return max(0, paned.getAllocatedWidth() - a.getAllocatedWidth() - b.getAllocatedWidth());
+    }
+    return max(0, paned.getAllocatedHeight() - a.getAllocatedHeight() - b.getAllocatedHeight());
 }

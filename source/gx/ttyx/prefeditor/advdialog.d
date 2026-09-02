@@ -503,7 +503,7 @@ Label createErrorLabel() {
     lblErrors.setHalign(Align.Start);
     lblErrors.setMarginTop(12);
     lblErrors.getStyleContext().addClass("ttyx-error");
-    lblErrors.setNoShowAll(true);
+    lblErrors.setVisible(false);
 
     return lblErrors;
 }
@@ -512,7 +512,7 @@ Label createSecurityWarningLabel(string text) {
     Label lbl = new Label(text);
     lbl.setHalign(Align.Start);
     lbl.setMarginBottom(12);
-    lbl.setLineWrap(true);
+    lbl.setWrap(true);
     lbl.setMaxWidthChars(70);
     lbl.setXalign(0.0);
     return lbl;

@@ -41,9 +41,11 @@ import std.string;
 import glib.global : chdir, getCurrentDir, getHomeDir, setPrgname;
 
 import gtk.c.functions : gtk_init;
+import gtk.dialog : Dialog;
 import gtk.global : checkVersion, getMajorVersion, getMinorVersion, getMicroVersion;
 import gtk.message_dialog : MessageDialog;
 import gtk.types : MessageType, ResponseType;
+import gtk.window : Window;
 
 import gx.i18n.l10n;
 import gx.gtk.util;
@@ -117,7 +119,8 @@ private void initGtk(ref string[] args) {
     }
     argv ~= null;
     char** argvPtr = argv.ptr;
-    gtk_init(&argc, &argvPtr);
+    // GTK4: gtk_init() takes no arguments and no longer strips GTK options.
+    gtk_init();
     string[] result;
     result.reserve(argc);
     foreach (i; 0 .. argc) {
@@ -267,7 +270,7 @@ int main(string[] args) {
                 format(_("Your GTK version is too old, you need at least GTK %d.%d.%d!"), GTK_VERSION_MAJOR, GTK_VERSION_MINOR, GTK_VERSION_PATCH));
         dialog.setDefaultResponse(ResponseType.Ok);
 
-        dialog.run();
+        runStartupDialog(dialog);
         return 1;
     }
 
@@ -277,7 +280,7 @@ int main(string[] args) {
                 format(_("Your VTE version is too old, you need at least VTE %d.%d!"), VTE_VERSION_MINIMAL[0], VTE_VERSION_MINIMAL[1]));
         dialog.setDefaultResponse(ResponseType.Ok);
 
-        dialog.run();
+        runStartupDialog(dialog);
         return 1;
     }
 
@@ -309,3 +312,24 @@ private:
         writeln("\t" ~ format(_("Triggers enabled=%b"), checkVTEFeature(TerminalFeature.EVENT_SCREEN_CHANGED)));
         writeln("\t" ~ format(_("Badges enabled=%b"), isVTEBackgroundDrawEnabled));
     }
+
+/**
+ * GTK4 has no Dialog.run(). These fatal version-check dialogs are shown before
+ * the application (and its main loop) exists, so spin a GLib main loop until
+ * the user dismisses the dialog, then continue to the exit path.
+ */
+private void runStartupDialog(MessageDialog dialog) {
+    import glib.main_loop : MainLoop;
+
+    MainLoop loop = new MainLoop(null, false);
+    dialog.connectResponse(delegate(int response, Dialog d) {
+        loop.quit();
+    });
+    dialog.connectCloseRequest(delegate bool(Window w) {
+        loop.quit();
+        return false;
+    });
+    dialog.present();
+    loop.run();
+    dialog.destroy();
+}

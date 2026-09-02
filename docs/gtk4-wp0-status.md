@@ -1,9 +1,11 @@
 # Phase 2b — WP0 status
 
-**Branch:** `migrate/gtk4-wp0`. **This branch does not build** and is not
-intended to be merged until the port is complete — `dub build` produces
-nothing while any import is unresolved. Progress is tracked per-module with
-`./typecheck-gtk4.sh` instead.
+**Branch:** `migrate/gtk4-wp0`. **This branch now builds** (`dub build`,
+since the 68/68 checkpoint at the end of this file) but has only been
+exercised to startup; it is not intended to be merged until the runtime
+verification list there is worked through. Until the first build, progress was
+tracked per-module with `./typecheck-gtk4.sh`, and the sections below are kept
+as the record of how the port was sequenced and why.
 
 ## The tooling problem WP0 actually had to solve
 
@@ -526,3 +528,172 @@ path also calls `dialog.run()` (WP1), so the two collide there, on the
 security-critical approve-then-send invariant. ~8 modules chain through it.
 It is the next target and the one to do most carefully: the callback must paste
 the text it read and showed the user, never re-read the clipboard.
+
+## Checkpoint: 68 / 68 type-check clean
+
+```
+68 clean, 0 with errors
+```
+
+Every module now type-checks against GTK4. This is the end of WP0 as a
+per-module exercise; what follows is a real `dub build`, then running it.
+Nothing in this branch has been executed yet — see "Verify at runtime" below.
+
+### Landed since 48 / 68
+
+- **WP3 — async clipboard, paste path.** `terminal/clipboard.d` reads the
+  clipboard once (`readClipboard`), and everything downstream — sanitising,
+  the review/unsafe dialogs, `commitPaste` (the single send point) — acts on
+  that captured string. The callback never re-reads the clipboard, so what the
+  user approved is what gets pasted. Auto-clear compares the clipboard content
+  before clearing.
+- **WP1 complete — all `dialog.run()` sites gone.** Three shapes:
+  fire-and-forget (`showErrorDialog`); value-returning helpers rewritten with a
+  continuation (`showInputDialog(…, then)`, `showConfirmDialog(…, then)`,
+  `promptCanCloseProcesses(…, then)`, `checkAndPromptChangeShortcut(…, then)`,
+  `confirmSessionCommand(…, then)`; `initTerminal` split at that boundary into
+  `startTerminalProcess`); and the close-request bridge `AppWindow.deferClose`
+  — `close-request` must answer synchronously, so if the prompt resolves at
+  once (disabled by preference) the answer is returned, otherwise the close is
+  blocked and re-issued through `closeNoPrompt()` when the user agrees. The two
+  fatal version dialogs in `app.d` run before the application exists, so
+  `runStartupDialog` spins a GLib `MainLoop` until dismissed.
+- **Visibility.** Every `showAll`/`setNoShowAll` is gone. GTK4 widgets start
+  visible, so `setNoShowAll(true)` on a "shown later" indicator became
+  `setVisible(false)`, and `showAll()` calls that only compensated for GTK3's
+  default-hidden state were deleted.
+- **Box packing.** `packStart` → `append`; `packEnd` → `insertChildAfter(child,
+  anchor)`, which reproduces GTK3's pack-end order (first packed ends up
+  rightmost). The title button takes the spare width with `hexpand` +
+  `halign(Start)` so it is not stretched.
+- **WP4, partially.** Draw handlers became `DrawingArea` overlays: `vteDecor`
+  over the terminal paints the badge and drag highlight and, since an overlay
+  child is allocated the terminal's size and `DrawingArea` keeps a `resize`
+  signal, also stands in for the removed `size-allocate`; `badgeArea` over the
+  sidebar toggle paints the notification count. `redrawTerminal()` queues both
+  the VTE and the decor, because GTK4 caches render nodes per widget and a
+  redraw of the VTE no longer repaints what sits above it. The transparent
+  scrollbar draw hack was deleted (a Box paints nothing of its own).
+  **Removed, tracked as WP4-bg:** `session.d`'s `onDraw` that painted the
+  background image behind the pane tree and composited the children over it
+  (`propagateDraw` has no GTK4 equivalent). It needs a `Picture` behind the
+  tree in an `Overlay`; until then the background-image setting is inert.
+- **Size-allocate replacements:** `DrawingArea.resize` (terminal),
+  `notify::default-width/height` (window), `notify::max-position` (paned —
+  GTK recomputes it from the allocation on every resize).
+- **WP5 — quake and window management.** No client-side placement:
+  `move`/`setGravity`/`--geometry` x,y are gone (`handleGeometry` keeps only
+  the size path); no `stick`/`setKeepAbove`/`setRole`; `iconify` →
+  `minimize`; `activateFocus` removed. Skip-taskbar/pager hints survive as X11
+  surface hints set on realize (`gx.gtk.x11.setSkipTaskbarAndPager`).
+- **Menus/popovers.** `PopoverMenu.newFromModel` + `setMenuModel`; the context
+  popover is parented to the VTE with `setParent`/`setAutohide` and unparented
+  in `finalizeTerminal`. The `popup-menu` keybinding signal is gone; Menu key
+  and Shift+F10 are handled in the VTE key controller.
+- **HeaderBar** has no title: `prefdialog.d` uses `Label` title widgets with
+  the `title` CSS class; the app window shows the window title unless the
+  custom title widget is set. `setShowCloseButton` → `setShowTitleButtons`.
+- **Paned:** start/end child API with per-child resize/shrink setters
+  (`childSetProperty` is gone); the handle size is derived from the allocation
+  (no style properties). **Notebook:** `create-window` lost its x/y; `remove`
+  → `removePage`. **Label:** `setAngle` is gone — side tabs keep horizontal
+  text.
+- **File choosers** use `GFile`: `setCurrentFolder(File)`, `getFile()`,
+  `getFiles()` as a `ListModel`; GTK4 always confirms overwrites.
+- **Application:** `addAccelerator`/`removeAccelerator` reimplemented on
+  `setAccelsForAction` + `Action.printDetailedName`; `executeAction` uses
+  `Widget.activateAction`, which walks the ancestors itself; the
+  `gtk-menu-bar-accel` setting no longer exists (preference kept, inert);
+  `AboutDialog` is a plain `Window`; `hasToplevelFocus` → `isActive`.
+- **Entry paste from the terminal's paste action:** GTK4 focus lands on the
+  inner `GtkText`, so the check tests `Editable` and pastes via
+  `activateAction("clipboard.paste")`.
+- **VTE:** the patched `text-deleted` signal is not in the vte3 binding, so a
+  cleared buffer no longer resets prompt positions; `getWindow().beep()` →
+  `getNative().getSurface().beep()`. `Mod1Mask` → `AltMask`.
+- **The `.destroy()` audit** (see rulebook 2 below).
+
+### Rulebook additions
+
+1. **A failing `static assert` is fatal to the module.** DMD/LDC stop
+   analysing after it, so every later error in that module is hidden.
+   `session.d` reported 6 errors until one such assert was fixed, then 32.
+   When a module's error list looks suspiciously short, look for
+   `instantiated from here` lines in the raw output.
+2. **UFCS rebinding is the compiler-invisible hazard of this port.** Two
+   forms. `x.remove(w)` on a widget whose type lost `Container.remove`
+   (Notebook, Paned, plain Widget) rebinds to `std.algorithm.remove` and
+   fails loudly with "Range must be bidirectional" — fine. `x.destroy()` on
+   anything that is not a `Window` rebinds to druntime's `destroy(x)`, which
+   **compiles**, runs the wrapper's destructor and invalidates a wrapper that
+   giD may share with every other holder. Rule: `Window`/`Dialog` keep
+   `.destroy()`; a parented widget is removed from its parent (or unparented);
+   a GObject reference is dropped (`x = null`). The one deliberate druntime
+   destroy (`onCommandLine`'s eager unref) is written as `destroy(acl)` so it
+   does not read as a GTK call.
+3. **Scope tree-wide renames.** `\bMod1Mask\b → AltMask` reached into
+   `source/x11/X.d` and renamed the X11 binding's own constant. Renames must
+   be restricted to GTK-facing sources, and the list of files touched is the
+   fifth assertion after the four formatting checks.
+4. **Anchor hygiene for scripted edits.** An 8-space-indented anchor is a
+   substring of the same statement at 12 spaces; use `^(\s*)`-anchored regexes
+   with an expected count, or include the previous line. Count regex matches
+   *after* the literal edits of the same batch. Keep edits all-or-nothing per
+   file, but let the batch continue past a failed file and report at the end —
+   one bad anchor blocked seven files three times before that change.
+5. **Sync-or-deferred continuations.** A prompt disabled by preference resolves
+   its continuation *before the helper returns*. Code that must answer
+   synchronously (`close-request`, the sidebar's `CumulativeResult`) has to
+   detect that case (`deferClose`, `onUserSessionClose`) and must never call
+   `close()` re-entrantly from inside the handler.
+6. **Per-widget render-node caching.** `queueDraw()` on a widget does not
+   repaint overlays above it; queue them explicitly.
+
+### Behaviour changes to verify at runtime
+
+Nothing here has run. Items that compiled but whose semantics the compiler
+cannot check, roughly in order of user visibility:
+
+- background image disabled (WP4-bg); side tab labels no longer rotated;
+  `--geometry` position, quake keep-on-top / all-workspaces, window role: inert
+- close/quit/delete confirmations are asynchronous (`deferClose` path)
+- title bar indicator order (`insertChildAfter`) and the title button's width
+- sidebar badge is drawn over the button *content*, so it sits slightly inside
+  the GTK3 position; refreshed via `badgeArea.queueDraw()`
+- terminal resize → title tokens (`vteDecor.resize`); paned ratio kept via
+  `notify::max-position`; window size via `notify::default-width/height`
+- clipboard async paste, unsafe/review dialogs, auto-clear comparison
+- DnD (`DragSource`/`DropTargetAsync`), detach-on-desktop via drag-cancel
+- `activateAction("clipboard.paste")` on the focused `GtkText`
+- Menu key / Shift+F10 context menu; Alt modifier via `AltMask`
+- X11 skip-taskbar/pager hints; `runStartupDialog` main-loop spin
+- giD callback parameter orders (`setDrawFunc`, `connectNotify`, `connectResize`)
+  — accepted by the compiler, unverified in practice
+- session/terminal disposal now follows refcounts (no `gtk_widget_destroy`);
+  D-side references delay dispose until they are dropped
+
+### Still open (tracked)
+
+WP4-bg (background image), WP9 (synchronized input redesign), WP5 proper
+(quake placement strategy), bookmark drag-reorder, sidebar click-outside
+dismiss, the `GdkWindowState`→`ToplevelState` settings-bit migration,
+`use-theme-colors` background lookup, `text-deleted` prompt reset.
+
+### First build, first run
+
+`dub build` compiled the whole tree on the first attempt and failed only at
+link time, on three `gdk_x11_*` "default display" conveniences that GTK4
+removed (`gdk_x11_get_xatom_by_name`, `gdk_x11_get_default_xdisplay`,
+`gdk_x11_get_default_root_xwindow`). Their GTK4 forms take the `GdkDisplay*`
+explicitly (`…_for_display`, `gdk_x11_display_get_xdisplay/xrootwindow`);
+`x11.d` now passes the display it already had. **The branch links.**
+
+The binary starts. giD resolves its C libraries at load time and its very
+first report is environmental: `libvte-2.91-gtk4.so.0` — the GTK4 flavour of
+VTE — is not installed on the development machine, so the first VTE call threw
+`Attempt to execute an unresolved giD function`. Nothing past that point has
+run yet. giD's report also lists a handful of non-VTE symbols absent from the
+installed libraries (`g_thread_init`, `hb_shape_justify`, the cairo-gobject
+type getters, …); those are informational and only matter if called.
+
+Next: install the GTK4 VTE, run, and work the verification list above.

@@ -96,19 +96,22 @@ private:
             eFolder.setPlaceholderText(_("Select Folder"));
             eFolder.setEditable(false);
             eFolder.setHexpand(true);
-            bPicker.add(eFolder);
+            bPicker.append(eFolder);
 
             Button btnFolderPicker = Button.newFromIconName("folder-symbolic");
             btnFolderPicker.setTooltipText(_("Select folder"));
             btnFolderPicker.connectClicked(() {
                 BookmarkChooser bc = new BookmarkChooser(this, BMSelectionMode.FOLDER);
-                scope(exit) {bc.destroy();}
-                bc.showAll();
-                if (bc.run() == ResponseType.Ok) {
-                    folder = cast(FolderBookmark) bc.bookmark;
-                }
+                // GTK4: no Dialog.run(); the result arrives in the response signal.
+                bc.connectResponse(delegate(int response, Dialog d) {
+                    if (response == ResponseType.Ok) {
+                        folder = cast(FolderBookmark) bc.bookmark;
+                    }
+                    bc.destroy();
+                });
+                bc.present();
             });
-            bPicker.add(btnFolderPicker);
+            bPicker.append(btnFolderPicker);
 
             Button btnClearFolder = Button.newFromIconName("edit-clear-symbolic");
             btnClearFolder.setTooltipText(_("Clear folder"));
@@ -116,8 +119,8 @@ private:
                 _folder = null;
                 eFolder.setText("");
             });
-            bPicker.add(btnClearFolder);
-            bContent.add(bPicker);
+            bPicker.append(btnClearFolder);
+            bContent.append(bPicker);
         }
 
         stEditors = new Stack();
@@ -144,14 +147,12 @@ private:
             ssEditors.setMarginBottom(12);
             ssEditors.setStack(stEditors);
             if (bm !is null) {
-                // Need to show here for visible name to work
-                stEditors.showAll();
                 stEditors.setVisibleChildName(to!string(bm.type));
             }
-            bContent.add(ssEditors);
+            bContent.append(ssEditors);
         }
-        bContent.add(stEditors);
-        getContentArea().add(bContent);
+        bContent.append(stEditors);
+        getContentArea().append(bContent);
         setSizeRequest(600, -1);
         updateUI();
     }
@@ -442,11 +443,11 @@ public:
             onValidChanged.emit(this, validate);
         });
         eHost.setHexpand(true);
-        bHost.add(eHost);
-        bHost.add(new Label(":"));
+        bHost.append(eHost);
+        bHost.append(new Label(":"));
         sPort = SpinButton.newWithRange(0, 65535, 1);
         sPort.setValue(0);
-        bHost.add(sPort);
+        bHost.append(sPort);
         attach(bHost, 1, row, 1, 1);
         row++;
 

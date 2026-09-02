@@ -40,9 +40,6 @@ void showErrorDialog(Window parent, string message, string title = null) {
  */
 void showMessageDialog(MessageType mt, Window parent, string message, string title = null) {
     MessageDialog dialog = MessageDialog.builder().build();
-    scope (exit) {
-        dialog.destroy();
-    }
     dialog.messageType = mt;
     dialog.text = message;
     dialog.addButton(_("_OK"), ResponseType.Ok);
@@ -50,19 +47,23 @@ void showMessageDialog(MessageType mt, Window parent, string message, string tit
     dialog.setTransientFor(parent);
     if (title.length > 0)
         dialog.setTitle(title);
-    dialog.run();
+    // GTK4: no Dialog.run(); every caller treats this as fire-and-forget.
+    dialog.connectResponse(delegate(int response, Dialog d) {
+        dialog.destroy();
+    });
+    dialog.present();
 }
 
 alias OnValidate = bool delegate(string value);
 
 /**
- * Show an input dialog with a single entry for input
+ * Show an input dialog with a single entry for input.
+ *
+ * GTK4 dialogs are asynchronous: the entered value is delivered to `then`,
+ * which is called only when the user confirms.
  */
-bool showInputDialog(Window parent, out string value, string initialValue = "", string title = "", string message = "", OnValidate validate = null) {
+void showInputDialog(Window parent, string initialValue, string title, string message, OnValidate validate, void delegate(string value) then) {
     MessageDialog dialog = MessageDialog.builder().build();
-    scope (exit) {
-        dialog.destroy();
-    }
     dialog.messageType = MessageType.Question;
     dialog.text = message;
     dialog.addButton(_("_OK"), ResponseType.Ok);
@@ -89,22 +90,21 @@ bool showInputDialog(Window parent, out string value, string initialValue = "", 
         });
     }
     (cast(Box) dialog.getMessageArea()).append(entry);
-    entry.showAll();
     dialog.setDefaultResponse(ResponseType.Ok);
-    if (dialog.run() == ResponseType.Ok) {
-        value = entry.getText();
-        return true;
-    } else {
-        return false;
-    }
+    dialog.connectResponse(delegate(int response, Dialog d) {
+        string value = entry.getText();
+        dialog.destroy();
+        if (response == ResponseType.Ok) then(value);
+    });
+    dialog.present();
 }
 
 /**
  * Shows a confirmation dialog with the optional ability to include an ignore
  * checkbox tied to gio.Settings so the user no longer has to see the dialog.
  */
-bool showConfirmDialog(Window parent, string message, GSettings settings = null, string promptKey = "") {
-    if (settings !is null && !settings.getBoolean(promptKey)) return true;
+void showConfirmDialog(Window parent, string message, GSettings settings, string promptKey, void delegate(bool confirmed) then) {
+    if (settings !is null && !settings.getBoolean(promptKey)) { then(true); return; }
 
     MessageDialog dialog = MessageDialog.builder().build();
     dialog.messageType = MessageType.Question;
@@ -117,14 +117,12 @@ bool showConfirmDialog(Window parent, string message, GSettings settings = null,
     cbPrompt.setMarginStart(12);
     dialog.getContentArea().append(cbPrompt);
     dialog.setDefaultResponse(ResponseType.Cancel);
-    scope (exit) {
+    // GTK4: no Dialog.run(); the answer goes through the continuation.
+    dialog.connectResponse(delegate(int response, Dialog d) {
+        bool result = response == ResponseType.Ok;
+        if (settings !is null) settings.setBoolean(promptKey, !cbPrompt.getActive());
         dialog.destroy();
-    }
-    dialog.showAll();
-    bool result = true;
-    if (dialog.run() != ResponseType.Ok) {
-        result = false;
-    }
-    settings.setBoolean(promptKey, !cbPrompt.getActive());
-    return result;
+        then(result);
+    });
+    dialog.present();
 }

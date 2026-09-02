@@ -130,8 +130,8 @@ import gdk.content_formats : ContentFormats;
 import gdk.content_provider : ContentProvider;
 import gdk.drag : Drag;
 import gdk.drop : Drop;
-import gdk.types : BUTTON_MIDDLE, BUTTON_PRIMARY, BUTTON_SECONDARY, CursorType,
-    DragAction, DragCancelReason, KEY_c, KEY_Return, ModifierType;
+import gdk.types : BUTTON_MIDDLE, BUTTON_PRIMARY, BUTTON_SECONDARY,
+    DragAction, DragCancelReason, KEY_c, KEY_Return, ModifierType, KEY_Menu, KEY_F10;
 import gdk.surface : GdkSurfaceWrap = Surface;
 
 import gdkpixbuf.pixbuf : Pixbuf;
@@ -170,6 +170,9 @@ import gtk.box : Box;
 import gtk.button : Button;
 import gtk.c.types : GtkWidget, GtkWidgetClass;
 import gtk.css_provider : CssProvider;
+import gtk.dialog : Dialog;
+import gtk.drawing_area : DrawingArea;
+import gtk.editable : Editable;
 import gtk.entry : Entry;
 import gtk.event_controller_focus : EventControllerFocus;
 import gtk.event_controller_key : EventControllerKey;
@@ -181,6 +184,7 @@ import gtk.file_filter : FileFilter;
 import gtk.global : checkVersion;
 import gtk.drag_source : DragSource;
 import gtk.drop_target_async : DropTargetAsync;
+import gtk.popover_menu : PopoverMenu;
 import gtk.uri_launcher : UriLauncher;
 import gtk.widget_paintable : WidgetPaintable;
 import gtk.image : Image;
@@ -197,7 +201,7 @@ import gtk.style_context : StyleContext;
 import gtk.toggle_button : ToggleButton;
 import gtk.types : Align, EventControllerScrollFlags,
     EventSequenceState, FileChooserAction,
-    MessageType, Orientation, PolicyType, PositionType, ReliefStyle,
+    MessageType, Orientation, PolicyType, PositionType, 
     ResponseType, StateFlags,
     STYLE_PROVIDER_PRIORITY_APPLICATION;
 import gtk.widget : Widget;
@@ -298,6 +302,7 @@ private:
     ExtendedVTE vte;
     gulong[] vteHandlers;
     Overlay terminalOverlay;
+    DrawingArea vteDecor;
     ScrolledWindow sw;
     Scrollbar sb;
 
@@ -325,7 +330,7 @@ private:
     SimpleAction saCopyAsHtml;
     SimpleAction saPaste;
     SimpleAction saAdvancedPaste;
-    Popover pmContext;
+    PopoverMenu pmContext;
 
     SimpleAction saMaximize;
 
@@ -460,10 +465,10 @@ private:
         append(box);
         // Create the title bar of the pane
         Widget titlePane = createTitlePane();
-        box.add(titlePane);
+        box.append(titlePane);
 
         //Create the actual terminal for the pane
-        box.add(createVTE());
+        box.append(createVTE());
 
         //Enable Drag and Drop
         setupDragAndDrop(titlePane);
@@ -476,7 +481,7 @@ private:
         bTitle = new Box(Orientation.Horizontal, 0);
         bTitle.getStyleContext().addClass("terminal-titlebar");
         //Showing is controlled by terminal title preference
-        bTitle.setNoShowAll(true);
+        bTitle.setVisible(false);
         bTitle.setVexpand(false);
 
         lblTitle = new Label(_("Terminal"));
@@ -491,11 +496,11 @@ private:
         encodingMenu = new GMenu();
 
         Box bTitleLabel = new Box(Orientation.Horizontal, 6);
-        bTitleLabel.add(lblTitle);
-        bTitleLabel.add(Image.newFromIconName("pan-down-symbolic"));
+        bTitleLabel.append(lblTitle);
+        bTitleLabel.append(Image.newFromIconName("pan-down-symbolic"));
 
         mbTitle = new MenuButton();
-        mbTitle.setRelief(ReliefStyle.None);
+        mbTitle.setHasFrame(false);
         mbTitle.setFocusOnClick(false);
         mbTitle.setPopover(createPopover(mbTitle));
         // GTK4: rebuild the menus when the button is pressed, via a gesture.
@@ -506,51 +511,57 @@ private:
         });
         mbTitle.addController(titleMenuClick);
 
-        mbTitle.add(bTitleLabel);
+        mbTitle.setChild(bTitleLabel);
         mbTitle.connectShow(delegate(Widget w) {
             mbTitle.queueResize();
         }, Yes.After);
-        mbTitle.setMarginRight(10);
+        mbTitle.setMarginEnd(10);
+        // GTK4 Box has no pack-end. The title button takes the spare width
+        // (aligned start, so it is not stretched) and each indicator is
+        // inserted directly after it, which reproduces GTK3's pack-end order:
+        // the first one packed ends up rightmost.
+        mbTitle.setHexpand(true);
+        mbTitle.setHalign(Align.Start);
 
-        bTitle.packStart(mbTitle, false, false, 0);
+        bTitle.append(mbTitle);
 
         //Close Button
         Button btnClose = Button.newFromIconName("window-close-symbolic");
         btnClose.setTooltipText(_("Close"));
-        btnClose.setRelief(ReliefStyle.None);
+        btnClose.setHasFrame(false);
         btnClose.setFocusOnClick(false);
         btnClose.setActionName(getActionDetailedName(ACTION_PREFIX, ACTION_CLOSE));
-        bTitle.packEnd(btnClose, false, false, 0);
+        bTitle.insertChildAfter(btnClose, mbTitle);
 
         //Maximize Button
         btnMaximize = Button.newFromIconName("window-maximize-symbolic");
         btnMaximize.setTooltipText(_("Maximize"));
-        btnMaximize.setRelief(ReliefStyle.None);
+        btnMaximize.setHasFrame(false);
         btnMaximize.setFocusOnClick(false);
         btnMaximize.setActionName(getActionDetailedName(ACTION_PREFIX, ACTION_MAXIMIZE));
-        bTitle.packEnd(btnMaximize, false, false, 0);
+        bTitle.insertChildAfter(btnMaximize, mbTitle);
 
         //Synchronize Input Button
         tbSyncInput = new ToggleButton();
-        tbSyncInput.setNoShowAll(true);
-        tbSyncInput.setImage(Image.newFromIconName("input-keyboard-symbolic"));
+        tbSyncInput.setVisible(false);
+        tbSyncInput.setIconName("input-keyboard-symbolic");
         tbSyncInput.setTooltipText(_("Disable input synchronization for this terminal"));
-        tbSyncInput.setRelief(ReliefStyle.None);
+        tbSyncInput.setHasFrame(false);
         tbSyncInput.setFocusOnClick(false);
         tbSyncInput.setActionName(getActionDetailedName(ACTION_PREFIX, ACTION_SYNC_INPUT_OVERRIDE));
-        bTitle.packEnd(tbSyncInput, false, false, 0);
+        bTitle.insertChildAfter(tbSyncInput, mbTitle);
 
         //Read Only Image
         imgReadOnly = Image.newFromIconName("changes-prevent-symbolic");
-        imgReadOnly.setNoShowAll(true);
+        imgReadOnly.setVisible(false);
         imgReadOnly.setTooltipText(_("Read-Only"));
-        bTitle.packEnd(imgReadOnly, false, false, 0);
+        bTitle.insertChildAfter(imgReadOnly, mbTitle);
 
         //New Output
         imgNewOuput = Image.newFromIconName("insert-text-symbolic");
-        imgNewOuput.setNoShowAll(true);
+        imgNewOuput.setVisible(false);
         imgNewOuput.setTooltipText(_("New output"));
-        bTitle.packEnd(imgNewOuput, false, false, 0);
+        bTitle.insertChildAfter(imgNewOuput, mbTitle);
 
         //Root/SSH indicator tints are screen-wide and constant — install once
         installIndicatorCss();
@@ -559,22 +570,22 @@ private:
         lblRootIndicator = new Label("");
         lblRootIndicator.setMarkup("<span weight=\"bold\">" ~ _("as root") ~ "</span>");
         lblRootIndicator.setTooltipText(_("Running as root"));
-        lblRootIndicator.setNoShowAll(true);
-        bTitle.packEnd(lblRootIndicator, false, false, 0);
+        lblRootIndicator.setVisible(false);
+        bTitle.insertChildAfter(lblRootIndicator, mbTitle);
 
         //SSH Indicator label
         lblSSHIndicator = new Label("");
         lblSSHIndicator.setMarkup("<span weight=\"bold\">" ~ _("ssh") ~ "</span>");
         lblSSHIndicator.setTooltipText(_("Connected via SSH"));
-        lblSSHIndicator.setNoShowAll(true);
-        bTitle.packEnd(lblSSHIndicator, false, false, 0);
+        lblSSHIndicator.setVisible(false);
+        bTitle.insertChildAfter(lblSSHIndicator, mbTitle);
 
         //Terminal Bell Spinner
         spBell = new Spinner();
-        spBell.setNoShowAll(true);
+        spBell.setVisible(false);
         spBell.setTooltipText(_("Terminal bell"));
         spBell.getStyleContext().addClass("ttyx-bell");
-        bTitle.packEnd(spBell, false, false, 0);
+        bTitle.insertChildAfter(spBell, mbTitle);
 
         // GTK4: GtkEventBox is gone; the title Box takes the gesture directly.
         // setButton(0) means any button, so middle-click is distinguished via
@@ -685,9 +696,11 @@ private:
             // Check to see if something other then terminal has focus
             Window window = cast(Window) getRoot();
             if (window !is null) {
-                Entry entry = cast(Entry) window.getFocus();
-                if (entry !is null) {
-                    entry.pasteClipboard();
+                // GTK4: focus lands on an Entry's inner GtkText, so test for
+                // Editable rather than Entry, and paste through its action.
+                Widget focus = window.getFocus();
+                if (focus !is null && cast(Editable) focus !is null) {
+                    focus.activateAction("clipboard.paste", null);
                     return;
                 }
             }
@@ -702,9 +715,11 @@ private:
             // Check to see if something other then terminal has focus
             Window window = cast(Window) getRoot();
             if (window !is null) {
-                Entry entry = cast(Entry) window.getFocus();
-                if (entry !is null) {
-                    entry.pasteClipboard();
+                // GTK4: focus lands on an Entry's inner GtkText, so test for
+                // Editable rather than Entry, and paste through its action.
+                Widget focus = window.getFocus();
+                if (focus !is null && cast(Editable) focus !is null) {
+                    focus.activateAction("clipboard.paste", null);
                     return;
                 }
             }
@@ -775,19 +790,20 @@ private:
         //Override terminal title
         registerActionWithSettings(group, ACTION_PREFIX, ACTION_LAYOUT, gsShortcuts, delegate(GVariant value, SimpleAction sa) {
             LayoutDialog dialog = new LayoutDialog(cast(Window) getRoot());
-            scope (exit) {
-                dialog.destroy();
-            }
             dialog.badge = _overrideBadge.length == 0 ? gsProfile.getString(SETTINGS_PROFILE_BADGE_TEXT_KEY) : _overrideBadge;
             dialog.title = _overrideTitle.length == 0 ? gsProfile.getString(SETTINGS_PROFILE_TITLE_KEY) : _overrideTitle;
             dialog.command = _overrideCommand;
-            dialog.showAll();
-            if (dialog.run() == ResponseType.Ok) {
-                _overrideTitle = dialog.title;
-                _overrideBadge = dialog.badge;
-                _overrideCommand = dialog.command;
-                updateDisplayText();
-            }
+            // GTK4: no Dialog.run(); the result arrives in the response signal.
+            dialog.connectResponse(delegate(int response, Dialog d) {
+                if (response == ResponseType.Ok) {
+                    _overrideTitle = dialog.title;
+                    _overrideBadge = dialog.badge;
+                    _overrideCommand = dialog.command;
+                    updateDisplayText();
+                }
+                dialog.destroy();
+            });
+            dialog.present();
         });
 
         //Maximize Terminal
@@ -798,7 +814,11 @@ private:
             string name;
             if (processQuery.isProcessRunning(gpid, name)) {
                 ProcessInformation pi = ProcessInformation(ProcessInfoSource.TERMINAL, (name.length > 0? name: getDisplayText("")), uuid, []);
-                if (!promptCanCloseProcesses(gsSettings, cast(Window)getRoot(), pi)) return;
+                // GTK4: the prompt is asynchronous; close from the callback.
+                promptCanCloseProcesses(gsSettings, cast(Window)getRoot(), pi, delegate(bool canClose) {
+                    if (canClose) notifyTerminalClose();
+                });
+                return;
             }
             notifyTerminalClose();
         });
@@ -881,18 +901,20 @@ private:
                 dlclose(secretLib);
                 tracef("Library %s was loaded", LIBRARY_SECRET);
                 PasswordManagerDialog pdm = new PasswordManagerDialog(cast(Window)this.getRoot());
-                scope(exit) {pdm.destroy();}
-                pdm.showAll();
-                if (pdm.run() == ResponseType.Apply) {
-                    string password = pdm.password;
-                    vte.feedChild(cast(ubyte[]) password.dup);
-                    static if (!USE_COMMIT_SYNCHRONIZATION) {
-                        if (isSynchronizedInput()) {
-                            SyncInputEvent se = SyncTextEvent(_terminalUUID, password);
-                            onSyncInput.emit(this, se);
+                pdm.connectResponse(delegate(int response, Dialog d) {
+                    if (response == ResponseType.Apply) {
+                        string password = pdm.password;
+                        vte.feedChild(cast(ubyte[]) password.dup);
+                        static if (!USE_COMMIT_SYNCHRONIZATION) {
+                            if (isSynchronizedInput()) {
+                                SyncInputEvent se = SyncTextEvent(_terminalUUID, password);
+                                onSyncInput.emit(this, se);
+                            }
                         }
                     }
-                }
+                    pdm.destroy();
+                });
+                pdm.present();
             } else {
                 showErrorDialog(cast(Window)getRoot(), format(_("The library %s could not be loaded, password functionality is unavailable."), LIBRARY_SECRET), _("Library Not Loaded"));
             }
@@ -960,7 +982,7 @@ private:
         // Toggle margin
         registerActionWithSettings(group, ACTION_PREFIX, ACTION_TOGGLE_MARGIN, gsShortcuts, delegate(GVariant value, SimpleAction sa) {
             renderer.toggleMargin();
-            vte.queueDraw();
+            redrawTerminal();
         }, null, null);
 
         //Insert Terminal Actions
@@ -975,15 +997,14 @@ private:
 
         createPopoverMenuItems(model);
 
-        Popover pm = new Popover(parent);
+        PopoverMenu pm = PopoverMenu.newFromModel(model);
         // Force VTE to redraw on showing/hiding of popover if dimUnfocused is active
         pm.connectMap(delegate(Widget w) {
-           if (renderer.dimPercent > 0) vte.queueDraw();
+           if (renderer.dimPercent > 0) redrawTerminal();
         });
         pm.connectUnmap(delegate(Widget w) {
-           if (renderer.dimPercent > 0) vte.queueDraw();
+           if (renderer.dimPercent > 0) redrawTerminal();
         });
-        pm.bindModel(model, null);
         return pm;
     }
 
@@ -1184,9 +1205,8 @@ private:
             vteHandlers ~= vte.addOnTerminalScreenChanged(&onVTEScreenChanged);
         }
 
-        vteHandlers ~= vte.connectSizeAllocate(delegate() {
-            updateDisplayText();
-        }, Yes.After);
+        // GTK4: no size-allocate signal; terminal resizes are observed by the
+        // DrawingArea laid over the terminal (vteDecor, set up with the overlay).
         // GTK4: enter-notify-event -> EventControllerMotion.enter.
         EventControllerMotion vteMotion = new EventControllerMotion();
         vteMotion.connectEnter(delegate void(double x, double y, EventControllerMotion c) {
@@ -1224,6 +1244,13 @@ private:
         });
         vteKeys.connectKeyPressed(delegate bool(uint keyval, uint keycode, ModifierType state, EventControllerKey c) {
             if (vte is null) return false;
+
+            // GTK4: the popup-menu keybinding signal is gone; handle its
+            // triggers here instead.
+            if (keyval == KEY_Menu || (keyval == KEY_F10 && (state & ModifierType.ShiftMask))) {
+                showContextPopover();
+                return true;
+            }
 
             if (keyval == KEY_Return && checkVTEFeature(TerminalFeature.EVENT_SCREEN_CHANGED) && currentScreen == TerminalScreen.NORMAL) {
                 glong row, column;
@@ -1282,21 +1309,21 @@ private:
         // Used to track changes to scroll buffer to clear
         // prompt positions if user cleared VTE buffer, i.e. "clear" command.
         // Used for terminal-next-prompt and terminal-previous-prompt actions
-        if (checkVTEFeature(TerminalFeature.EVENT_SCREEN_CHANGED)) {
-            vteHandlers ~= vte.connectTextDeleted(delegate(VTE terminal) {
-                checkPromptBuffer();
-            });
-        }
+        // GTK4/VTE 3.91: the patched text-deleted signal is not in the vte3
+        // binding, so a cleared buffer no longer resets prompt positions here.
 
-        pmContext = new Popover(vte);
-        pmContext.setModal(true);
+        // GTK4: popovers are parented explicitly, autohide replaces modal, and
+        // menu models go through PopoverMenu (no Popover.bindModel).
+        pmContext = PopoverMenu.newFromModel(null);
+        pmContext.setParent(vte);
+        pmContext.setAutohide(true);
         pmContext.setPosition(PositionType.Bottom);
         // Force VTE to redraw on showing/hiding of popover if dimUnfocused is active
         pmContext.connectMap(delegate(Widget w) {
-           if (renderer.dimPercent > 0) vte.queueDraw();
+           if (renderer.dimPercent > 0) redrawTerminal();
         });
         pmContext.connectUnmap(delegate(Widget w) {
-           if (renderer.dimPercent > 0) vte.queueDraw();
+           if (renderer.dimPercent > 0) redrawTerminal();
         });
         pmContext.connectClosed(delegate(Popover p) {
             // See #305 for more info on why this is here
@@ -1307,10 +1334,8 @@ private:
             saPaste.setEnabled(true);
         });
 
-        vteHandlers ~= vte.connectPopupMenu(delegate bool(Widget w) {
-            showContextPopover();
-            return true;
-        });
+        // GTK4: no popup-menu keybinding signal; its triggers (Menu key,
+        // Shift+F10) are handled in the key controller above.
 
         if (_useOverlayScrollbar == 2) {
             if ( checkVersion(3, GTK_SCROLLEDWINDOW_VERSION, 0).length != 0 || environment.get("GTK_OVERLAY_SCROLLING","1") == "0") _useOverlayScrollbar = 0;
@@ -1319,21 +1344,33 @@ private:
         }
 
         terminalOverlay = new Overlay();
+        // GTK4 removed size-allocate and draw. An overlay child is allocated
+        // exactly the terminal's size and DrawingArea keeps a resize signal, so
+        // this transparent, non-targetable layer stands in for both: it reports
+        // terminal resizes (title tokens such as columns/rows) and is where the
+        // renderer's badge and drag highlight are drawn (WP4).
+        vteDecor = new DrawingArea();
+        vteDecor.setCanTarget(false);
+        vteDecor.setCanFocus(false);
+        vteDecor.connectResize(delegate(int width, int height, DrawingArea da) {
+            updateDisplayText();
+        });
         if (useOverlayScrollbar) {
             // giD binds no ScrolledWindow(child) convenience ctor.
             sw = new ScrolledWindow();
-            sw.add(vte);
+            sw.setChild(vte);
             sw.getStyleContext.addClass("ttyx-terminal-scrolledwindow");
             sw.setPropagateNaturalHeight(true);
             sw.setPropagateNaturalWidth(true);
             sw.getVadjustment().connectValueChanged(&updateNewOutputIndicator);
-            terminalOverlay.add(sw);
+            terminalOverlay.setChild(sw);
         } else {
-            terminalOverlay.add(vte);
+            terminalOverlay.setChild(vte);
         }
+        terminalOverlay.addOverlay(vteDecor);
 
         Box terminalBox = new Box(Orientation.Horizontal, 0);
-        terminalBox.add(terminalOverlay);
+        terminalBox.append(terminalOverlay);
 
         // See https://bugzilla.gnome.org/show_bug.cgi?id=760718 for why we use
         // a Scrollbar instead of a ScrolledWindow. It's pity considering the
@@ -1342,36 +1379,11 @@ private:
             sb = new Scrollbar(Orientation.Vertical, vte.getVadjustment());
             sb.getStyleContext().addClass("ttyx-terminal-scrollbar");
             sb.getAdjustment().connectValueChanged(&updateNewOutputIndicator);
-            terminalBox.add(sb);
+            terminalBox.append(sb);
 
-            //Draw a transparent background to override Window draw
-            //to support transparent terminal scrollbars without
-            //impacting other chrome. If no scrollbar CSSProvider is loaded
-            //then this drawing does not happen
-            terminalBox.connectDraw(delegate bool(Context cr, Widget w) {
-                if (sbProvider !is null) {
-                    cr.save();
-                    // Paint Transparent
-                    cr.setSourceRgba(0, 0, 0, 0);
-                    cr.setOperator(Operator.Source);
-
-                    // Switched to just painting the scrollbar area, that 1 pixel clip that was required was giving
-                    // me the twitches
-                    int x, y;
-                    sb.translateCoordinates(w, 0, 0, x, y);
-                    cr.rectangle(to!double(x), to!double(y), to!double(x + sb.getAllocatedWidth()), to!double(y + sb.getAllocatedHeight()));
-
-                    // Original implementation that painted whole box transparent
-                    // Fix problem with VTE not painting top line by clipping one pixel lower
-                    // otherwise you get a one pixel transparent line :(
-                    //cr.rectangle(0.0, 1.0, to!double(w.getAllocatedWidth()), to!double(w.getAllocatedHeight()));
-
-                    cr.clip();
-                    cr.paint();
-                    cr.restore();
-                }
-                return false;
-            });
+            // GTK4: no draw signal — and none needed. Backgrounds are CSS-driven
+            // and a Box paints nothing of its own, so the scrollbar area is
+            // already transparent (the GTK3 hack painted over the window bg).
         }
 
         Box box = new Box(Orientation.Vertical, 0);
@@ -1379,8 +1391,8 @@ private:
         rFind.onSearchEntryFocusIn.connect(&terminalWidgetFocusIn);
         rFind.onSearchEntryFocusOut.connect(&terminalWidgetFocusOut);
 
-        box.add(rFind);
-        box.add(terminalBox);
+        box.append(rFind);
+        box.append(terminalBox);
 
         return box;
     }
@@ -1469,7 +1481,7 @@ private:
         if (badge != _cachedBadge) {
             _cachedBadge = badge;
             renderer.setBadgeText(badge);
-            vte.queueDraw();
+            redrawTerminal();
         }
     }
 
@@ -1496,12 +1508,10 @@ private:
         }
         if (show) {
             trace("Showing titlebar");
-            bTitle.setNoShowAll(false);
-            bTitle.showAll();
+            bTitle.setVisible(true);
         } else {
             trace("Hiding titlebar");
-            bTitle.setNoShowAll(true);
-            bTitle.hide();
+            bTitle.setVisible(false);
         }
         saMaximize.setEnabled(!_isSingleTerminal);
     }
@@ -1570,7 +1580,7 @@ private:
             icon = "window-maximize-symbolic";
             btnMaximize.setTooltipText(_("Maximize"));
         }
-        btnMaximize.setImage(Image.newFromIconName(icon));
+        btnMaximize.setIconName(icon);
     }
 
     /**
@@ -1603,23 +1613,25 @@ private:
      */
     void selectBookmark() {
         BookmarkChooser bc = new BookmarkChooser(cast(Window)getRoot(), BMSelectionMode.LEAF);
-        scope(exit) {bc.destroy();}
-        bc.showAll();
-        if (bc.run() == ResponseType.Ok && bc.bookmark !is null) {
-            string text = bc.bookmark.terminalCommand;
-            if (gsSettings.getBoolean(SETTINGS_BOOKMARK_INCLUDE_RETURN_KEY)) {
-                trace("Add new line");
-                text ~= '\n';
-            }
-            vte.feedChild(cast(ubyte[]) text.dup);
-            static if (!USE_COMMIT_SYNCHRONIZATION) {
-                if (isSynchronizedInput()) {
-                    SyncInputEvent se = SyncTextEvent(_terminalUUID, text);
-                    onSyncInput.emit(this, se);
+        bc.connectResponse(delegate(int response, Dialog d) {
+            if (response == ResponseType.Ok && bc.bookmark !is null) {
+                string text = bc.bookmark.terminalCommand;
+                if (gsSettings.getBoolean(SETTINGS_BOOKMARK_INCLUDE_RETURN_KEY)) {
+                    trace("Add new line");
+                    text ~= '\n';
                 }
+                vte.feedChild(cast(ubyte[]) text.dup);
+                static if (!USE_COMMIT_SYNCHRONIZATION) {
+                    if (isSynchronizedInput()) {
+                        SyncInputEvent se = SyncTextEvent(_terminalUUID, text);
+                        onSyncInput.emit(this, se);
+                    }
+                }
+                vte.grabFocus();
             }
-            vte.grabFocus();
-        }
+            bc.destroy();
+        });
+        bc.present();
     }
 
     /**
@@ -1639,13 +1651,15 @@ private:
             bm = pb;
         }
         BookmarkEditor be = new BookmarkEditor(cast(Window)getRoot(), BookmarkEditorMode.ADD, bm, true);
-        scope(exit) {be.destroy();}
-        be.showAll();
-        if (be.run() == ResponseType.Ok) {
-            FolderBookmark fb = be.folder;
-            bm = be.create();
-            bmMgr.add(fb, bm);
-        }
+        be.connectResponse(delegate(int response, Dialog d) {
+            if (response == ResponseType.Ok) {
+                FolderBookmark fb = be.folder;
+                bm = be.create();
+                bmMgr.add(fb, bm);
+            }
+            be.destroy();
+        });
+        be.present();
     }
 
     /* Clipboard operations (paste, advancedPaste, copyToClipboard, isPasteUnsafe)
@@ -1857,8 +1871,9 @@ private:
                 updateTitle();
                 break;
             case TriggerAction.PLAY_BELL:
-                if (vte.getWindow() !is null) {
-                    vte.getWindow().beep();
+                // GTK4: GdkWindow -> GdkSurface, reached through GtkNative.
+                if (vte.getNative() !is null && vte.getNative().getSurface() !is null) {
+                    vte.getNative().getSurface().beep();
                 }
                 break;
             case TriggerAction.SEND_TEXT:
@@ -1889,7 +1904,7 @@ private:
         // GTK4: no direction enum; deltas are signed, "up" is negative dy.
         // Modifiers come from the controller, not the event.
         ModifierType state = c.getCurrentEventState();
-        if (vte !is null && (state & ModifierType.ControlMask) && !(state & ModifierType.ShiftMask) && !(state & ModifierType.Mod1Mask)) {
+        if (vte !is null && (state & ModifierType.ControlMask) && !(state & ModifierType.ShiftMask) && !(state & ModifierType.AltMask)) {
             if (dy < 0) {
                 zoomIn();
             } else if (dy > 0) {
@@ -1922,14 +1937,13 @@ private:
             TerminalInfoBar ibRelaunch = new TerminalInfoBar();
             ibRelaunch.connectResponse(delegate(int response, InfoBar ib) {
                 if (response == ResponseType.Ok) {
-                    ibRelaunch.destroy();
+                    terminalOverlay.removeOverlay(ibRelaunch);
                     tracef("Re-launching with %s", _overrideCommand);
                     spawnTerminalProcess(gst.initialCWD, _overrideCommand);
                 }
             });
             ibRelaunch.setStatus(status);
             terminalOverlay.addOverlay(ibRelaunch);
-            ibRelaunch.showAll();
             return;
         default:
             return;
@@ -2009,7 +2023,7 @@ private:
             createPopoverMenuItems(mmContext);
         }
 
-        pmContext.bindModel(mmContext, null);
+        pmContext.setMenuModel(mmContext);
     }
 
     public void checkHyperlinkMatch(double x, double y) {
@@ -2107,7 +2121,7 @@ private:
                 trace("Opening match");
                 openURI(match);
                 g.setState(EventSequenceState.Claimed);
-            } else if (state & ModifierType.Mod1Mask) {
+            } else if (state & ModifierType.AltMask) {
                 // TODO(DnD): GTK3 began a drag here with gtk_drag_begin. GTK4's
                 // GtkDragSource is itself a gesture-based controller and must
                 // be installed on the widget up front rather than started from
@@ -2369,12 +2383,12 @@ private:
             }
         });
 
-        prefRegistry.register([SETTINGS_PROFILE_BADGE_POSITION_KEY], { queueDraw(); });
+        prefRegistry.register([SETTINGS_PROFILE_BADGE_POSITION_KEY], { redrawTerminal(); });
 
         prefRegistry.register([SETTINGS_PROFILE_MARGIN_KEY], {
             if (vte !is null && isVTEBackgroundDrawEnabled()) {
                 renderer.setMargin(gsProfile.getInt(SETTINGS_PROFILE_MARGIN_KEY));
-                vte.queueDraw();
+                redrawTerminal();
             }
         });
 
@@ -2484,7 +2498,6 @@ private:
                     sw.setPolicy(PolicyType.Never, PolicyType.Never);
                 }
             } else {
-                sb.setNoShowAll(!gsProfile.getBoolean(SETTINGS_PROFILE_SHOW_SCROLLBAR_KEY));
                 sb.setVisible(gsProfile.getBoolean(SETTINGS_PROFILE_SHOW_SCROLLBAR_KEY));
             }
         });
@@ -2562,7 +2575,7 @@ private:
             foreach (i, regex; compiledVRegex) {
                 int id = vte.matchAddRegex(cast(VRegex) regex, 0);
                 regexTag[id] = URL_REGEX_PATTERNS[i];
-                vte.matchSetCursorType(id, CursorType.Hand2);
+                vte.matchSetCursorName(id, "pointer"); // GTK4: GdkCursorType is gone; cursors are named
             }
         } catch (ErrorWrap e) {
             errorf(_("Unexpected error occurred when adding link regex: %s"), e.msg);
@@ -2605,7 +2618,7 @@ private:
                     if (compiledRegex !is null) {
                         int id = vte.matchAddRegex(compiledRegex, 0);
                         regexTag[id] = regex;
-                        vte.matchSetCursorType(id, CursorType.Hand2);
+                        vte.matchSetCursorName(id, "pointer"); // GTK4: GdkCursorType is gone; cursors are named
                         tracef("Added regex: %s with tag %d",value[0], id);
                     }
                 } catch (ErrorWrap ge) {
@@ -2636,13 +2649,12 @@ private:
         TerminalInfoBar ibRelaunch = new TerminalInfoBar();
         ibRelaunch.connectResponse(delegate(int response, InfoBar ib) {
             if (response == ResponseType.Ok) {
-                ibRelaunch.destroy();
+                terminalOverlay.removeOverlay(ibRelaunch);
                 spawnTerminalProcess(gst.initialCWD, _overrideCommand);
             }
         });
         ibRelaunch.setMessage(message);
         terminalOverlay.addOverlay(ibRelaunch);
-        ibRelaunch.showAll();
     }
 
     void getHostnameAndDirectory(out string hostname, out string directory) {
@@ -2956,10 +2968,14 @@ private:
         // now VTE paints the bg in its default handler, which would erase
         // anything we drew first.
         //TODO - Figure out why this is causing issues, see #545
-        if (isVTEBackgroundDrawEnabled()) {
-            vte.connectDraw(&renderer.onDrawBadge, Yes.After);
-        }
-        vte.connectDraw(&renderer.onDrawDragHighlight, Yes.After);
+        // GTK4: no draw signal on VTE; both are painted by the DrawingArea laid
+        // over the terminal (vteDecor), which is allocated the terminal's size.
+        bool drawBadge = isVTEBackgroundDrawEnabled();
+        vteDecor.setDrawFunc(delegate(DrawingArea da, Context cr, int width, int height) {
+            if (vte is null) return;
+            if (drawBadge) renderer.onDrawBadge(cr, vte);
+            renderer.onDrawDragHighlight(cr, vte);
+        });
 
         trace("Drag and drop completed");
     }
@@ -3030,7 +3046,7 @@ private:
         DragQuadrant dq = getDragQuadrant(cast(int) x, cast(int) y, vte);
 
         setDragInfo(DragInfo(true, dq));
-        vte.queueDraw();
+        redrawTerminal();
         //Uncomment this if debugging motion otherwise generates annoying amount of trace noise
         tracef("Drag motion: %s %d, %d, %d", _terminalUUID, cast(int) x, cast(int) y, dq);
 
@@ -3040,7 +3056,7 @@ private:
     void onVTEDragLeave(Drop drop, DropTargetAsync target) {
         trace("Drag Leave " ~ _terminalUUID);
         setDragInfo(DragInfo(false, DragQuadrant.LEFT));
-        vte.queueDraw();
+        redrawTerminal();
     }
 
     /**
@@ -3198,8 +3214,6 @@ private:
             fcd.setAction(FileChooserAction.Save);
             fcd.addButton(_("Save"), ResponseType.Ok);
             fcd.addButton(_("Cancel"), ResponseType.Cancel);
-            scope (exit)
-                fcd.destroy();
 
             FileFilter ff = new FileFilter();
             ff.addPattern("*.txt");
@@ -3210,20 +3224,30 @@ private:
             ff.setName(_("All Files"));
             fcd.addFilter(ff);
 
-            fcd.setDoOverwriteConfirmation(true);
             fcd.setDefaultResponse(ResponseType.Ok);
             if (outputFilename.length == 0) {
             } else {
                 fcd.setCurrentName("output.txt");
             }
 
-            if (fcd.run() == ResponseType.Ok) {
-                outputFilename = fcd.getFilename();
-            } else {
-                return;
-            }
+            // GTK4: no Dialog.run(); write once the response arrives. The
+            // chooser confirms overwrites itself.
+            fcd.connectResponse(delegate(int response, Dialog d) {
+                if (response == ResponseType.Ok && fcd.getFile() !is null) {
+                    outputFilename = fcd.getFile().getPath();
+                    writeTerminalOutput();
+                }
+                fcd.destroy();
+            });
+            fcd.present();
+            return;
         }
-        //Do work here
+        writeTerminalOutput();
+    }
+
+    /// Writes the terminal buffer to outputFilename (set by saveTerminalOutput).
+    void writeTerminalOutput() {
+        if (vte is null || outputFilename.length == 0) return;
         GFile file = parseName(outputFilename);
         OutputStream stream = file.replace(null, false, FileCreateFlags.None, null);
         scope (exit) {
@@ -3319,7 +3343,7 @@ public:
      * Creates the TerminalPane using the specified profile
      */
     this(string profileUUID, string requestedUUID) {
-        super();
+        super(Orientation.Vertical, 0);
         connectDestroy(delegate(Widget w) {
             //trace("Terminal destroyed");
             finalizeTerminal();
@@ -3388,12 +3412,13 @@ public:
 
     /**
      * Ask the user to confirm running a command embedded in a restored
-     * session before it executes. Returns true to run it, false to open a
-     * normal shell instead. The command is shown as plain secondary text (not
+     * session before it executes. Calls then(true) to run it, then(false) to
+     * open a normal shell instead — GTK4 dialogs are asynchronous, so the
+     * caller continues in the callback. The command is shown as plain text (not
      * markup) so it cannot inject Pango markup, and the safe choice (Open
      * Shell) is the default response.
      */
-    bool confirmSessionCommand(string command) {
+    void confirmSessionCommand(string command, void delegate(bool) then) {
         Window parent = cast(Window) getRoot();
         // GtkD's MessageDialog(parent, flags, type, buttons, msg, null) ctor
         // wraps non-introspectable varargs; construct raw with the
@@ -3401,9 +3426,6 @@ public:
         // and set the rest via properties (advpaste pattern).
         MessageDialog dialog = new MessageDialog(
             cast(void*) g_object_new(MessageDialog._getGType(), cast(const(char)*) "use-header-bar", 1, cast(const(char)*) null), No.Take);
-        scope (exit) {
-            dialog.destroy();
-        }
         dialog.setModal(true);
         dialog.messageType = MessageType.Question;
         dialog.text = _("This session wants to run a command:");
@@ -3417,14 +3439,18 @@ public:
         Label lblCmd = new Label(command);
         lblCmd.setHalign(Align.Start);
         lblCmd.setSelectable(true);
-        lblCmd.setLineWrap(true);
-        (cast(Box) dialog.getMessageArea()).add(lblCmd);
-        lblCmd.showAll();
+        lblCmd.setWrap(true);
+        (cast(Box) dialog.getMessageArea()).append(lblCmd);
 
         dialog.addButton(_("Open Shell"), ResponseType.Cancel);
         dialog.addButton(_("Run Command"), ResponseType.Ok);
         dialog.setDefaultResponse(ResponseType.Cancel);
-        return dialog.run() == ResponseType.Ok;
+        // GTK4: no Dialog.run(); the answer goes through the continuation.
+        dialog.connectResponse(delegate(int response, Dialog d) {
+            dialog.destroy();
+            then(response == ResponseType.Ok);
+        });
+        dialog.present();
     }
 
     /**
@@ -3444,11 +3470,26 @@ public:
         // commands are trusted and never prompt.
         if (_overrideCommandNeedsConfirm) {
             _overrideCommandNeedsConfirm = false;
-            if (!confirmSessionCommand(_overrideCommand)) {
-                trace("User declined session command; opening a normal shell instead");
-                _overrideCommand = null;
-            }
+            // GTK4: the confirmation dialog is asynchronous; spawn once answered.
+            confirmSessionCommand(_overrideCommand, delegate(bool run) {
+                if (!run) {
+                    trace("User declined session command; opening a normal shell instead");
+                    _overrideCommand = null;
+                }
+                startTerminalProcess(initialPath, firstRun);
+            });
+            return;
         }
+        startTerminalProcess(initialPath, firstRun);
+    }
+
+    /**
+     * Second half of initTerminal: spawns the child process and applies the
+     * first-run sizing. Split out because the session-command confirmation
+     * is asynchronous under GTK4 and may complete after the terminal is gone.
+     */
+    void startTerminalProcess(string initialPath, bool firstRun) {
+        if (vte is null) return;
         spawnTerminalProcess(initialPath, _overrideCommand);
         if (firstRun) {
             int width = gsProfile.getInt(SETTINGS_PROFILE_SIZE_COLUMNS_KEY);
@@ -3468,6 +3509,15 @@ public:
      * Finalize the terminal and cleanup any references, this can be
      * called multiple times with no ill effect.
      */
+    /**
+     * GTK4 caches each widget's render node, so a redraw queued on the VTE
+     * does not repaint the decor layer above it; queue both together.
+     */
+    void redrawTerminal() {
+        if (vte !is null) redrawTerminal();
+        if (vteDecor !is null) vteDecor.queueDraw();
+    }
+
     void finalizeTerminal() {
         // Disconnect all the VTE handlers, check for null since this
         // method can be called multiple times
@@ -3478,6 +3528,12 @@ public:
                     handler = 0;
                 }
             }
+        }
+        // GTK4: the context popover is parented to the VTE; unparent it before
+        // the VTE goes, or GTK warns about a widget finalized with children.
+        if (pmContext !is null) {
+            pmContext.unparent();
+            pmContext = null;
         }
         if (tilix.processMonitor) {
             ProcessMonitor.instance.onChildProcess.disconnect(&childProcessEvent);
@@ -3498,7 +3554,9 @@ public:
         if (rFind !is null) {
             rFind.onSearchEntryFocusIn.disconnect(&terminalWidgetFocusIn);
             rFind.onSearchEntryFocusOut.disconnect(&terminalWidgetFocusOut);
-            rFind.destroy();
+            // GTK4: no gtk_widget_destroy; detach it from its Box instead.
+            Box rFindParent = cast(Box) rFind.getParent();
+            if (rFindParent !is null) rFindParent.remove(rFind);
             rFind = null;
         }
 
@@ -3916,7 +3974,8 @@ public:
         super();
         addButton(_("Relaunch"), ResponseType.Ok);
         lblPrompt = new Label("");
-        getContentArea().packStart(lblPrompt, true, true, 0);
+        lblPrompt.setHexpand(true);
+        addChild(lblPrompt);
         lblPrompt.setHalign(Align.Start);
         setHalign(Align.Fill);
         setValign(Align.Start);

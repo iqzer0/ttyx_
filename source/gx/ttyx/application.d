@@ -73,6 +73,7 @@ import gdk.display : Display;
 
 import gdkpixbuf.pixbuf : Pixbuf;
 
+import gio.action : Action;
 import gio.action_group : ActionGroup;
 import gio.application : GApplication = Application;
 import gio.application_command_line : ApplicationCommandLine;
@@ -260,7 +261,7 @@ private:
                 if (window is null) return;
                 window.setDestroyWithParent(true);
                 window.setModal(true);
-                window.showAll();
+                window.present();
             });
         }
 
@@ -280,7 +281,7 @@ private:
 
     void onCreateNewWindow() {
         AppWindow window = getActiveAppWindow();
-        if (window !is null && window.hasToplevelFocus()) {
+        if (window !is null && window.isActive()) {
             ITerminal terminal = window.getActiveTerminal();
             if (terminal !is null) {
                 cp.workingDir = terminal.currentLocalDirectory();
@@ -330,13 +331,8 @@ private:
             }
             addCreditSection(_("Credits"), localizedCredits);
 
-            connectResponse(delegate(int responseId, Dialog sender) {
-                if (responseId == ResponseType.Cancel || responseId == ResponseType.DeleteEvent)
-                    sender.hideOnDelete(); // Needed to make the window closable (and hide instead of be deleted).
-            });
-            connectClose(delegate(Dialog dlg) {
-                dlg.destroy();
-            });
+            // GTK4: AboutDialog is a plain Window, not a Dialog — no response or
+            // close signals; closing it destroys it like any other window.
             present();
         }
     }
@@ -348,15 +344,23 @@ private:
         // it out.
         //window.realize();
         window.initialize();
-        window.showAll();
+        window.present();
     }
 
     void quitTilix() {
         ProcessInformation pi = getProcessesInformation();
         if (pi.children.length > 0) {
-            if (!promptCanCloseProcesses(gsGeneral, getActiveWindow(), pi)) return;
+            // GTK4: the prompt is asynchronous; finish quitting from the callback.
+            promptCanCloseProcesses(gsGeneral, getActiveWindow(), pi, delegate(bool canClose) {
+                if (canClose) closeAllWindows();
+            });
+            return;
         }
+        closeAllWindows();
+    }
 
+    /// Second half of quitTilix: close the preferences and every window without prompting.
+    void closeAllWindows() {
         if (preferenceDialog !is null) {
             preferenceDialog.close();
         }
@@ -409,7 +413,7 @@ private:
             // is what signals a remote `ttyx -a ...` invocation to exit. giD's
             // wrapper holds its ref until GC, leaving the remote hanging, so
             // drop it eagerly (wrapper dtor → g_object_unref).
-            acl.destroy();
+            destroy(acl);
         }
         cp = CommandParameters(acl);
         if (cp.exit) {
@@ -429,7 +433,7 @@ private:
             tracef("Executing action %s with working-dir %s", cp.action, cp.workingDir);
             Widget widget = executeAction(terminalUUID, cp.action);
             if (cp.focusWindow && widget !is null) {
-                Window window = cast(Window) widget.getToplevel();
+                Window window = cast(Window) widget.getRoot();
                 if (window !is null) {
                     trace("Focusing window after action");
                     activateWindow(window);
@@ -650,16 +654,9 @@ private:
                 clearBookmarkIconCache();
                 break;
             case SETTINGS_MENU_ACCELERATOR_KEY:
-                if (!defaultMenuAccelCaptured) {
-                    defaultMenuAccel = Settings.getDefault().gtkMenuBarAccel;
-                    defaultMenuAccelCaptured = true;
-                    trace("Default menu accelerator is " ~ defaultMenuAccel);
-                }
-                if (!gsGeneral.getBoolean(SETTINGS_MENU_ACCELERATOR_KEY)) {
-                    Settings.getDefault().gtkMenuBarAccel = "";
-                } else {
-                    Settings.getDefault().gtkMenuBarAccel = defaultMenuAccel;
-                }
+                // GTK4 has no gtk-menu-bar-accel setting: F10 no longer opens a
+                // menubar, so there is nothing to disable. The preference is
+                // kept for settings compatibility but has no effect.
                 break;
             case SETTINGS_ACCELERATORS_ENABLED:
                 Settings.getDefault().gtkEnableAccels = gsGeneral.getBoolean(SETTINGS_ACCELERATORS_ENABLED);
@@ -690,14 +687,11 @@ private:
         getActionNameFromKey(action, prefix, actionName);
         Widget widget = findWidgetForUUID(terminalUUID);
         Widget result = widget;
-        while (widget !is null) {
-            ActionGroup group = widget.getActionGroup(prefix);
-            if (group !is null && group.hasAction(actionName)) {
-                tracef("Activating action for prefix=%s and action=%s", prefix, actionName);
-                group.activateAction(actionName, null);
-                return result;
-            }
-            widget = widget.getParent();
+        // GTK4: no per-widget action-group lookup; activateAction walks the
+        // widget's ancestors itself and reports whether anything handled it.
+        if (widget !is null && widget.activateAction(prefix ~ "." ~ actionName, null)) {
+            tracef("Activated action for prefix=%s and action=%s", prefix, actionName);
+            return result;
         }
         //Check if the action belongs to the app
         if (prefix == ACTION_PREFIX_APP) {
@@ -878,7 +872,6 @@ public:
             trace("Remove preference window reference");
             preferenceDialog = null;
         });
-        preferenceDialog.showAll();
         preferenceDialog.present;
     }
 
@@ -894,6 +887,18 @@ public:
 
     bool testVTEConfig() {
         return !warnedVTEConfigIssue && gsGeneral.getBoolean(SETTINGS_WARN_VTE_CONFIG_ISSUE_KEY);
+    }
+
+    /**
+     * GTK4 dropped gtk_application_add/remove_accelerator; both are expressed
+     * through set_accels_for_action on the detailed (parameterised) name.
+     */
+    void addAccelerator(string accelerator, string actionName, GVariant parameter) {
+        setAccelsForAction(Action.printDetailedName(actionName, parameter), [accelerator]);
+    }
+
+    void removeAccelerator(string actionName, GVariant parameter) {
+        setAccelsForAction(Action.printDetailedName(actionName, parameter), []);
     }
 
     /**
@@ -971,29 +976,28 @@ public:
             // no `with (dlg)` here: giD's Window.title property would shadow
             // the local title variable inside the with-block
             MessageDialog dlg = MessageDialog.builder().build();
-            scope (exit) {
-                dlg.destroy();
-            }
             dlg.messageType = MessageType.Warning;
             dlg.addButton(_("_OK"), ResponseType.Ok);
             dlg.setModal(true);
             dlg.setTransientFor(getActiveWindow());
             dlg.setMarkup(title);
             Box messageArea = cast(Box) dlg.getMessageArea();
-            messageArea.setMarginLeft(0);
-            messageArea.setMarginRight(0);
-            messageArea.add(new Label(msg));
+            messageArea.setMarginStart(0);
+            messageArea.setMarginEnd(0);
+            messageArea.append(new Label(msg));
             // Was gnunn1.github.io/tilix-web — upstream Tilix's site, which
             // this fork does not control. Point at our own copy of the page.
-            messageArea.add(new LinkButton("https://github.com/iqzer0/ttyx_/blob/master/docs/manual/vteconfig.md"));
+            messageArea.append(new LinkButton("https://github.com/iqzer0/ttyx_/blob/master/docs/manual/vteconfig.md"));
             CheckButton cb = CheckButton.newWithLabel(_("Do not show this message again"));
-            messageArea.add(cb);
-            dlg.setImage(Image.newFromIconName("dialog-warning"));
-            dlg.showAll();
-            dlg.run();
-            if (cb.getActive()) {
-                gsGeneral.setBoolean(SETTINGS_WARN_VTE_CONFIG_ISSUE_KEY, false);
-            }
+            messageArea.append(cb);
+            // GTK4: no Dialog.run(); read the checkbox when the dialog closes.
+            dlg.connectResponse(delegate(int response, Dialog d) {
+                if (cb.getActive()) {
+                    gsGeneral.setBoolean(SETTINGS_WARN_VTE_CONFIG_ISSUE_KEY, false);
+                }
+                dlg.destroy();
+            });
+            dlg.present();
         }
     }
 

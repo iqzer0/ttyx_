@@ -29,11 +29,12 @@ import std.experimental.logger;
 
 import gtk.box : Box;
 import gtk.button : Button;
+import gtk.dialog : Dialog;
 import gtk.scrolled_window : ScrolledWindow;
 import gtk.tree_iter : TreeIter;
 import gtk.tree_model : TreeModel;
 import gtk.tree_view : TreeView;
-import gtk.types : Orientation, PolicyType, ResponseType, SelectionMode, ShadowType;
+import gtk.types : Orientation, PolicyType, ResponseType, SelectionMode;
 import gtk.window : Window;
 
 import gx.i18n.l10n;
@@ -71,13 +72,13 @@ private:
         });
 
         ScrolledWindow sw = new ScrolledWindow();
-        sw.add(tv);
-        sw.setShadowType(ShadowType.EtchedIn);
+        sw.setChild(tv);
+        sw.setHasFrame(true);
         sw.setPolicy(PolicyType.Automatic, PolicyType.Automatic);
         sw.setHexpand(true);
         sw.setVexpand(true);
 
-        add(sw);
+        append(sw);
 
         Box bButtons = new Box(Orientation.Horizontal, 0);
         bButtons.getStyleContext().addClass("linked");
@@ -85,24 +86,24 @@ private:
         Button btnAdd = Button.newFromIconName("list-add-symbolic");
         btnAdd.setTooltipText(_("Add bookmark"));
         btnAdd.connectClicked(&addBookmark);
-        bButtons.add(btnAdd);
+        bButtons.append(btnAdd);
 
         btnEdit = Button.newFromIconName("input-tablet-symbolic");
         btnEdit.setTooltipText(_("Edit bookmark"));
         btnEdit.connectClicked(&editBookmark);
-        bButtons.add(btnEdit);
+        bButtons.append(btnEdit);
 
         btnDelete = Button.newFromIconName("list-remove-symbolic");
         btnDelete.setTooltipText(_("Delete bookmark"));
         btnDelete.connectClicked(&deleteBookmark);
-        bButtons.add(btnDelete);
+        bButtons.append(btnDelete);
 
         btnUnselect = Button.newFromIconName("edit-clear-symbolic");
         btnUnselect.setTooltipText(_("Unselect bookmark"));
         btnUnselect.connectClicked(&unselectBookmark);
-        bButtons.add(btnUnselect);
+        bButtons.append(btnUnselect);
 
-        add(bButtons);
+        append(bButtons);
 
         updateUI();
     }
@@ -115,29 +116,30 @@ private:
     }
 
     void addBookmark(Button button) {
-        BookmarkEditor be = new BookmarkEditor(cast(Window)getToplevel(), BookmarkEditorMode.ADD, null);
-        scope(exit) {
+        BookmarkEditor be = new BookmarkEditor(cast(Window)getRoot(), BookmarkEditorMode.ADD, null);
+        // GTK4: no Dialog.run(); the result arrives in the response signal.
+        be.connectResponse(delegate(int response, Dialog d) {
+            if (response == ResponseType.Ok) {
+                Bookmark bm = be.create();
+                tv.addBookmark(bm);
+            }
             be.destroy();
-        }
-        be.showAll();
-        if (be.run() == ResponseType.Ok) {
-            Bookmark bm = be.create();
-            tv.addBookmark(bm);
-        }
+        });
+        be.present();
     }
 
     void editBookmark(Button button) {
         Bookmark bm = tv.getSelectedBookmark();
         if (bm is null) return;
-        BookmarkEditor be = new BookmarkEditor(cast(Window)getToplevel(), BookmarkEditorMode.EDIT, bm);
-        scope(exit) {
+        BookmarkEditor be = new BookmarkEditor(cast(Window)getRoot(), BookmarkEditorMode.EDIT, bm);
+        be.connectResponse(delegate(int response, Dialog d) {
+            if (response == ResponseType.Ok) {
+                be.update(bm);
+                tv.updateBookmark(bm);
+            }
             be.destroy();
-        }
-        be.showAll();
-        if (be.run() == ResponseType.Ok) {
-            be.update(bm);
-            tv.updateBookmark(bm);
-        }
+        });
+        be.present();
     }
 
     void deleteBookmark(Button button) {

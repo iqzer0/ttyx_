@@ -12,7 +12,7 @@
  *   - gtk.Version.checkVersion (GtkD static class method) →
  *     gtk.global.checkVersion free function; returns null (not "") when
  *     compatible, so the `.length == 0` compatibility check carries over.
- *   - GTK4: getToplevel() -> getRoot(); returns the most-derived wrapper, so the plain
+ *   - GTK4: getRoot() -> getRoot(); returns the most-derived wrapper, so the plain
  *     cast(Window) downcast carries over unchanged.
  *   - Everything else (Grid.attach, GSettings.getStrv/setStrv, Dialog
  *     run/destroy/showAll, Label setters) is bound 1:1 by giD.
@@ -26,6 +26,7 @@ import gio.settings : GSettings = Settings;
 
 import gtk.box : Box;
 import gtk.button : Button;
+import gtk.dialog : Dialog;
 import gtk.global : checkVersion;
 import gtk.grid : Grid;
 import gtk.label : Label;
@@ -67,13 +68,14 @@ void createAdvancedUI(Grid grid, ref uint row, GSettings delegate() scb, bool sh
         GSettings gs = scb();
         string[] links = gs.getStrv(SETTINGS_ALL_CUSTOM_HYPERLINK_KEY);
         EditCustomLinksDialog dlg = new EditCustomLinksDialog(cast(Window) grid.getRoot(), links);
-        scope (exit) {
+        // GTK4: no Dialog.run(); apply in the response handler.
+        dlg.connectResponse(delegate(int response, Dialog d) {
+            if (response == ResponseType.Apply) {
+                gs.setStrv(SETTINGS_ALL_CUSTOM_HYPERLINK_KEY, dlg.getLinks());
+            }
             dlg.destroy();
-        }
-        dlg.showAll();
-        if (dlg.run() == ResponseType.Apply) {
-            gs.setStrv(SETTINGS_ALL_CUSTOM_HYPERLINK_KEY, dlg.getLinks());
-        }
+        });
+        dlg.present();
     });
     grid.attach(btnEditLink, 2, row, 1, 1);
     row++;
@@ -97,13 +99,13 @@ void createAdvancedUI(Grid grid, ref uint row, GSettings delegate() scb, bool sh
         btnEditTriggers.connectClicked(delegate() {
             GSettings gs = scb();
             EditTriggersDialog dlg = new EditTriggersDialog(cast(Window) grid.getRoot(), gs, showTriggerLineSettings);
-            scope (exit) {
+            dlg.connectResponse(delegate(int response, Dialog d) {
+                if (response == ResponseType.Apply) {
+                    gs.setStrv(SETTINGS_ALL_TRIGGERS_KEY, dlg.getTriggers());
+                }
                 dlg.destroy();
-            }
-            dlg.showAll();
-            if (dlg.run() == ResponseType.Apply) {
-                gs.setStrv(SETTINGS_ALL_TRIGGERS_KEY, dlg.getTriggers());
-            }
+            });
+            dlg.present();
         });
         grid.attach(btnEditTriggers, 2, row, 1, 1);
         row++;
@@ -117,7 +119,7 @@ Label createDescriptionLabel(string desc) {
     Label lblDescription = new Label(desc);
     lblDescription.setUseMarkup(true);
     lblDescription.setSensitive(false);
-    lblDescription.setLineWrap(true);
+    lblDescription.setWrap(true);
     lblDescription.setHalign(Align.Start);
     // giD checkVersion returns null (not "") when compatible; .length == 0
     // covers both, matching the GtkD check.

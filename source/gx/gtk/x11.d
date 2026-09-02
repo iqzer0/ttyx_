@@ -60,6 +60,9 @@ void activateX11Window(GtkWindow window) {
     // that GtkWindow implements, rather than gtk_widget_get_window().
     GdkSurfaceWrap gdkWindow = window.getSurface();
     GdkDisplayWrap gdkDisplay = gdkWindow.getDisplay();
+    // GTK4 dropped the "default display" X11 conveniences; every gdk_x11_*
+    // call below takes the display explicitly.
+    GdkDisplay* rawDisplay = cast(GdkDisplay*) gdkDisplay._cPtr;
 
     // GTK4 removed gtk_get_current_event_time(); there is no global "time of
     // the event being handled" any more (it now comes from the specific event
@@ -74,18 +77,17 @@ void activateX11Window(GtkWindow window) {
     event.type = ClientMessage;
     event.window = gdk_x11_surface_get_xid(cast(GdkSurface*) gdkWindow._cPtr);
     const(char*) name = toStringz("_NET_ACTIVE_WINDOW");
-    event.message_type = gdk_x11_get_xatom_by_name(name);
+    event.message_type = gdk_x11_get_xatom_by_name_for_display(rawDisplay, name);
     event.format = 32;
     event.data.l[0] = 1;
     event.data.l[1] = timestamp;
     event.data.l[2] = event.data.l[3] = event.data.l[4] = 0;
 
-    Display* display = gdk_x11_get_default_xdisplay();
-    XWindow root = gdk_x11_get_default_root_xwindow();
+    Display* display = gdk_x11_display_get_xdisplay(rawDisplay);
+    XWindow root = gdk_x11_display_get_xrootwindow(rawDisplay);
 
     // GTK4 dropped the portable gdk_error_trap_* API entirely; error trapping
-    // is X11-backend-only now and takes the display explicitly.
-    GdkDisplay* rawDisplay = cast(GdkDisplay*) gdkDisplay._cPtr;
+    // is X11-backend-only now.
     gdk_x11_display_error_trap_push(rawDisplay);
     XSendEvent(display, root, false, StructureNotifyMask, cast(XEvent*) &event);
     gdkDisplay.flush();
@@ -107,17 +109,32 @@ ulong surfaceXid(GdkSurfaceWrap surface) {
     return cast(ulong) gdk_x11_surface_get_xid(cast(GdkSurface*) surface._cPtr);
 }
 
+/**
+ * Keep a window out of the taskbar and pager (quake mode). GTK4 removed the
+ * GtkWindow skip-taskbar/pager hints; the X11 backend still has them on the
+ * surface, which exists only once the window is realized. Callers must have
+ * checked !isWayland(), as with surfaceXid.
+ */
+void setSkipTaskbarAndPager(GdkSurfaceWrap surface, bool skip) {
+    if (surface is null) return;
+    gdk_x11_surface_set_skip_taskbar_hint(cast(GdkSurface*) surface._cPtr, skip ? 1 : 0);
+    gdk_x11_surface_set_skip_pager_hint(cast(GdkSurface*) surface._cPtr, skip ? 1 : 0);
+}
+
 private:
 
 // GDK X11 backend helpers. giD does not bind the GDK X11 backend, so declare
 // them directly; they resolve at link time from libgtk-4 (GTK4 has no separate
 // libgdk).
 extern(C) {
-    Atom gdk_x11_get_xatom_by_name(const(char)* atom_name);
+    // Quake-mode taskbar/pager hints (GtkWindow lost them in GTK4).
+    void gdk_x11_surface_set_skip_taskbar_hint(GdkSurface* surface, int skips_taskbar);
+    void gdk_x11_surface_set_skip_pager_hint(GdkSurface* surface, int skips_pager);
+    Atom gdk_x11_get_xatom_by_name_for_display(GdkDisplay* display, const(char)* atom_name);
     void gdk_x11_display_error_trap_push(GdkDisplay* display);
     int gdk_x11_display_error_trap_pop(GdkDisplay* display);
-    Display* gdk_x11_get_default_xdisplay();
-    XWindow gdk_x11_get_default_root_xwindow();
+    Display* gdk_x11_display_get_xdisplay(GdkDisplay* display);
+    XWindow gdk_x11_display_get_xrootwindow(GdkDisplay* display);
     uint gdk_x11_get_server_time(GdkSurface* surface);
     XWindow gdk_x11_surface_get_xid(GdkSurface* surface);
 }

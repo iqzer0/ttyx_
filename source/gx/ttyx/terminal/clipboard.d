@@ -37,26 +37,30 @@ import std.string : chomp, indexOf, splitLines, stripRight;
 
 import gid.gid : No;
 
-import gdk.atom : Atom;
+import gdk.clipboard : Clipboard;
+
+import gio.async_result : AsyncResult;
 
 import glib.global : markupEscapeText;
 import glib.source : Source;
 
 import gobject.c.functions : g_object_new;
+import gobject.object : ObjectWrap;
+import gobject.value : Value;
 
 import gtk.box : Box;
 import gtk.button : Button;
-import gtk.clipboard : Clipboard;
+import gtk.dialog : Dialog;
 import gtk.image : Image;
 import gtk.label : Label;
 import gtk.message_dialog : MessageDialog;
 import gtk.scrolled_window : ScrolledWindow;
-import gtk.types : Align, MessageType, PolicyType, ResponseType, ShadowType;
+import gtk.types : Align, MessageType, PolicyType, ResponseType;
 import gtk.window : Window;
 
 import pango.types : EllipsizeMode;
 
-import gx.gtk.clipboard : GDK_SELECTION_CLIPBOARD;
+import gx.gtk.clipboard : ClipboardSelection, selectionClipboard;
 import gx.gtk.threads : threadsAddTimeoutDelegate;
 import gx.i18n.l10n;
 
@@ -78,19 +82,32 @@ string _lastCopiedText;
  * Only clears if clipboard content still matches what was copied
  * (i.e., another application hasn't overwritten it).
  */
-void scheduleAutoClear(string copiedText, uint timeoutSeconds) {
+void scheduleAutoClear(Clipboard cb, string copiedText, uint timeoutSeconds) {
     cancelAutoClear();
     _lastCopiedText = copiedText;
     _autoClearTimeoutID = threadsAddTimeoutDelegate(
         timeoutSeconds * 1000,
         delegate() {
-            Clipboard cb = Clipboard.get(GDK_SELECTION_CLIPBOARD);
-            string current = cb.waitForText();
-            if (current !is null && current == _lastCopiedText) {
-                cb.clear();
-            }
             _autoClearTimeoutID = 0;
+            // GTK4: the clipboard is read asynchronously. The safeguard is
+            // unchanged — only clear if the content is still exactly what we
+            // copied, so another application's clipboard is never wiped.
+            string expected = _lastCopiedText;
             _lastCopiedText = null;
+            if (cb is null || expected is null) return false;
+            cb.readTextAsync(null, delegate(ObjectWrap src, AsyncResult res) {
+                string current;
+                try {
+                    current = cb.readTextFinish(res);
+                } catch (Exception e) {
+                    // Non-text or unreadable content is by definition not ours.
+                    return;
+                }
+                if (current !is null && current == expected) {
+                    // GDK4: a null content provider empties the clipboard.
+                    cb.setContent(null);
+                }
+            });
             return false; // one-shot
         }
     );
@@ -250,57 +267,79 @@ public:
         _focusTerminal = focusTerminal;
     }
 
-    /**
-     * Show the advanced paste dialog for reviewing multi-line content
-     * before pasting. Single-line pastes are forwarded to paste() directly.
-     */
-    void advancedPaste(Atom source) {
-        string pasteText = Clipboard.get(source).waitForText();
-        if (pasteText.length == 0) return;
-        pasteText = stripPasteEscapes(pasteText);
-        if (!containsLineBreak(pasteText)) return paste(source);
-
-        AdvancedPasteDialog dialog = new AdvancedPasteDialog(
-            cast(Window) _ctx.toplevelWidget(), pasteText, isPasteUnsafe(pasteText));
-        scope(exit) {
-            dialog.hide();
-            dialog.destroy();
-        }
-        dialog.showAll();
-        if (dialog.run() == ResponseType.Apply) {
-            pasteText = dialog.text;
-            vtePasteText(_ctx.contextVte(), pasteText[0 .. $]);
-            if (_ctx.contextGsProfile().getBoolean(SETTINGS_PROFILE_SCROLL_ON_INPUT_KEY)) {
-                _scrollToBottom();
-            }
-            static if (!USE_COMMIT_SYNCHRONIZATION) {
-                if (_sync.isSynchronizedInput()) {
-                    SyncInputEvent se = SyncTextEvent(_ctx.terminalUUID(), pasteText);
-                    _sync.emitSyncInput(se);
-                }
-            }
-        }
-        _focusTerminal();
+    private Clipboard clipboardFor(ClipboardSelection source) {
+        return selectionClipboard(_ctx.contextVte(), source);
     }
 
     /**
-     * Copy terminal selection to clipboard, optionally stripping
-     * trailing whitespace from each line.
+     * Read `source` once, asynchronously, and hand the text to `then`.
+     *
+     * GTK4 clipboards have no synchronous read. Every paste path goes through
+     * here so that a single read is the only read: everything downstream —
+     * sanitising, the review or unsafe dialog, and the final send — operates on
+     * this captured string. The clipboard is never consulted again for the same
+     * paste, so what the user approves in a dialog is exactly what reaches the
+     * shell, even if the clipboard changes while the dialog is open.
+     */
+    private void readClipboard(ClipboardSelection source, void delegate(string) then) {
+        Clipboard cb = clipboardFor(source);
+        if (cb is null) return;
+        cb.readTextAsync(null, delegate(ObjectWrap src, AsyncResult res) {
+            string text;
+            try {
+                text = cb.readTextFinish(res);
+            } catch (Exception e) {
+                trace("Clipboard has no readable text: " ~ e.msg);
+                return;
+            }
+            if (text.length == 0) return;
+            then(text);
+        });
+    }
+
+    /**
+     * Show the advanced paste dialog for reviewing multi-line content before
+     * pasting. Single-line content takes the normal paste decision path — on the
+     * text already read, not by re-reading the clipboard (the GTK3 version
+     * called paste(source) here, which read the selection a second time).
+     */
+    void advancedPaste(ClipboardSelection source) {
+        readClipboard(source, delegate(string raw) {
+            string pasteText = stripPasteEscapes(raw);
+            if (!containsLineBreak(pasteText)) {
+                decidePaste(pasteText);
+                return;
+            }
+            showReviewDialog(pasteText);
+        });
+    }
+
+    /**
+     * Copy terminal selection to clipboard, optionally stripping trailing
+     * whitespace from each line.
      */
     void copyToClipboard() {
         _ctx.contextVte().copyClipboard();
         if (_ctx.contextGsSettings().getBoolean(SETTINGS_COPY_STRIP_TRAILING_WHITESPACE)) {
-            Clipboard cb = Clipboard.get(GDK_SELECTION_CLIPBOARD);
-            string text = cb.waitForText();
-            if (text !is null && text.length > 0) {
-                string[] lines;
-                foreach (line; text.splitLines()) {
-                    lines ~= line.stripRight();
-                }
-                string stripped = lines.join("\n");
-                if (stripped.length > 0) {
-                    cb.setText(stripped);
-                }
+            Clipboard cb = clipboardFor(ClipboardSelection.clipboard);
+            if (cb !is null) {
+                cb.readTextAsync(null, delegate(ObjectWrap src, AsyncResult res) {
+                    string text;
+                    try { text = cb.readTextFinish(res); } catch (Exception) { return; }
+                    if (text.length == 0) return;
+                    string[] lines;
+                    foreach (line; text.splitLines()) {
+                        lines ~= line.stripRight();
+                    }
+                    string stripped = lines.join("\n");
+                    if (stripped.length > 0) {
+                        // GTK4: GdkClipboard has no setText; a GValue holding a
+                        // string is the text content provider.
+                        cb.set(new Value(stripped));
+                    }
+                    maybeScheduleAutoClear();
+                });
+                return;
             }
         }
         maybeScheduleAutoClear();
@@ -315,74 +354,98 @@ public:
     }
 
     private void maybeScheduleAutoClear() {
-        if (_ctx.contextGsSettings().getBoolean(SETTINGS_CLIPBOARD_AUTO_CLEAR_KEY)) {
-            Clipboard cb = Clipboard.get(GDK_SELECTION_CLIPBOARD);
-            string text = cb.waitForText();
-            if (text !is null && text.length > 0) {
-                scheduleAutoClear(text, _ctx.contextGsSettings().getUint(SETTINGS_CLIPBOARD_AUTO_CLEAR_TIMEOUT_KEY));
+        if (!_ctx.contextGsSettings().getBoolean(SETTINGS_CLIPBOARD_AUTO_CLEAR_KEY)) return;
+        Clipboard cb = clipboardFor(ClipboardSelection.clipboard);
+        if (cb is null) return;
+        uint timeout = _ctx.contextGsSettings().getUint(SETTINGS_CLIPBOARD_AUTO_CLEAR_TIMEOUT_KEY);
+        cb.readTextAsync(null, delegate(ObjectWrap src, AsyncResult res) {
+            string text;
+            try { text = cb.readTextFinish(res); } catch (Exception) { return; }
+            if (text.length > 0) {
+                scheduleAutoClear(cb, text, timeout);
             }
-        }
+        });
     }
 
     /**
-     * Paste from the given clipboard source (primary or clipboard).
+     * Paste from the given clipboard (primary or clipboard).
      *
-     * Applies safety checks (unsafe paste warning), optional whitespace
-     * stripping, and leading comment character removal. Broadcasts to
+     * Applies safety checks (multi-line review, unsafe paste warning), optional
+     * whitespace stripping, and leading comment character removal. Broadcasts to
      * synchronized terminals if sync input is active.
      */
-    void paste(Atom source) {
-        string pasteText = Clipboard.get(source).waitForText();
-        if (pasteText.length == 0) return;
-        pasteText = stripPasteEscapes(pasteText);
+    void paste(ClipboardSelection source) {
+        readClipboard(source, delegate(string raw) {
+            string pasteText = stripPasteEscapes(raw);
+            if (_ctx.contextGsSettings().getBoolean(SETTINGS_STRIP_TRAILING_WHITESPACE)) {
+                pasteText = pasteText.stripRight();
+            }
+            if (pasteText.length == 0) return;
+            decidePaste(pasteText);
+        });
+    }
 
-        bool stripTrailingWhitespace = _ctx.contextGsSettings().getBoolean(SETTINGS_STRIP_TRAILING_WHITESPACE);
-        if (stripTrailingWhitespace) {
-            pasteText = pasteText.stripRight();
-        }
-
-        if (pasteText.length == 0) return;
-
-        // Multi-line paste: show review dialog (takes precedence over sudo warning
-        // since the review dialog already flags unsafe content and lets the user edit)
+    /**
+     * The paste decision, on already-sanitised text: review dialog for
+     * multi-line content, unsafe-paste dialog for dangerous single lines, else
+     * commit straight away.
+     */
+    private void decidePaste(string pasteText) {
+        // Multi-line paste: show review dialog (takes precedence over the unsafe
+        // warning since the review dialog already flags unsafe content and lets
+        // the user edit)
         if (containsLineBreak(pasteText) && _ctx.contextGsSettings().getBoolean(SETTINGS_WARN_MULTILINE_PASTE_KEY)) {
-            AdvancedPasteDialog dialog = new AdvancedPasteDialog(
-                cast(Window) _ctx.toplevelWidget(), pasteText, isPasteUnsafe(pasteText));
-            scope(exit) {
-                dialog.hide();
-                dialog.destroy();
-            }
-            dialog.showAll();
-            if (dialog.run() == ResponseType.Apply) {
-                pasteText = dialog.text;
-                vtePasteText(_ctx.contextVte(), pasteText);
-                if (_ctx.contextGsProfile().getBoolean(SETTINGS_PROFILE_SCROLL_ON_INPUT_KEY)) {
-                    _scrollToBottom();
-                }
-                static if (!USE_COMMIT_SYNCHRONIZATION) {
-                    if (_sync.isSynchronizedInput()) {
-                        SyncInputEvent se = SyncTextEvent(_ctx.terminalUUID(), pasteText);
-                        _sync.emitSyncInput(se);
-                    }
-                }
-            }
-            _focusTerminal();
+            showReviewDialog(pasteText);
             return;
         }
-
         // Single-line unsafe paste warning (multi-line is handled above)
-        if (isPasteUnsafe(pasteText)) {
-            if (_ctx.contextGsSettings().getBoolean(SETTINGS_UNSAFE_PASTE_ALERT_KEY)) {
-                UnsafePasteDialog dialog = new UnsafePasteDialog(
-                    cast(Window) _ctx.toplevelWidget(), chomp(pasteText));
-                scope(exit) {
-                    dialog.destroy();
-                }
-                if (dialog.run() != 0)
-                    return;
-            }
+        if (isPasteUnsafe(pasteText) && _ctx.contextGsSettings().getBoolean(SETTINGS_UNSAFE_PASTE_ALERT_KEY)) {
+            showUnsafeDialog(pasteText);
+            return;
         }
+        commitPaste(pasteText);
+    }
 
+    /**
+     * GTK4 dialogs have no run(): the response arrives on a signal after
+     * present() returns. The text to paste is whatever the dialog ends up
+     * showing — its own editable buffer — read inside the response handler.
+     */
+    private void showReviewDialog(string pasteText) {
+        AdvancedPasteDialog dialog = new AdvancedPasteDialog(
+            cast(Window) _ctx.toplevelWidget(), pasteText, isPasteUnsafe(pasteText));
+        dialog.connectResponse(delegate void(int responseId, Dialog d) {
+            if (responseId == ResponseType.Apply) {
+                commitPaste(dialog.text);
+            }
+            dialog.destroy();
+            _focusTerminal();
+        });
+        dialog.present();
+    }
+
+    private void showUnsafeDialog(string pasteText) {
+        UnsafePasteDialog dialog = new UnsafePasteDialog(
+            cast(Window) _ctx.toplevelWidget(), chomp(pasteText));
+        dialog.connectResponse(delegate void(int responseId, Dialog d) {
+            // Response 0 is "Paste Anyway"; anything else (1, or a dismissal
+            // such as Escape / the close button) means do not paste. Dismissal
+            // must default to the safe choice.
+            if (responseId == 0) {
+                commitPaste(pasteText);
+            }
+            dialog.destroy();
+        });
+        dialog.present();
+    }
+
+    /**
+     * Send text to the terminal. The single place the paste actually happens,
+     * so the strip-first-comment-char rule, the scroll-on-input rule and the
+     * synchronized-input broadcast cannot drift apart across the three ways a
+     * paste can be approved.
+     */
+    private void commitPaste(string pasteText) {
         auto vte = _ctx.contextVte();
         auto gsSettings = _ctx.contextGsSettings();
 
@@ -390,11 +453,9 @@ public:
                 && pasteText.length > 0 && (pasteText[0] == '#' || pasteText[0] == '$')) {
             pasteText = pasteText[1 .. $];
         }
-        // Always paste the sanitized text through VTE's paste-text API. The
-        // earlier default path (no strip setting enabled) fell through to
-        // pasteClipboard()/pastePrimary(), which re-read the raw selection
-        // from the OS and discarded the stripPasteEscapes() result — breaking
-        // the "unconditional sanitization" contract for the common case.
+        // Always paste the sanitized text through VTE's paste-text API rather
+        // than pasteClipboard()/pastePrimary(), which would re-read the raw
+        // selection from the OS and discard the sanitisation.
         // vte_terminal_paste_text still applies bracketed-paste wrapping, so
         // editors continue to receive properly-bracketed pastes.
         vtePasteText(vte, pasteText);
@@ -431,11 +492,10 @@ public:
         setModal(true);
         setTransientFor(parent);
         Box messageArea = cast(Box) getMessageArea();
-        messageArea.setMarginLeft(0);
-        messageArea.setMarginRight(0);
+        messageArea.setMarginStart(0);
+        messageArea.setMarginEnd(0);
         string[3] msg = getUnsafePasteMessage();
         setMarkup("<span weight='bold' size='larger'>" ~ msg[0] ~ "</span>\n\n" ~ msg[1] ~ "\n" ~ msg[2] ~ "\n");
-        setImage(Image.newFromIconName("dialog-warning"));
 
         Label lblCmd = new Label(markupEscapeText(cmd));
         lblCmd.setUseMarkup(true);
@@ -444,15 +504,15 @@ public:
 
         if (count(cmd, "\n") > 6) {
             ScrolledWindow sw = new ScrolledWindow();
-            sw.setShadowType(ShadowType.EtchedIn);
+            sw.setHasFrame(true);
             sw.setPolicy(PolicyType.Automatic, PolicyType.Automatic);
             sw.setHexpand(true);
             sw.setVexpand(true);
             sw.setSizeRequest(400, 140);
-            sw.add(lblCmd);
-            messageArea.add(sw);
+            sw.setChild(lblCmd);
+            messageArea.append(sw);
         } else {
-            messageArea.add(lblCmd);
+            messageArea.append(lblCmd);
         }
 
         Button btnCancel = Button.newWithLabel(_("Don't Paste"));
@@ -460,7 +520,7 @@ public:
         btnIgnore.getStyleContext().addClass("destructive-action");
         addActionWidget(btnCancel, 1);
         addActionWidget(btnIgnore, 0);
-        showAll();
+        // GTK4: widgets are visible by default; no showAll().
         btnIgnore.grabFocus();
     }
 }

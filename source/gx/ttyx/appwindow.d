@@ -94,12 +94,13 @@ import gdk.toplevel : Toplevel;
 import gdk.rectangle : Rectangle;
 import gdk.rgba : RGBA;
 import gdk.display : Display;
-import gdk.monitor : Monitor;
-import gdk.types : EventMask, Gravity, KEY_Escape, KEY_Return, ModifierType, ToplevelState;
+import gdk.monitor : MonitorWrap;
+import gdk.types : Gravity, KEY_Escape, KEY_Return, ModifierType, ToplevelState;
 
 import gid.basictypes : gulong;
 import gid.gid : No, Yes;
 
+import gio.file : File;
 import gio.list_model : ListModel;
 import gio.menu : GMenu = Menu;
 import gio.menu_item : GMenuItem = MenuItem;
@@ -122,6 +123,7 @@ import gtk.aspect_frame : AspectFrame;
 import gtk.box : Box;
 import gtk.button : Button;
 import gtk.dialog : Dialog;
+import gtk.drawing_area : DrawingArea;
 import gtk.entry : Entry;
 import gtk.event_controller_focus : EventControllerFocus;
 import gtk.event_controller_key : EventControllerKey;
@@ -138,10 +140,11 @@ import gtk.message_dialog : MessageDialog;
 import gtk.notebook : Notebook;
 import gtk.overlay : Overlay;
 import gtk.popover : Popover;
+import gtk.popover_menu : PopoverMenu;
 import gtk.stack : Stack;
 import gtk.toggle_button : ToggleButton;
 import gtk.types : Allocation, ButtonsType, EventControllerScrollFlags, EventSequenceState, FileChooserAction,
-    MessageType, Orientation, PositionType, ReliefStyle, ResponseType, ShadowType;
+    MessageType, Orientation, PositionType, ResponseType;
 import gtk.widget : Widget;
 import gtk.window : Window;
 import gtk.window_group : WindowGroup;
@@ -154,6 +157,7 @@ import gx.gtk.widgetimage;
 import gx.gtk.dialog;
 import gx.gtk.threads;
 import gx.gtk.util;
+import gx.gtk.x11 : setSkipTaskbarAndPager;
 import gx.i18n.l10n;
 
 import gx.ttyx.application;
@@ -216,6 +220,7 @@ private:
     HeaderBar hb;
     SideBar sb;
     ToggleButton tbSideBar;
+    DrawingArea badgeArea;
     ToggleButton tbFind;
     CustomTitle cTitle;
     // Put windows in separate groups
@@ -345,7 +350,7 @@ private:
         Overlay overlay;
         if (!useTabs) {
             overlay = new Overlay();
-            overlay.add(nb);
+            overlay.setChild(nb);
             overlay.addOverlay(sb);
         }
 
@@ -355,20 +360,21 @@ private:
         if (isQuake() || isCSDDisabled()) {
             hb.getStyleContext().addClass("ttyx-embedded-headerbar");
             Box box = new Box(Orientation.Vertical, 0);
-            box.add(hb);
-            if (overlay !is null) box.add(overlay);
-            else box.add(nb);
+            box.append(hb);
+            if (overlay !is null) box.append(overlay);
+            else box.append(nb);
             if (isQuake()) {
                 box.getStyleContext().addClass("ttyx-quake-frame");
             }
-            add(box);
-            hb.setNoShowAll(hideToolbar());
+            setChild(box);
+            hb.setVisible(!hideToolbar());
         } else {
             this.setTitlebar(hb);
-            hb.setShowCloseButton(true);
-            hb.setTitle(_(APPLICATION_NAME));
-            if (overlay !is null) add(overlay);
-            else add(nb);
+            hb.setShowTitleButtons(true);
+            // GTK4: a HeaderBar has no title of its own — it shows the window
+            // title unless a title widget is set (createHeaderBar sets one).
+            if (overlay !is null) setChild(overlay);
+            else setChild(nb);
         }
     }
 
@@ -381,7 +387,6 @@ private:
             btnNew = Button.newFromIconName("list-add-symbolic");
         }
         btnNew.setFocusOnClick(false);
-        btnNew.setAlwaysShowImage(true);
         btnNew.connectClicked(delegate(Button button) {
             createSession();
         });
@@ -396,13 +401,23 @@ private:
             Box b = new Box(Orientation.Horizontal, 6);
             lblSideBar = new Label("1 / 1");
             Image img = Image.newFromIconName("pan-down-symbolic");
-            b.add(lblSideBar);
-            b.add(img);
-            tbSideBar.add(b);
+            b.append(lblSideBar);
+            b.append(img);
+            // GTK4: widgets have no draw signal. The notification badge is
+            // painted by a transparent DrawingArea laid over the button's
+            // content and refreshed with badgeArea.queueDraw() (WP4).
+            Overlay badgeOverlay = new Overlay();
+            badgeOverlay.setChild(b);
+            badgeArea = new DrawingArea();
+            badgeArea.setCanTarget(false);
+            badgeArea.setDrawFunc(delegate(DrawingArea da, Context cr, int width, int height) {
+                drawSideBarBadge(cr, tbSideBar, width, height);
+            });
+            badgeOverlay.addOverlay(badgeArea);
+            tbSideBar.setChild(badgeOverlay);
             tbSideBar.setTooltipText(_("View session sidebar"));
             tbSideBar.setFocusOnClick(false);
             tbSideBar.setActionName(getActionDetailedName("win", ACTION_WIN_SIDEBAR));
-            tbSideBar.connectDraw(&drawSideBarBadge, Yes.After);
             // GTK4: scroll-event -> EventControllerScroll. There is no direction
             // enum any more; the callback receives signed deltas, so "up" is a
             // negative dy. Vertical-only, since that is all this ever handled.
@@ -416,20 +431,21 @@ private:
                 return false;
             });
             tbSideBar.addController(sidebarScroll);
-            tbSideBar.addEvents(cast(int) EventMask.ScrollMask);
+            // GTK4: no event masks — the EventControllerScroll below receives
+            // scroll events without one.
 
             bSessionButtons = new Box(Orientation.Horizontal, 0);
             bSessionButtons.getStyleContext().addClass("linked");
             btnNew.getStyleContext().addClass("session-new-button");
-            bSessionButtons.packStart(tbSideBar, false, false, 0);
-            bSessionButtons.packStart(btnNew, false, false, 0);
+            bSessionButtons.append(tbSideBar);
+            bSessionButtons.append(btnNew);
         }
 
         //Session Actions
         mbSessionActions = new MenuButton();
         mbSessionActions.setFocusOnClick(false);
         Image iHamburger = Image.newFromIconName("open-menu-symbolic");
-        mbSessionActions.add(iHamburger);
+        mbSessionActions.setChild(iHamburger);
         mbSessionActions.setPopover(createPopover(mbSessionActions));
 
         Button btnAddHorizontal = Button.newFromIconName("ttyx-add-horizontal-symbolic");
@@ -444,7 +460,7 @@ private:
 
         // Add find button
         tbFind = new ToggleButton();
-        tbFind.setImage(Image.newFromIconName("edit-find-symbolic"));
+        tbFind.setIconName("edit-find-symbolic");
         tbFind.setTooltipText(_("Find text in terminal"));
         tbFind.setFocusOnClick(false);
         _tbFindToggledId = tbFind.connectToggled(delegate(ToggleButton tb) {
@@ -456,7 +472,7 @@ private:
         //Header Bar
         HeaderBar header = new HeaderBar();
         if (!isCSDDisabled()) {
-            header.setCustomTitle(createCustomTitle());
+            header.setTitleWidget(createCustomTitle());
         }
         if (useTabs) {
             header.packStart(btnNew);
@@ -562,7 +578,7 @@ private:
                     Session current = getCurrentSession();
                     if (current is null) return;
                     sb.populateSessions(getSessions(), current.uuid, sessionNotifications, nb.getAllocatedWidth(), nb.getAllocatedHeight());
-                    sb.showAll();
+                    sb.setVisible(true);
                 }
                 sb.setRevealChild(newState);
                 sa.setState(new GVariant(newState));
@@ -693,9 +709,9 @@ private:
             });
             // Note check for Wayland below otherwise popover will clip
             if (isWayland(this) && checkVersion(3, 16, 0).length == 0) {
-                (cast(Box) dialog.getMessageArea()).add(createTitleEditHelper(entry, TitleEditScope.SESSION));
+                (cast(Box) dialog.getMessageArea()).append(createTitleEditHelper(entry, TitleEditScope.SESSION));
             } else {
-                (cast(Box) dialog.getMessageArea()).add(entry);
+                (cast(Box) dialog.getMessageArea()).append(entry);
             }
             dialog.setDefaultResponse(ResponseType.Ok);
             dialog.connectResponse(delegate(int response, Dialog d) {
@@ -709,7 +725,6 @@ private:
             dialog.connectClose(delegate(Dialog dlg) {
                 dlg.destroy();
             });
-            dialog.showAll();
             dialog.present();
         });
 
@@ -794,7 +809,7 @@ private:
             model.appendSection(null, mDebugSection);
         }
 
-        return Popover.newFromModel(parent, model);
+        return PopoverMenu.newFromModel(model);
     }
 
     /**
@@ -857,13 +872,12 @@ private:
             SessionTabLabel label = new SessionTabLabel(nb.getTabPos, session.displayName, session);
             index = nb.insertPage(session, label, insertPos);
         }
-        nb.showAll();
         nb.setCurrentPage(index);
         updateUIState();
     }
 
     void removeSession(Session session) {
-        nb.remove(session);
+        nb.removePage(nb.pageNum(session));
         updateUIState();
         //Close Window if there are no pages
         if (nb.getNPages() == 0) {
@@ -902,7 +916,25 @@ private:
             if (session !is null) {
                 ProcessInformation pi = session.getProcessInformation();
                 if (pi.children.length > 0) {
-                    bool canClose = promptCanCloseProcesses(gsSettings, this, pi);
+                    // GTK4: the prompt is asynchronous. If it needs the user,
+                    // report "not closed" now and close from the callback; the
+                    // sidebar refreshes through the normal close signals.
+                    bool answered = false;
+                    bool canClose = false;
+                    bool deferred = false;
+                    promptCanCloseProcesses(gsSettings, this, pi, delegate(bool ok) {
+                        answered = true;
+                        canClose = ok;
+                        if (deferred && ok) {
+                            Session s = getSession(sessionUUID);
+                            if (s !is null) closeSession(s);
+                        }
+                    });
+                    if (!answered) {
+                        deferred = true;
+                        result.addResult(false);
+                        return;
+                    }
                     if (!canClose) {
                         result.addResult(false);
                         return;
@@ -928,8 +960,8 @@ private:
         }
         bool isCurrentSession = (session == getCurrentSession());
         removeSession(session);
-        // Don't destroy session artificially due to GtkD issues
-        session.destroy();
+        // GTK4: no gtk_widget_destroy; removeSession() took it out of the
+        // notebook, which drops GTK's reference to it.
         if (!isCurrentSession) {
             updateTitle();
             updateUIState();
@@ -1056,15 +1088,15 @@ private:
     /*
      * Event occurs when tab is detached from notebook
      */
-    Notebook onCreateWindow(Widget page, int x, int y, Notebook notebook) {
+    Notebook onCreateWindow(Widget page, Notebook notebook) {
         trace("Detaching tab, create new window");
         SessionTabLabel label = cast(SessionTabLabel) nb.getTabLabel(page);
         if (label !is null) {
             label.onCloseClicked.disconnect(&closeSession);
         }
         AppWindow window = cloneWindow();
-        window.move(x, y);
-        window.showAll();
+        // GTK4: no client-side window placement (WP5); the compositor places it.
+        window.present();
         return window.nb;
     }
 
@@ -1086,8 +1118,8 @@ private:
         AppWindow window = cloneWindow();//new AppWindow(tilix);
         tilix.addAppWindow(window);
         window.initialize(session);
-        window.move(x, y);
-        window.showAll();
+        // GTK4: no client-side window placement (WP5); the compositor places it.
+        window.present();
     }
 
     void onSessionStateChange(Session session, SessionStateChange stateChange) {
@@ -1115,7 +1147,7 @@ private:
 
     void updateUIState() {
         if (!useTabs) {
-            tbSideBar.queueDraw();
+            badgeArea.queueDraw();
         }
         //saCloseSession.setEnabled(nb.getNPages > 1);
         Session session = getCurrentSession();
@@ -1143,10 +1175,10 @@ private:
     void updateTitle() {
         string title = getDisplayTitle();
         if (!isCSDDisabled()) {
+            // GTK4: without a custom title widget the HeaderBar shows the
+            // window title set below.
             if (cTitle !is null) {
                 cTitle.title = title;
-            } else {
-                hb.setTitle(title);
             }
         }
         setTitle(title);
@@ -1169,12 +1201,10 @@ private:
         return title;
     }
 
-    bool drawSideBarBadge(Context cr, Widget widget) {
+    void drawSideBarBadge(Context cr, Widget widget, int w, int h) {
 
         // pw, ph, ps = percent width, height, size
         void drawBadge(double pw, double ph, double ps, RGBA fg, RGBA bg, int value) {
-            int w = widget.getAllocatedWidth();
-            int h = widget.getAllocatedHeight();
 
             double x = w * pw;
             double y = h * ph;
@@ -1210,7 +1240,6 @@ private:
             bg.alpha = 0.9;
             drawBadge(0.87, 0.68, 0.15, fg, bg, to!int(count));
         }
-        return false;
     }
 
     void onIsActionAllowed(ActionType actionType, CumulativeResult!bool result) {
@@ -1274,13 +1303,38 @@ private:
         }
     }
 
-    bool onWindowClosed(Event event, Widget widget) {
+    /**
+     * Bridges an asynchronous confirmation into the synchronous close-request
+     * answer. If the prompt resolves immediately (disabled by preference) the
+     * answer is returned directly; otherwise this close is blocked and, once
+     * the user agrees, re-issued without prompting via closeNoPrompt().
+     */
+    bool deferClose(void delegate(void delegate(bool)) ask) {
+        bool answered = false;
+        bool canClose = false;
+        bool deferred = false;
+        ask(delegate(bool ok) {
+            answered = true;
+            canClose = ok;
+            if (deferred && ok) closeNoPrompt();
+        });
+        if (answered) return !canClose;
+        deferred = true;
+        return true;
+    }
+
+    bool onWindowClosed(Window window) {
         if (_noPrompt) return false;
+        // GTK4: close-request must answer synchronously; the dialogs are not.
         ProcessInformation pi = getProcessInformation();
         if (pi.children.length > 0) {
-            return !promptCanCloseProcesses(gsSettings, this, pi);
+            return deferClose(delegate(void delegate(bool) then) {
+                promptCanCloseProcesses(gsSettings, this, pi, then);
+            });
         } else if (nb.getNPages() > 1) {
-            return !showConfirmDialog(this, _("There are multiple sessions open, close anyway?"), gsSettings, SETTINGS_PROMPT_ON_CLOSE_KEY);
+            return deferClose(delegate(void delegate(bool) then) {
+                showConfirmDialog(this, _("There are multiple sessions open, close anyway?"), gsSettings, SETTINGS_PROMPT_ON_CLOSE_KEY, then);
+            });
         }
         return false;
     }
@@ -1290,7 +1344,7 @@ private:
         _destroyed = true;
         tilix.withdrawNotification(uuid);
         tilix.removeAppWindow(this);
-        sessionActions.destroy();
+        sessionActions = null; // GTK4/giD: no ObjectG.destroy; dropping the reference releases it
         sessionActions = null;
         saSyncInput  = null;
         saViewSideBar = null;
@@ -1303,7 +1357,7 @@ private:
         if (tilix.getGlobalOverrides().maximize) {
             maximize();
         } else if (tilix.getGlobalOverrides().minimize) {
-            iconify();
+            minimize();
         } else if (tilix.getGlobalOverrides().fullscreen) {
             changeActionState(ACTION_WIN_FULLSCREEN, new GVariant(true));
             fullscreen();
@@ -1311,7 +1365,7 @@ private:
             moveAndSizeQuake();
             applyPreference(SETTINGS_QUAKE_KEEP_ON_TOP_KEY);
             trace("Focus terminal");
-            activateFocus();
+            // GTK4: activateFocus() is gone; the terminal is focused explicitly.
             if (getActiveTerminal() !is null) {
                 getActiveTerminal().focusTerminal();
             } else if (getCurrentSession() !is null) {
@@ -1333,18 +1387,20 @@ private:
             if (state & ToplevelState.Maximized) {
                 maximize();
             } else if (state & ToplevelState.Minimized) {
-                iconify();
+                minimize();
             } else if (state & ToplevelState.Fullscreen) {
                 fullscreen();
             }
-            if (state & ToplevelState.Sticky) {
-                stick();
-            }
+            // GTK4 has no sticky/all-workspaces API (WP5); the Sticky bit is
+            // read but cannot be applied.
         }
     }
 
     void onWindowRealized(Widget widget) {
         if (isQuake()) {
+            // GTK4: skip-taskbar/pager are X11 surface hints, set once the
+            // surface exists (quake mode is X11-only, see the constructor).
+            setSkipTaskbarAndPager(getSurface(), true);
             applyPreference(SETTINGS_QUAKE_HEIGHT_PERCENT_KEY);
         } else {
             handleGeometry();
@@ -1367,27 +1423,11 @@ private:
     }
 
     bool handleGeometry() {
+        // GTK4: no client-side window positioning (WP5). The --geometry size is
+        // applied through the terminal's first-run sizing; its x/y part cannot
+        // be honoured. Returns whether a full geometry was requested.
         if (!isQuake() && tilix.getGlobalOverrides().geometry.flag == GeometryFlag.FULL && !isWayland(this)) {
-            int x, y;
-            Geometry geometry = tilix.getGlobalOverrides().geometry;
-            Gravity gravity = Gravity.NorthWest;
-            int width = nb.getAllocatedWidth();
-            int height = nb.getAllocatedHeight();
-            if (!geometry.xNegative)
-                x = geometry.x;
-            else {
-                x = getScreen().getWidth() - width + geometry.x;
-                gravity = Gravity.NorthEast;
-            }
-
-            if (!geometry.yNegative)
-                y = geometry.y;
-            else {
-                y = getScreen().getHeight() - height + geometry.y;
-                gravity = (geometry.xNegative) ? Gravity.SouthEast : Gravity.SouthWest;
-            }
-            setGravity(gravity);
-            move(x, y);
+            trace("Window position from --geometry is not supported under GTK4; ignoring x/y");
             return true;
         }
         return false;
@@ -1421,10 +1461,8 @@ private:
                 }
                 break;
             case SETTINGS_QUAKE_SHOW_ON_ALL_WORKSPACES_KEY:
-                if (isQuake) {
-                    if (gsSettings.getBoolean(SETTINGS_QUAKE_SHOW_ON_ALL_WORKSPACES_KEY)) stick();
-                    else unstick();
-                }
+                // GTK4 has no sticky/all-workspaces API (WP5); the preference
+                // is kept but has no effect under GTK4.
                 break;
             case SETTINGS_QUAKE_TAB_POSITION_KEY:
                 updateTabPosition();
@@ -1446,15 +1484,13 @@ private:
             case SETTINGS_QUAKE_HIDE_HEADERBAR_KEY:
                 if (isQuake) {
                     bool hide = gsSettings.getBoolean(SETTINGS_QUAKE_HIDE_HEADERBAR_KEY);
-                    hb.setNoShowAll(hide);
                     if (hide) hb.hide();
                     else hb.show();
                 }
                 break;
             case SETTINGS_QUAKE_KEEP_ON_TOP_KEY:
-                if (isQuake) {
-                    setKeepAbove(gsSettings.getBoolean(SETTINGS_QUAKE_KEEP_ON_TOP_KEY));
-                }
+                // GTK4 has no keep-above API (WP5); the preference is kept but
+                // has no effect under GTK4.
                 break;
             default:
                 break;
@@ -1490,7 +1526,7 @@ private:
         //    everywhere and falls through to the specific/default monitor.
         //  - There is no workarea API; getGeometry is the full monitor, so
         //    panels are no longer subtracted.
-        Display display = Display.getDisplay();
+        Display display = Display.getDefault();
         ListModel monitors = display.getMonitors();
         uint monitorCount = monitors.getNItems();
         int monitor = 0;
@@ -1504,7 +1540,7 @@ private:
             warning("No monitors reported by the display; cannot size quake window");
             return;
         }
-        Monitor mon = cast(Monitor) monitors.getItem(cast(uint) monitor);
+        MonitorWrap mon = cast(MonitorWrap) monitors.getItem(cast(uint) monitor);
         mon.getGeometry(rect);
         tracef("Monitor geometry: monitor=%d, x=%d, y=%d, width=%d, height=%d", monitor, rect.x, rect.y, rect.width, rect.height);
 
@@ -1640,7 +1676,7 @@ private:
     void loadSession() {
         fcd = createFileChooserDialog(_("Load Session"), FileChooserAction.Open, _("Open"));
         if (DialogPath.LOAD_SESSION in dialogPaths) {
-            fcd.setCurrentFolder(dialogPaths[DialogPath.LOAD_SESSION]);
+            fcd.setCurrentFolder(File.newForPath(dialogPaths[DialogPath.LOAD_SESSION]));
         }
         fcd.setModal(true);
         fcd.setTransientFor(this);
@@ -1650,16 +1686,22 @@ private:
         fcd.connectResponse(delegate(int response, Dialog d) {
             if (response == ResponseType.Ok) {
                 try {
-                    string[] filenames = fcd.getFilenames();
+                    // GTK4: getFiles() is a ListModel of GFile.
+                    ListModel files = fcd.getFiles();
+                    string[] filenames;
+                    foreach (i; 0 .. files.getNItems()) {
+                        File f = cast(File) files.getItem(i);
+                        if (f !is null && f.getPath().length > 0) filenames ~= f.getPath();
+                    }
                     foreach(filename; filenames) {
                         loadSession(filename);
                         addRecentSessionFile(filename);
                     }
-                    dialogPaths[DialogPath.LOAD_SESSION] = fcd.getCurrentFolder();
+                    if (fcd.getCurrentFolder() !is null) dialogPaths[DialogPath.LOAD_SESSION] = fcd.getCurrentFolder().getPath();
                 }
                 catch (Exception e) {
                     fcd.hide();
-                    removeRecentSessionFile(fcd.getFilename());
+                    if (fcd.getFile() !is null) removeRecentSessionFile(fcd.getFile().getPath());
                     error(e);
                     showErrorDialog(this, _("Could not load session due to unexpected error.") ~ "\n" ~ e.msg, _("Error Loading Session"));
                 }
@@ -1694,23 +1736,24 @@ private:
 
             addFilters(fcd);
 
-            fcd.setDoOverwriteConfirmation(true);
             fcd.setDefaultResponse(ResponseType.Ok);
             if (session.filename.length > 0) {
-                fcd.setCurrentFolder(dirName(session.filename));
+                fcd.setCurrentFolder(File.newForPath(dirName(session.filename)));
                 fcd.setCurrentName(session.filename.length > 0 ? baseName(session.filename) : session.displayName ~ ".json");
             } else if (DialogPath.SAVE_SESSION in dialogPaths) {
-                fcd.setCurrentFolder(dialogPaths[DialogPath.SAVE_SESSION]);
+                fcd.setCurrentFolder(File.newForPath(dialogPaths[DialogPath.SAVE_SESSION]));
             }
 
             fcd.connectResponse(delegate(int response, Dialog d) {
                 if (response == ResponseType.Ok) {
                     try {
-                        string filename = fcd.getFilename();
+                        File chosen = fcd.getFile();
+                        if (chosen is null) return;
+                        string filename = chosen.getPath();
                         if (!filename.endsWith(".json")) {
                             filename ~= ".json";
                         }
-                        dialogPaths[DialogPath.SAVE_SESSION] = fcd.getCurrentFolder();
+                        if (fcd.getCurrentFolder() !is null) dialogPaths[DialogPath.SAVE_SESSION] = fcd.getCurrentFolder().getPath();
                         addRecentSessionFile(filename);
                         string json = session.serialize().toPrettyString();
                         write(filename, json);
@@ -1718,7 +1761,7 @@ private:
                     }
                     catch (Exception e) {
                         fcd.hide();
-                        removeRecentSessionFile(fcd.getFilename());
+                        if (fcd.getFile() !is null) removeRecentSessionFile(fcd.getFile().getPath());
                         error(e);
                         showErrorDialog(this, _("Could not save session due to unexpected error.") ~ "\n" ~ e.msg, _("Error Saving Session"));
                     }
@@ -1842,15 +1885,14 @@ public:
         if (tilix.getGlobalOverrides().quake && !isWayland(null)) {
             _quake = true;
             setDecorated(false);
-            // Todo: Should this be NORTH instead?
-            setGravity(Gravity.Static);
-            setSkipTaskbarHint(true);
-            setSkipPagerHint(true);
+            // GTK4: no gravity (no client-side placement, WP5). The X11
+            // skip-taskbar/pager hints need a realized surface and are applied
+            // in onWindowRealized.
             applyPreference(SETTINGS_QUAKE_HEIGHT_PERCENT_KEY);
             applyPreference(SETTINGS_QUAKE_SHOW_ON_ALL_WORKSPACES_KEY);
             // On Ubuntu this causes terminal to use default size, see #602
             //setResizable(false);
-            setRole("quake");
+            // GTK4: no window role API (WP5).
         } else {
             if (tilix.getGlobalOverrides.quake) {
                 string message = _("Quake mode is not supported under Wayland, running as normal window");
@@ -1865,7 +1907,7 @@ public:
 
         createUI();
 
-        connectDeleteEvent(&onWindowClosed);
+        connectCloseRequest(&onWindowClosed);
         connectDestroy(&onWindowDestroyed);
         connectRealize(&onWindowRealized);
         /*
@@ -1877,16 +1919,22 @@ public:
         */
 
         connectShow(&onWindowShow, Yes.After);
-        connectSizeAllocate(delegate(Allocation rect, Widget widget) {
-            if (lastWidth != rect.width || lastHeight != rect.height) {
+        // GTK4: no size-allocate; a toplevel's default-width/height properties
+        // track its actual size, so watch those to invalidate the background.
+        void onWindowSizeChanged(ParamSpec pspec, ObjectWrap obj) {
+            int width = getWidth();
+            int height = getHeight();
+            if (lastWidth != width || lastHeight != height) {
                 //invalidate rendered background
                 // (giD cairo surfaces are GC managed, no explicit destroy)
                 isBGImage = null;
-                lastWidth = rect.width;
-                lastHeight = rect.height;
+                lastWidth = width;
+                lastHeight = height;
             }
-        }, Yes.After);
-        connectCompositedChanged(&onCompositedChanged);
+        }
+        connectNotify("default-width", &onWindowSizeChanged, Yes.After);
+        connectNotify("default-height", &onWindowSizeChanged, Yes.After);
+        // GTK4: composited-changed is gone; windows are always composited.
         // GTK4: focus-in/out-event -> EventControllerFocus enter/leave. The
         // callbacks return void; the GTK3 handlers always returned false.
         EventControllerFocus windowFocus = new EventControllerFocus();
@@ -2086,13 +2134,14 @@ public:
         }
         if (gsSettings.getBoolean(SETTINGS_PROMPT_ON_NEW_SESSION_KEY)) {
             SessionProperties sp = new SessionProperties(this, gsSettings.getString(SETTINGS_SESSION_NAME_KEY), profileUUID);
-            scope (exit) {
+            // GTK4: no Dialog.run(); the result arrives in the response signal.
+            sp.connectResponse(delegate(int response, Dialog d) {
+                if (response == ResponseType.Ok) {
+                    createSession(sp.name, sp.profileUUID, workingDir);
+                }
                 sp.destroy();
-            }
-            sp.showAll();
-            if (sp.run() == ResponseType.Ok) {
-                createSession(sp.name, sp.profileUUID, workingDir);
-            }
+            });
+            sp.present();
         } else {
             createSession(gsSettings.getString(SETTINGS_SESSION_NAME_KEY), profileUUID, workingDir);
         }
@@ -2261,11 +2310,11 @@ public:
         evNotifications.append(lblNotifications);
         evNotifications.getStyleContext().addClass("ttyx-notification-count");
 
-        afNotifications = new AspectFrame(null, 0.5, 0.5, 1.0, false);
+        afNotifications = new AspectFrame(0.5, 0.5, 1.0, false);
         // GTK4: GtkShadowType is gone (AspectFrame has no shadow); Bin.add -> setChild.
         afNotifications.setChild(evNotifications);
 
-        add(afNotifications);
+        append(afNotifications);
 
         stTitle = new Stack();
 
@@ -2330,26 +2379,25 @@ public:
             stTitle.addNamed(lblEditBox, PAGE_EDIT);
         }
 
-        add(stTitle);
+        append(stTitle);
 
         imgNewOutput = Image.newFromIconName("view-list-symbolic");
-        imgNewOutput.setNoShowAll(true);
+        imgNewOutput.setVisible(false);
         imgNewOutput.setTooltipText(_("New output displayed"));
 
-        add(imgNewOutput);
+        append(imgNewOutput);
 
 		button = Button.newFromIconName("window-close-symbolic");
         button.getStyleContext().addClass("ttyx-small-button");
-		button.setRelief(ReliefStyle.None);
+		button.setHasFrame(false);
 		button.setFocusOnClick(false);
         button.setTooltipText(_("Close session"));
 
 		button.connectClicked(&closeClicked);
 
-        add(button);
+        append(button);
 
         stTitle.setVisibleChildName(PAGE_LABEL);
-        showAll();
     }
 
     void clear() {
@@ -2392,12 +2440,11 @@ public:
     void updatePositionType(PositionType position) {
         if (position == PositionType.Left || position == PositionType.Right) {
             setOrientation(Orientation.Vertical);
-            lblText.setAngle(position==PositionType.Left?90:270);
+            // GTK4: labels cannot be rotated; side tabs keep horizontal text.
             lblText.setHexpand(false);
             lblText.setVexpand(true);
         } else {
             setOrientation(Orientation.Horizontal);
-            lblText.setAngle(0);
             lblText.setHexpand(true);
             lblText.setVexpand(false);
         }

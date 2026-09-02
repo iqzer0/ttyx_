@@ -254,7 +254,7 @@ public:
         createUI();
         connectDestroy(delegate() {
             removeTimeout();
-            gsSettings.destroy();
+            gsSettings = null; // GTK4/giD: no ObjectG.destroy; dropping the reference releases it
             gsSettings = null;
         });
     }

@@ -33,9 +33,9 @@ import gx.ttyx.terminal.state;
 /// Initialize GTK once for all integration tests in this module.
 shared static this() {
     try {
-        // giD has no gtk.Main.init wrapper; raw gtk_init(null, null) inits GTK
+        // giD has no gtk.Main.init wrapper; raw gtk_init() inits GTK
         // with no args (see app.d). Fails gracefully with no display.
-        gtk_init(null, null);
+        gtk_init();
     } catch (Exception e) {
         // GTK init failed (no display) — integration tests will be skipped
         // via the gtkInitialized flag

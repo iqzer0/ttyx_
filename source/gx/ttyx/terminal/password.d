@@ -287,29 +287,33 @@ private:
         Button btnNew = Button.newWithLabel(_("New"));
         btnNew.connectClicked(delegate() {
             PasswordDialog pd = new PasswordDialog(this);
-            scope (exit) {pd.clearSensitiveFields(); pd.destroy();}
-            pd.showAll();
-            if (pd.run() == ResponseType.Ok) {
-                trace("Schema name is " ~ schema.name);
-                tracef("Storing password, label=%s",pd.label);
-                Cancellable c = new Cancellable();
-                //We could potentially have many password operations on the go, use random key
-                string uuid = randomUUID().toString();
-                pending[uuid] = c;
-                string[string] attributes = [ATTRIBUTE_ID: uuid, ATTRIBUTE_DESCRIPTION: DESCRIPTION_VALUE];
-                passwordStoreAsync(schema, attributes, DEFAULT_COLLECTION, pd.label, pd.password, c,
-                    delegate(ObjectWrap sourceObject, AsyncResult res) {
-                        trace("passwordCallback called");
-                        try {
-                            passwordStoreFinish(res);
-                            pending.remove(uuid);
-                            trace("Re-loading entries");
-                            reload();
-                        } catch (ErrorWrap ge) {
-                            trace("Error occurred: " ~ ge.msg);
-                        }
-                    });
-            }
+            // GTK4: no Dialog.run(); the result arrives in the response signal.
+            pd.connectResponse(delegate(int response, Dialog d) {
+                if (response == ResponseType.Ok) {
+                    trace("Schema name is " ~ schema.name);
+                    tracef("Storing password, label=%s",pd.label);
+                    Cancellable c = new Cancellable();
+                    //We could potentially have many password operations on the go, use random key
+                    string uuid = randomUUID().toString();
+                    pending[uuid] = c;
+                    string[string] attributes = [ATTRIBUTE_ID: uuid, ATTRIBUTE_DESCRIPTION: DESCRIPTION_VALUE];
+                    passwordStoreAsync(schema, attributes, DEFAULT_COLLECTION, pd.label, pd.password, c,
+                        delegate(ObjectWrap sourceObject, AsyncResult res) {
+                            trace("passwordCallback called");
+                            try {
+                                passwordStoreFinish(res);
+                                pending.remove(uuid);
+                                trace("Re-loading entries");
+                                reload();
+                            } catch (ErrorWrap ge) {
+                                trace("Error occurred: " ~ ge.msg);
+                            }
+                        });
+                }
+                pd.clearSensitiveFields();
+                pd.destroy();
+            });
+            pd.present();
         });
         bButtons.append(btnNew);
 
@@ -319,24 +323,27 @@ private:
             if (selected !is null) {
                 string id = getValueString(ls, selected, COLUMN_ID);
                 PasswordDialog pd = new PasswordDialog(this, getValueString(ls, selected, COLUMN_NAME), "");
-                scope(exit) {pd.clearSensitiveFields(); pd.destroy();}
-                pd.showAll();
-                if (pd.run() == ResponseType.Ok) {
-                    Item[] items = collection.getItems();
-                    foreach (item; items) {
-                        if (item.getSchemaName() == SCHEMA_NAME || item.getSchemaName() == LEGACY_SCHEMA_NAME) {
-                            string itemID = item.getAttributes().get(ATTRIBUTE_ID, null);
-                            trace("ItemID " ~ itemID);
-                            if (id == itemID) {
-                                trace("Modifying item...");
-                                item.setLabelSync(pd.label, null);
-                                item.setSecretSync(new SecretValue(pd.password, "text/plain"), null);
-                                reload();
-                                break;
+                pd.connectResponse(delegate(int response, Dialog d) {
+                    if (response == ResponseType.Ok) {
+                        Item[] items = collection.getItems();
+                        foreach (item; items) {
+                            if (item.getSchemaName() == SCHEMA_NAME || item.getSchemaName() == LEGACY_SCHEMA_NAME) {
+                                string itemID = item.getAttributes().get(ATTRIBUTE_ID, null);
+                                trace("ItemID " ~ itemID);
+                                if (id == itemID) {
+                                    trace("Modifying item...");
+                                    item.setLabelSync(pd.label, null);
+                                    item.setSecretSync(new SecretValue(pd.password, "text/plain"), null);
+                                    reload();
+                                    break;
+                                }
                             }
                         }
                     }
-                }
+                    pd.clearSensitiveFields();
+                    pd.destroy();
+                });
+                pd.present();
             }
         });
         bButtons.append(btnEdit);
@@ -576,7 +583,7 @@ private:
 
         lblMatch = new Label("Password does not match confirmation");
         lblMatch.setSensitive(false);
-        lblMatch.setNoShowAll(true);
+        lblMatch.setVisible(false);
         lblMatch.setHalign(Align.Center);
         grid.attach(lblMatch, 1, row, 1, 1);
 
@@ -585,7 +592,7 @@ private:
             setMarginEnd(18);
             setMarginTop(18);
             setMarginBottom(18);
-            add(grid);
+            append(grid);
         }
         updateUI();
         eLabel.connectChanged(&entryChanged);

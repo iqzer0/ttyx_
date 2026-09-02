@@ -137,11 +137,11 @@ public:
         Label lblInfo = new Label(_("Active options are always in effect and apply immediately.\nSession Load options only apply when loading a session file."));
         lblInfo.setSensitive(false);
         lblInfo.setMarginTop(6);
-        lblInfo.setLineWrap(true);
+        lblInfo.setWrap(true);
         grid.attach(lblInfo, 0, row, 2, 1);
         row++;
 
-        getContentArea().add(grid);
+        getContentArea().append(grid);
     }
 
     override @property string title() nothrow {

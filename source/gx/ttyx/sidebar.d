@@ -84,8 +84,8 @@ import gtk.list_box_row : ListBoxRow;
 import gtk.overlay : Overlay;
 import gtk.revealer : Revealer;
 import gtk.scrolled_window : ScrolledWindow;
-import gtk.types : Align, Orientation, PolicyType, ReliefStyle,
-                   RevealerTransitionType, SelectionMode, ShadowType;
+import gtk.types : Align, Orientation, PolicyType, 
+                   RevealerTransitionType, SelectionMode;
 import gtk.widget : Widget;
 import gtk.widget_paintable : WidgetPaintable;
 import gtk.window : Window;
@@ -207,7 +207,7 @@ private:
             lbSessions.insert(source, index);
         } else {
             if (index == cast(int) childWidgets(lbSessions).length - 1) {
-                lbSessions.add(source);
+                lbSessions.append(source);
             } else {
                 lbSessions.insert(source, index + 1);
             }
@@ -362,15 +362,12 @@ public:
         //lbSessions.addOnKeynavFailed(&onKeyNavFailed);
 
         sw = new ScrolledWindow();
-        sw.add(lbSessions);
+        sw.setChild(lbSessions);
         sw.setPolicy(PolicyType.Never, PolicyType.Automatic);
-        sw.setShadowType(ShadowType.In);
+        sw.setHasFrame(true);
 
         sw.connectUnmap(delegate() {
-           if (hasGrab()) {
-                grabRemove();
-                trace("** Unmapped, Removing Sidebar Grab");
-           }
+            // GTK4: gtk_grab_add/remove are gone (see setRevealChild).
             hide();
         });
         sw.connectMap(delegate() {
@@ -388,7 +385,7 @@ public:
             });
         }, Yes.After);
 
-        add(sw);
+        setChild(sw);
     }
 
     /**
@@ -422,21 +419,19 @@ public:
                 // Releases sidebar reference so it can be GC'ed
                 row.release();
 
-                // Doesn't actually need the destroy but doesn't hurt
-                // and provides extra layer of safety
-                row.destroy();
+                // GTK4: no gtk_widget_destroy; removing the row from the list
+                // releases it.
             }
         } else {
             for (size_t i = rows.length; i < sessions.length; i++) {
                 SideBarRow row = new SideBarRow(this, sessions[i], notifications, width, height);
                 row.sessionIndex = i + 1;
-                lbSessions.add(row);
+                lbSessions.append(row);
                 if (sessions[i].uuid == currentSessionUUID) {
                     lbSessions.selectRow(row);
                 }
             }
         }
-        lbSessions.showAll();
     }
 
     override void setRevealChild(bool revealChild) nothrow {
@@ -445,17 +440,12 @@ public:
         try {
             if (revealChild) {
                 trace("** Show sidebar");
-                if (!hasGrab()) {
-                    grabAdd();
-                    trace("** Getting Sidebar Grab");
-                }
+                // GTK4 removed gtk_grab_add, which the GTK3 build used so that a
+                // click outside the sidebar dismissed it. Documented regression
+                // (docs/gtk4-wp0-status.md); the sidebar action still toggles it.
                 lbSessions.getSelectedRow().grabFocus();
             } else {
                 trace("** Hide sidebar");
-                if (hasGrab()) {
-                    grabRemove();
-                    trace("** Removing Sidebar Grab");
-                }
             }
         } catch (Exception e) {
             // Logging failure only, never expected
@@ -529,12 +519,11 @@ private:
 
 
     AspectFrame wrapWidget(Widget widget, string cssClass) {
-        AspectFrame af = new AspectFrame(null, 0.5, 0.5, 1.0, false);
-        af.setShadowType(ShadowType.None);
+        AspectFrame af = new AspectFrame(0.5, 0.5, 1.0, false);
         if (cssClass.length > 0) {
             af.getStyleContext().addClass(cssClass);
         }
-        af.add(widget);
+        af.setChild(widget);
         return af;
     }
 
@@ -543,13 +532,9 @@ private:
         setAllMargins(overlay, 2);
         Pixbuf pb = getWidgetImage(session.drawable, 0.20, width, height);
         img = Image.newFromPixbuf(pb);
-        scope(exit) {
-            pb.destroy();
-        }
         Frame imgframe = new Frame();
-        imgframe.add(img);
-        imgframe.setShadowType(ShadowType.In);
-        overlay.add(imgframe);
+        imgframe.setChild(img);
+        overlay.setChild(imgframe);
         //Create Notification and Session Numbers
         Grid grid = new Grid();
         setAllMargins(grid, 4);
@@ -564,7 +549,7 @@ private:
         evNotification = new Box(Orientation.Horizontal, 0);
         evNotification.append(lblNCount);
         afNotification = wrapWidget(evNotification, "ttyx-notification-count");
-        afNotification.setNoShowAll(true);
+        afNotification.setVisible(false);
         grid.attach(afNotification, 0, 2, 1, 1);
 
         Label leftSpacer = new Label("");
@@ -577,8 +562,8 @@ private:
         grid.attach(midSpacer, 1, 1, 1, 1);
 
         lblName = new Label("");
-        lblName.setMarginLeft(2);
-        lblName.setMarginRight(2);
+        lblName.setMarginStart(2);
+        lblName.setMarginEnd(2);
         lblName.setEllipsize(EllipsizeMode.End);
         lblName.setHalign(Align.Center);
         lblName.setHexpand(true);
@@ -586,7 +571,7 @@ private:
         lblName.getStyleContext().addClass("ttyx-session-name");
         Box b = new Box(Orientation.Horizontal, 4);
         b.setHexpand(true);
-        b.add(lblName);
+        b.append(lblName);
         grid.attach(b, 1, 2, 1, 1);
 
         lblIndex = new Label(format("%d", 0));
@@ -600,7 +585,7 @@ private:
         btnClose = Button.newFromIconName("window-close-symbolic");
         btnClose.getStyleContext().addClass("ttyx-sidebar-close-button");
         btnClose.setTooltipText(_("Close"));
-        btnClose.setRelief(ReliefStyle.None);
+        btnClose.setHasFrame(false);
         btnClose.setFocusOnClick(false);
         grid.attach(btnClose, 2, 0, 1, 1);
 
@@ -639,9 +624,6 @@ private:
 
     void updateUI(Session session, SessionNotification[string] notifications, int width, int height) {
         Pixbuf pb = getWidgetImage(session.drawable, 0.20, width, height);
-        scope(exit) {
-            pb.destroy();
-        }
         img.setFromPixbuf(pb);
         // Fix #1637
         _sessionUUID = session.uuid;

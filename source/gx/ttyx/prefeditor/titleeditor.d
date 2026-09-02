@@ -173,7 +173,7 @@ public:
         setHexpand(true);
         createUI(tes);
         connectDestroy(delegate() {
-            sagVariables.destroy();
+            sagVariables = null; // GTK4/giD: no ObjectG.destroy; dropping the reference releases it
             sagVariables = null;
         });
     }

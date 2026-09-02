@@ -82,21 +82,24 @@ public:
 /**
  * Prompts the user to confirm that processes can be closed
  */
-bool promptCanCloseProcesses(GSettings gsSettings, Window window, ProcessInformation pi) {
-    if (!gsSettings.getBoolean(SETTINGS_PROMPT_ON_CLOSE_PROCESS_KEY)) return true;
+void promptCanCloseProcesses(GSettings gsSettings, Window window, ProcessInformation pi, void delegate(bool canClose) then) {
+    if (!gsSettings.getBoolean(SETTINGS_PROMPT_ON_CLOSE_PROCESS_KEY)) { then(true); return; }
 
+    // GTK4: no Dialog.run(); the answer goes through the continuation, which
+    // is invoked synchronously when no prompt is needed.
     CloseDialog dialog = new CloseDialog(window, pi);
-    scope(exit) { dialog.destroy();}
-    dialog.showAll();
-    int result =  dialog.run();
-    if (result == ResponseType.Ok && dialog.futureIgnore) {
-        gsSettings.setBoolean(SETTINGS_PROMPT_ON_CLOSE_PROCESS_KEY, false);
-    }
+    dialog.connectResponse(delegate(int result, Dialog d) {
+        if (result == ResponseType.Ok && dialog.futureIgnore) {
+            gsSettings.setBoolean(SETTINGS_PROMPT_ON_CLOSE_PROCESS_KEY, false);
+        }
 
-    // Weird looking code, exists because of the way hotkeys get interpreted into results, it's
-    // easier to check if the result is not OK
-    bool cancelClose = (result != ResponseType.Ok);
-    return !cancelClose;
+        // Weird looking code, exists because of the way hotkeys get interpreted into results, it's
+        // easier to check if the result is not OK
+        bool cancelClose = (result != ResponseType.Ok);
+        dialog.destroy();
+        then(!cancelClose);
+    });
+    dialog.present();
 }
 
 private:

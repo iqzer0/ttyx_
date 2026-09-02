@@ -68,6 +68,7 @@ import std.typecons : Yes;
 
 import gdk.rgba : RGBA;
 
+import gio.file : File;
 import gio.settings : GSettings = Settings;
 import gio.types : SettingsBindFlags;
 
@@ -84,11 +85,14 @@ import gtk.check_button : CheckButton;
 import gtk.color_button : ColorButton;
 import gtk.combo_box : ComboBox;
 import gtk.combo_box_text : ComboBoxText;
+import gtk.dialog : Dialog;
 import gtk.entry : Entry;
 import gtk.file_chooser_dialog : FileChooserDialog;
 import gtk.file_filter : FileFilter;
 import gtk.font_button : FontButton;
-import gtk.global : checkVersion, mainIterationDo;
+import gtk.global : checkVersion;
+
+import glib.main_context : MainContext;
 import gtk.grid : Grid;
 import gtk.image : Image;
 import gtk.label : Label;
@@ -105,7 +109,7 @@ import gtk.tree_model : TreeModel;
 import gtk.tree_view : TreeView;
 import gtk.tree_view_column : TreeViewColumn;
 import gtk.types : Align, FileChooserAction, Orientation, PolicyType,
-                   ResponseType, ShadowType, SizeGroupMode;
+                   ResponseType, SizeGroupMode;
 import gtk.widget : Widget;
 import gtk.window : Window;
 
@@ -155,7 +159,7 @@ private:
             nb.appendPage(new BadgePage(), new Label(_("Badge")));
         }
         nb.appendPage(new AdvancedPage(), new Label(_("Advanced")));
-        add(nb);
+        append(nb);
     }
 
     ProfilePage getPage(int index) {
@@ -200,7 +204,7 @@ public:
         for(int i=0; i<nb.getNPages(); i++) {
             getPage(i).unbind();
         }
-        gsProfile.destroy();
+        gsProfile = null; // GTK4/giD: no ObjectG.destroy; dropping the reference releases it
         gsProfile = null;
         profile = ProfileInfo(false, null, null);
     }
@@ -319,23 +323,23 @@ protected:
         bh.bind(SETTINGS_PROFILE_SIZE_ROWS_KEY, sbRow, "value", SettingsBindFlags.Default);
 
         Box box = new Box(Orientation.Horizontal, 5);
-        box.add(sbColumn);
+        box.append(sbColumn);
         Label lblColumns = new Label(_("columns"));
         if (checkVersion(3, 16, 0).length == 0) {
             lblColumns.setXalign(0.0);
         }
-        lblColumns.setMarginRight(6);
+        lblColumns.setMarginEnd(6);
         lblColumns.setSensitive(false);
-        box.add(lblColumns);
+        box.append(lblColumns);
 
-        box.add(sbRow);
+        box.append(sbRow);
         Label lblRows = new Label(_("rows"));
         if (checkVersion(3, 16, 0).length == 0) {
             lblRows.setXalign(0.0);
         }
-        lblRows.setMarginRight(6);
+        lblRows.setMarginEnd(6);
         lblRows.setSensitive(false);
-        box.add(lblRows);
+        box.append(lblRows);
 
         Button btnReset = Button.newWithLabel(_("Reset"));
         btnReset.connectClicked(delegate() {
@@ -343,7 +347,7 @@ protected:
            gsProfile.reset(SETTINGS_PROFILE_SIZE_ROWS_KEY);
 
         });
-        box.add(btnReset);
+        box.append(btnReset);
         grid.attach(box, 1, row, 1, 1);
         row++;
 
@@ -358,30 +362,30 @@ protected:
             bh.bind(SETTINGS_PROFILE_CELL_HEIGHT_SCALE_KEY, sbHeightSpacing, "value", SettingsBindFlags.Default);
 
             Box bSpacing = new Box(Orientation.Horizontal, 5);
-            bSpacing.add(sbWidthSpacing);
+            bSpacing.append(sbWidthSpacing);
             Label lblWidthSpacing = new Label(_("width"));
             if (checkVersion(3, 16, 0).length == 0) {
                 lblWidthSpacing.setXalign(0.0);
             }
-            lblWidthSpacing.setMarginRight(6);
+            lblWidthSpacing.setMarginEnd(6);
             lblWidthSpacing.setSensitive(false);
-            bSpacing.add(lblWidthSpacing);
+            bSpacing.append(lblWidthSpacing);
 
-            bSpacing.add(sbHeightSpacing);
+            bSpacing.append(sbHeightSpacing);
             Label lblHeightSpacing = new Label(_("height"));
             if (checkVersion(3, 16, 0).length == 0) {
                 lblHeightSpacing.setXalign(0.0);
             }
-            lblHeightSpacing.setMarginRight(6);
+            lblHeightSpacing.setMarginEnd(6);
             lblHeightSpacing.setSensitive(false);
-            bSpacing.add(lblHeightSpacing);
+            bSpacing.append(lblHeightSpacing);
 
             Button btnSpacingReset = Button.newWithLabel(_("Reset"));
             btnSpacingReset.connectClicked(delegate() {
                 gsProfile.reset(SETTINGS_PROFILE_CELL_WIDTH_SCALE_KEY);
                 gsProfile.reset(SETTINGS_PROFILE_CELL_WIDTH_SCALE_KEY);
             });
-            bSpacing.add(btnSpacingReset);
+            bSpacing.append(btnSpacingReset);
             grid.attach(bSpacing, 1, row, 1, 1);
             row++;
 
@@ -437,7 +441,7 @@ protected:
         CheckButton cbCustomFont = new CheckButton();
         bh.bind(SETTINGS_PROFILE_USE_SYSTEM_FONT_KEY, cbCustomFont, "active",
                 cast(SettingsBindFlags)(SettingsBindFlags.Default | SettingsBindFlags.InvertBoolean));
-        bFont.add(cbCustomFont);
+        bFont.append(cbCustomFont);
 
         //Font Selector
         FontButton fbFont = new FontButton();
@@ -445,7 +449,7 @@ protected:
         bh.bind(SETTINGS_PROFILE_FONT_KEY, fbFont, "font-name", SettingsBindFlags.Default);
         bh.bind(SETTINGS_PROFILE_USE_SYSTEM_FONT_KEY, fbFont, "sensitive",
                 cast(SettingsBindFlags)(SettingsBindFlags.Get | SettingsBindFlags.NoSensitivity | SettingsBindFlags.InvertBoolean));
-        bFont.add(fbFont);
+        bFont.append(fbFont);
         grid.attach(bFont, 1, row, 1, 1);
         row++;
 
@@ -501,7 +505,7 @@ protected:
         grid.attach(cbBell, 1, row, 1, 1);
         row++;
 
-        add(grid);
+        append(grid);
     }
 
 public:
@@ -591,8 +595,8 @@ private:
         Box bScheme = new Box(Orientation.Horizontal, 6);
         bScheme.setHalign(Align.Fill);
         bScheme.setHexpand(true);
-        bScheme.add(cbScheme);
-        bScheme.add(btnExport);
+        bScheme.append(cbScheme);
+        bScheme.append(btnExport);
 
         grid.attach(bScheme, 1, row, 1, 1);
         row++;
@@ -613,7 +617,7 @@ private:
         grid.attach(createOptions(), 1, row, 1, 1);
         row++;
 
-        add(grid);
+        append(grid);
     }
 
     Widget createOptions() {
@@ -624,14 +628,14 @@ private:
         bh.bind(SETTINGS_PROFILE_USE_THEME_COLORS_KEY, cbUseThemeColors, "active", SettingsBindFlags.Default);
 
         MenuButton mbAdvanced = new MenuButton();
-        mbAdvanced.add(createBox(Orientation.Horizontal, 6, [cast(Widget) new Label(_("Advanced")), Image.newFromIconName("pan-down-symbolic")]));
+        mbAdvanced.setChild(createBox(Orientation.Horizontal, 6, [cast(Widget) new Label(_("Advanced")), Image.newFromIconName("pan-down-symbolic")]));
         mbAdvanced.setPopover(createPopover(mbAdvanced));
-        box.add(createBox(Orientation.Horizontal, 6, [cast(Widget) cbUseThemeColors, mbAdvanced]));
+        box.append(createBox(Orientation.Horizontal, 6, [cast(Widget) cbUseThemeColors, mbAdvanced]));
 
         if (checkVTEVersion(VTE_VERSION_BOLD_IS_BRIGHT)) {
             CheckButton cbBoldIsBright = CheckButton.newWithLabel(_("Show bold text in bright colors"));
             bh.bind(SETTINGS_PROFILE_BOLD_IS_BRIGHT_KEY, cbBoldIsBright, "active", SettingsBindFlags.Default);
-            box.add(cbBoldIsBright);
+            box.append(cbBoldIsBright);
         }
 
         Grid gSliders = new Grid();
@@ -667,7 +671,7 @@ private:
         bh.bind(SETTINGS_PROFILE_DIM_TRANSPARENCY_KEY, sDim.getAdjustment(), "value", SettingsBindFlags.Default);
         gSliders.attach(sDim, 1, row, 1, 1);
 
-        box.add(gSliders);
+        box.append(gSliders);
         return box;
     }
 
@@ -696,7 +700,7 @@ private:
             return result;
         }
 
-        Popover popAdvanced = new Popover(widget);
+        Popover popAdvanced = new Popover();
 
         Grid gColors = new Grid();
         gColors.setColumnSpacing(6);
@@ -755,8 +759,7 @@ private:
             gColors.attach(cbBadgeFG, 1, row, 1, 1);
         }
 
-        gColors.showAll();
-        popAdvanced.add(gColors);
+        popAdvanced.setChild(gColors);
         return popAdvanced;
     }
 
@@ -1000,19 +1003,17 @@ private:
         FileChooserDialog fcd = FileChooserDialog.builder()
             .action(FileChooserAction.Save)
             .title(_("Export Color Scheme"))
-            .transientFor(cast(Window)this.getToplevel())
+            .transientFor(cast(Window)this.getRoot())
             .build();
         fcd.addButton(_("Save"), ResponseType.Ok);
         fcd.addButton(_("Cancel"), ResponseType.Cancel);
-        scope (exit)
-            fcd.destroy();
 
         string path = buildPath(getUserConfigDir(), APPLICATION_CONFIG_FOLDER, SCHEMES_FOLDER);
         if (!exists(path)) {
             mkdirRecurse(path);
         }
 
-        fcd.setCurrentFolder(path);
+        fcd.setCurrentFolder(File.newForPath(path));
 
         FileFilter ff = new FileFilter();
         ff.addPattern("*.json");
@@ -1023,18 +1024,20 @@ private:
         ff.setName(_("All Files"));
         fcd.addFilter(ff);
 
-        fcd.setDoOverwriteConfirmation(true);
         fcd.setDefaultResponse(ResponseType.Ok);
         fcd.setCurrentName("Custom.json");
 
-        if (fcd.run() == ResponseType.Ok) {
-            string filename = fcd.getFilename();
-            ColorScheme scheme = getColorSchemeFromUI();
-            scheme.save(filename);
-            reload();
-        } else {
-            return;
-        }
+        // GTK4: no Dialog.run(), and the chooser confirms overwrites itself.
+        fcd.connectResponse(delegate(int response, Dialog d) {
+            if (response == ResponseType.Ok) {
+                string filename = fcd.getFile().getPath();
+                ColorScheme scheme = getColorSchemeFromUI();
+                scheme.save(filename);
+                reload();
+            }
+            fcd.destroy();
+        });
+        fcd.present();
     }
 
     void reload() {
@@ -1044,7 +1047,10 @@ private:
             cbScheme.append(scheme.id, scheme.name);
         }
         cbScheme.append("custom", _("Custom"));
-        mainIterationDo(false);
+        // GTK4 removed gtk_main_iteration_do, but GLib's main-context iteration
+        // it wrapped is unchanged; drain pending events exactly as before so the
+        // combo has settled before its selection is initialised.
+        MainContext.default_().iteration(false);
         initColorSchemeCombo();
     }
 
@@ -1078,15 +1084,15 @@ private:
     void createUI() {
         CheckButton cbShowScrollbar = CheckButton.newWithLabel(_("Show scrollbar"));
         bh.bind(SETTINGS_PROFILE_SHOW_SCROLLBAR_KEY, cbShowScrollbar, "active", SettingsBindFlags.Default);
-        add(cbShowScrollbar);
+        append(cbShowScrollbar);
 
         CheckButton cbScrollOnOutput = CheckButton.newWithLabel(_("Scroll on output"));
         bh.bind(SETTINGS_PROFILE_SCROLL_ON_OUTPUT_KEY, cbScrollOnOutput, "active", SettingsBindFlags.Default);
-        add(cbScrollOnOutput);
+        append(cbScrollOnOutput);
 
         CheckButton cbScrollOnKeystroke = CheckButton.newWithLabel(_("Scroll on keystroke"));
         bh.bind(SETTINGS_PROFILE_SCROLL_ON_INPUT_KEY, cbScrollOnKeystroke, "active", SettingsBindFlags.Default);
-        add(cbScrollOnKeystroke);
+        append(cbScrollOnKeystroke);
 
         Label lblScrollback = new Label(_("Scrollback lines:"));
         lblScrollback.setHalign(Align.Start);
@@ -1094,9 +1100,9 @@ private:
         bh.bind(SETTINGS_PROFILE_SCROLLBACK_LINES_KEY, sbScrollbackSize, "value", SettingsBindFlags.Default);
 
         Box b = new Box(Orientation.Horizontal, 12);
-        b.add(lblScrollback);
-        b.add(sbScrollbackSize);
-        add(b);
+        b.append(lblScrollback);
+        b.append(sbScrollbackSize);
+        append(b);
     }
 
 public:
@@ -1162,7 +1168,7 @@ private:
         grid.attach(cbCJK, 1, row, 1, 1);
         row++;
 
-        add(grid);
+        append(grid);
     }
 
 public:
@@ -1180,34 +1186,34 @@ private:
     void createUI() {
         CheckButton cbLoginShell = CheckButton.newWithLabel(_("Run command as a login shell"));
         bh.bind(SETTINGS_PROFILE_LOGIN_SHELL_KEY, cbLoginShell, "active", SettingsBindFlags.Default);
-        add(cbLoginShell);
+        append(cbLoginShell);
 
         CheckButton cbCustomCommand = CheckButton.newWithLabel(_("Run a custom command instead of my shell"));
         bh.bind(SETTINGS_PROFILE_USE_CUSTOM_COMMAND_KEY, cbCustomCommand, "active", SettingsBindFlags.Default);
-        add(cbCustomCommand);
+        append(cbCustomCommand);
 
         Box bCommand = new Box(Orientation.Horizontal, 12);
-        bCommand.setMarginLeft(12);
+        bCommand.setMarginStart(12);
         Label lblCommand = new Label(_("Command"));
         bh.bind(SETTINGS_PROFILE_USE_CUSTOM_COMMAND_KEY, lblCommand, "sensitive",
                 cast(SettingsBindFlags)(SettingsBindFlags.Get | SettingsBindFlags.NoSensitivity));
-        bCommand.add(lblCommand);
+        bCommand.append(lblCommand);
         Entry eCommand = new Entry();
         eCommand.setHexpand(true);
         bh.bind(SETTINGS_PROFILE_CUSTOM_COMMAND_KEY, eCommand, "text", SettingsBindFlags.Default);
         bh.bind(SETTINGS_PROFILE_USE_CUSTOM_COMMAND_KEY, eCommand, "sensitive",
                 cast(SettingsBindFlags)(SettingsBindFlags.Get | SettingsBindFlags.NoSensitivity));
-        bCommand.add(eCommand);
-        add(bCommand);
+        bCommand.append(eCommand);
+        append(bCommand);
 
         Box bWhenExits = new Box(Orientation.Horizontal, 12);
         Label lblWhenExists = new Label(_("When command exits"));
-        bWhenExits.add(lblWhenExists);
+        bWhenExits.append(lblWhenExists);
         ComboBox cbWhenExists = createNameValueCombo([_("Exit the terminal"), _("Restart the command"), _("Hold the terminal open")], SETTINGS_PROFILE_EXIT_ACTION_VALUES);
         bh.bind(SETTINGS_PROFILE_EXIT_ACTION_KEY, cbWhenExists, "active-id", SettingsBindFlags.Default);
-        bWhenExits.add(cbWhenExists);
+        bWhenExits.append(cbWhenExists);
 
-        add(bWhenExits);
+        append(bWhenExits);
     }
 
 public:
@@ -1262,7 +1268,7 @@ class BadgePage: ProfilePage {
         CheckButton cbCustomFont = new CheckButton();
         bh.bind(SETTINGS_PROFILE_BADGE_USE_SYSTEM_FONT_KEY, cbCustomFont, "active",
                 cast(SettingsBindFlags)(SettingsBindFlags.Default | SettingsBindFlags.InvertBoolean));
-        bFont.add(cbCustomFont);
+        bFont.append(cbCustomFont);
 
         //Font Selector
         FontButton fbFont = new FontButton();
@@ -1270,11 +1276,11 @@ class BadgePage: ProfilePage {
         bh.bind(SETTINGS_PROFILE_BADGE_FONT_KEY, fbFont, "font-name", SettingsBindFlags.Default);
         bh.bind(SETTINGS_PROFILE_BADGE_USE_SYSTEM_FONT_KEY, fbFont, "sensitive",
                 cast(SettingsBindFlags)(SettingsBindFlags.Get | SettingsBindFlags.NoSensitivity | SettingsBindFlags.InvertBoolean));
-        bFont.add(fbFont);
+        bFont.append(fbFont);
         grid.attach(bFont, 1, row, 1, 1);
         row++;
 
-        add(grid);
+        append(grid);
     }
 
 public:
@@ -1356,8 +1362,8 @@ private:
         tvValues.appendColumn(column);
 
         ScrolledWindow scValues = new ScrolledWindow();
-        scValues.add(tvValues);
-        scValues.setShadowType(ShadowType.EtchedIn);
+        scValues.setChild(tvValues);
+        scValues.setHasFrame(true);
         scValues.setPolicy(PolicyType.Never, PolicyType.Automatic);
         scValues.setHexpand(true);
 
@@ -1366,22 +1372,23 @@ private:
 
         btnAdd = Button.newWithLabel(_("Add"));
         btnAdd.connectClicked(delegate() {
-            string label, value;
+            string label;
             if (checkVTEFeature(TerminalFeature.EVENT_SCREEN_CHANGED)) {
                 label = _("Enter username@hostname:directory to match");
             } else {
                 label = _("Enter hostname:directory to match");
             }
-            if (showInputDialog(cast(Window)getToplevel(), value, "", _("Add New Match"), label, &validateInput)) {
+            // GTK4: the input dialog is asynchronous; the value arrives in the callback.
+            showInputDialog(cast(Window)getRoot(), "", _("Add New Match"), label, &validateInput, delegate(string value) {
                 TreeIter iter;
                 lsValues.append(iter);
                 lsValues.setValue(iter, 0, new Value(value));
                 storeValues();
                 selectRow(tvValues, lsValues.iterNChildren(null) - 1, null);
-            }
+            });
         });
 
-        bButtons.add(btnAdd);
+        bButtons.append(btnAdd);
 
         btnEdit = Button.newWithLabel(_("Edit"));
         btnEdit.connectClicked(delegate() {
@@ -1394,13 +1401,13 @@ private:
                 } else {
                     label = _("Edit hostname:directory to match");
                 }
-                if (showInputDialog(cast(Window)getToplevel(), value, value, _("Edit Match"), label, &validateInput)) {
-                    lsValues.setValue(iter, 0, new Value(value));
+                showInputDialog(cast(Window)getRoot(), value, _("Edit Match"), label, &validateInput, delegate(string newValue) {
+                    lsValues.setValue(iter, 0, new Value(newValue));
                     storeValues();
-                }
+                });
             }
         });
-        bButtons.add(btnEdit);
+        bButtons.append(btnEdit);
 
         btnDelete = Button.newWithLabel(_("Delete"));
         btnDelete.connectClicked(delegate() {
@@ -1410,12 +1417,12 @@ private:
                 storeValues();
             }
         });
-        bButtons.add(btnDelete);
+        bButtons.append(btnDelete);
 
         grid.attach(scValues, 0, row, 2, 1);
         grid.attach(bButtons, 2, row, 1, 1);
 
-        this.add(grid);
+        this.append(grid);
     }
 
     Widget createSilenceUI() {
@@ -1441,11 +1448,11 @@ private:
         Box bSilence = new Box(Orientation.Horizontal, 4);
         SpinButton sbSilence = SpinButton.newWithRange(0, 3600, 60);
         bh.bind(SETTINGS_PROFILE_NOTIFY_SILENCE_THRESHOLD_KEY, sbSilence, "value", SettingsBindFlags.Default);
-        bSilence.add(sbSilence);
+        bSilence.append(sbSilence);
 
         Label lblSilenceTime = new Label(_("(seconds)"));
         lblSilenceTime.setSensitive(false);
-        bSilence.add(lblSilenceTime);
+        bSilence.append(lblSilenceTime);
 
         grid.attach(bSilence, 1, row, 1, 1);
         row++;
