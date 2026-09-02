@@ -36,10 +36,7 @@ module gx.ttyx.customtitle;
 import std.experimental.logger;
 import std.typecons : Yes;
 
-import gdk.event_button : EventButton;
-import gdk.event_focus : EventFocus;
-import gdk.event_key : EventKey;
-import gdk.types : EventType, ModifierType, KEY_Escape, KEY_Return;
+import gdk.types : ModifierType, KEY_Escape, KEY_Return;
 
 import gid.basictypes : gulong;
 
@@ -52,7 +49,9 @@ import glib.types : PRIORITY_DEFAULT;
 import gobject.global : signalHandlerBlock, signalHandlerUnblock;
 
 import gtk.entry : Entry;
-import gtk.event_box : EventBox;
+import gtk.event_controller_focus : EventControllerFocus;
+import gtk.event_controller_key : EventControllerKey;
+import gtk.gesture_click : GestureClick;
 import gtk.global : checkVersion;
 import gtk.label : Label;
 import gtk.stack : Stack;
@@ -62,7 +61,6 @@ import gtk.widget : Widget;
 import pango.types : EllipsizeMode;
 
 import gx.gtk.util;
-import gx.gtk.events;
 import gx.i18n.l10n;
 
 import gx.ttyx.common;
@@ -83,7 +81,7 @@ private:
     enum PAGE_EDIT = "edit";
 
     Entry eTitle;
-    EventBox eb;
+    EventControllerFocus focusController;
     Label lblTitle;
 
     uint timeoutID;
@@ -104,18 +102,24 @@ private:
         lblTitle.setHalign(Align.Center);
         lblTitle.getStyleContext().addClass("title");
         lblTitle.setEllipsize(EllipsizeMode.Start);
-        eb = new EventBox();
-        connectGdkEvent!EventButton(eb, "button-press-event", &onButtonPress);
-        connectGdkEvent!EventButton(eb, "button-release-event", &onButtonRelease);
-        eb.add(lblTitle);
-        eb.setHalign(Align.Fill);
-        addNamed(eb, PAGE_LABEL);
+        // GTK4: GtkEventBox is gone — any widget takes controllers directly, so
+        // the label itself carries the click gesture. setButton(1) restricts it
+        // to the primary button, which replaces the `event.button != PRIMARY`
+        // checks the GTK3 handlers opened with.
+        GestureClick clickGesture = new GestureClick();
+        clickGesture.setButton(1);
+        clickGesture.connectPressed(&onButtonPress);
+        clickGesture.connectReleased(&onButtonRelease);
+        lblTitle.addController(clickGesture);
+        lblTitle.setHalign(Align.Fill);
+        addNamed(lblTitle, PAGE_LABEL);
 
         eTitle = new Entry();
         eTitle.setWidthChars(5);
         eTitle.setHexpand(true);
-        connectGdkEvent!EventKey(eTitle, "key-press-event", delegate bool(EventKey event, Widget widget) {
-            switch (event.keyval) {
+        EventControllerKey keyController = new EventControllerKey();
+        keyController.connectKeyPressed(delegate bool(uint keyval, uint keycode, ModifierType state, EventControllerKey c) {
+            switch (keyval) {
                 case KEY_Escape:
                     setViewMode(ViewMode.LABEL);
                     onCancelEdit.emit();
@@ -128,7 +132,13 @@ private:
             }
             return false;
         });
-        focusOutHandlerId = connectGdkEvent!EventFocus(eTitle, "focus-out-event", &onFocusOut, Yes.After);
+        eTitle.addController(keyController);
+        // GTK4: focus-out-event -> EventControllerFocus.leave. The handler ID is
+        // kept for block/unblock, but note it now belongs to the CONTROLLER —
+        // signalHandlerBlock must be given focusController, not eTitle.
+        focusController = new EventControllerFocus();
+        focusOutHandlerId = focusController.connectLeave(&onFocusOut, Yes.After);
+        eTitle.addController(focusController);
         if (checkVersion(3, 16, 0).length == 0) {
             titleEditor = createTitleEditHelper(eTitle, TitleEditScope.WINDOW);
             titleEditor.onPopoverShow.connect(&onPopoverShow);
@@ -140,15 +150,18 @@ private:
         setViewMode(ViewMode.LABEL);
     }
 
-    bool onButtonRelease(EventButton event, Widget widget) {
+    void onButtonRelease(int nPress, double x, double y, GestureClick gesture) {
         trace("Button release");
-        if (event.button != MouseButton.PRIMARY || !buttonDown) {
+        // The gesture is bound to the primary button via setButton(1), so the
+        // GTK3 `event.button != PRIMARY` check is implied.
+        if (!buttonDown) {
             tracef("Ignoring release %b", buttonDown);
-            return false;
+            return;
         }
-        if (controlRequired && !(event.state & ModifierType.ControlMask)) {
-            tracef("No control modifier, ignoring: %d", event.state);
-             return false;
+        ModifierType state = gesture.getCurrentEventState();
+        if (controlRequired && !(state & ModifierType.ControlMask)) {
+            tracef("No control modifier, ignoring: %d", state);
+            return;
         }
         removeTimeout();
 
@@ -160,13 +173,11 @@ private:
             return false;
         });
         buttonDown = false;
-        return false;
     }
 
-    bool onButtonPress(EventButton event, Widget widget) {
-        if (event.button != MouseButton.PRIMARY) return false;
-
-        if (event.type == EventType.DoubleButtonPress) {
+    void onButtonPress(int nPress, double x, double y, GestureClick gesture) {
+        // GTK4: double-click is nPress == 2, not a separate event type.
+        if (nPress == 2) {
             trace("Double click press");
             buttonDown = false;
             removeTimeout();
@@ -174,15 +185,13 @@ private:
             trace("Single click press");
             buttonDown = true;
         }
-        return false;
     }
 
-    bool onFocusOut(EventFocus event, Widget widget) {
+    void onFocusOut(EventControllerFocus controller) {
         trace("Focus out");
         removeTimeout();
         setViewMode(ViewMode.LABEL);
         onCancelEdit.emit();
-        return false;
     }
 
     enum ViewMode {LABEL, EDITOR}
@@ -224,12 +233,12 @@ private:
 
     void onPopoverShow() {
         trace("Popover showing");
-        signalHandlerBlock(eTitle, focusOutHandlerId);
+        signalHandlerBlock(focusController, focusOutHandlerId);
     }
 
     void onPopoverClosed() {
         trace("Popover closing");
-        signalHandlerUnblock(eTitle, focusOutHandlerId);
+        signalHandlerUnblock(focusController, focusOutHandlerId);
     }
 
 public:

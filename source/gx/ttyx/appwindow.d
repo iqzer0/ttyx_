@@ -90,20 +90,17 @@ import cairo.surface : Surface;
 import cairo.types : Filter, FontSlant, FontWeight, TextExtents;
 
 import gdk.event : Event;
-import gdk.event_button : EventButton;
-import gdk.event_focus : EventFocus;
-import gdk.event_key : EventKey;
-import gdk.event_scroll : EventScroll;
-import gdk.event_window_state : EventWindowState;
+import gdk.toplevel : Toplevel;
 import gdk.rectangle : Rectangle;
 import gdk.rgba : RGBA;
-import gdk.screen : Screen;
-import gdk.types : EventMask, EventType, Gravity, KEY_Escape, KEY_Return, ModifierType, ScrollDirection, WindowState;
-import gdk.visual : Visual;
+import gdk.display : Display;
+import gdk.monitor : Monitor;
+import gdk.types : EventMask, Gravity, KEY_Escape, KEY_Return, ModifierType, ToplevelState;
 
 import gid.basictypes : gulong;
 import gid.gid : No, Yes;
 
+import gio.list_model : ListModel;
 import gio.menu : GMenu = Menu;
 import gio.menu_item : GMenuItem = MenuItem;
 import gio.notification : Notification;
@@ -116,6 +113,8 @@ import glib.variant : GVariant = Variant;
 
 import gobject.c.functions : g_object_new;
 import gobject.global : signalHandlerBlock, signalHandlerUnblock;
+import gobject.object : ObjectWrap;
+import gobject.param_spec : ParamSpec;
 
 import gtk.application : Application;
 import gtk.application_window : ApplicationWindow;
@@ -124,7 +123,10 @@ import gtk.box : Box;
 import gtk.button : Button;
 import gtk.dialog : Dialog;
 import gtk.entry : Entry;
-import gtk.event_box : EventBox;
+import gtk.event_controller_focus : EventControllerFocus;
+import gtk.event_controller_key : EventControllerKey;
+import gtk.event_controller_scroll : EventControllerScroll;
+import gtk.gesture_click : GestureClick;
 import gtk.file_chooser_dialog : FileChooserDialog;
 import gtk.file_filter : FileFilter;
 import gtk.global : checkVersion;
@@ -138,8 +140,8 @@ import gtk.overlay : Overlay;
 import gtk.popover : Popover;
 import gtk.stack : Stack;
 import gtk.toggle_button : ToggleButton;
-import gtk.types : Allocation, ButtonsType, FileChooserAction, MessageType, Orientation, PositionType,
-    ReliefStyle, ResponseType, ShadowType;
+import gtk.types : Allocation, ButtonsType, EventControllerScrollFlags, EventSequenceState, FileChooserAction,
+    MessageType, Orientation, PositionType, ReliefStyle, ResponseType, ShadowType;
 import gtk.widget : Widget;
 import gtk.window : Window;
 import gtk.window_group : WindowGroup;
@@ -150,7 +152,6 @@ import gx.gtk.actions;
 import gx.gtk.cairo;
 import gx.gtk.widgetimage;
 import gx.gtk.dialog;
-import gx.gtk.events;
 import gx.gtk.threads;
 import gx.gtk.util;
 import gx.i18n.l10n;
@@ -402,17 +403,19 @@ private:
             tbSideBar.setFocusOnClick(false);
             tbSideBar.setActionName(getActionDetailedName("win", ACTION_WIN_SIDEBAR));
             tbSideBar.connectDraw(&drawSideBarBadge, Yes.After);
-            connectGdkEvent!EventScroll(tbSideBar, "scroll-event", delegate(EventScroll event, Widget w) {
-                ScrollDirection direction = event.direction;
-
-                if (direction == ScrollDirection.Up) {
+            // GTK4: scroll-event -> EventControllerScroll. There is no direction
+            // enum any more; the callback receives signed deltas, so "up" is a
+            // negative dy. Vertical-only, since that is all this ever handled.
+            EventControllerScroll sidebarScroll = new EventControllerScroll(EventControllerScrollFlags.Vertical);
+            sidebarScroll.connectScroll(delegate bool(double dx, double dy, EventControllerScroll c) {
+                if (dy < 0) {
                     focusPreviousSession();
-                } else if (direction == ScrollDirection.Down) {
+                } else if (dy > 0) {
                     focusNextSession();
                 }
-
                 return false;
             });
+            tbSideBar.addController(sidebarScroll);
             tbSideBar.addEvents(cast(int) EventMask.ScrollMask);
 
             bSessionButtons = new Box(Orientation.Horizontal, 0);
@@ -538,7 +541,8 @@ private:
 
         registerActionWithSettings(this, "win", ACTION_WIN_FULLSCREEN, gsShortcuts, delegate(GVariant value, SimpleAction sa) {
             trace("Setting fullscreen");
-            if (getWindow() !is null && ((getWindow().getState() & WindowState.Fullscreen) == WindowState.Fullscreen)) {
+            // GTK4: GdkWindow is gone; the window exposes fullscreened directly.
+            if (fullscreened) {
                 unfullscreen();
                 sa.setState(new GVariant(false));
             } else {
@@ -797,16 +801,10 @@ private:
      * This is required to get terminal transparency working
      */
     void updateVisual() {
-        Screen screen = getScreen();
-        Visual visual = screen.getRgbaVisual();
-        if (visual && screen.isComposited()) {
-            trace("Setting rgba visual");
-            setVisual(visual);
-            setAppPaintable(true);
-        } else {
-            setVisual(screen.getSystemVisual());
-            setAppPaintable(false);
-        }
+        // GTK4: GdkVisual, gtk_widget_set_visual and set_app_paintable are all
+        // gone. Windows are always alpha-capable and compositing is the
+        // compositor's business, so there is nothing to select here. Kept as a
+        // no-op so the two call sites need no change.
     }
 
     void createNewSession(string name, string profileUUID, string workingDir) {
@@ -1320,15 +1318,26 @@ private:
                 getCurrentSession().focusTerminal(1);
             }
         } else if (tilix.getGlobalOverrides().geometry.flag == GeometryFlag.NONE && !isWayland(this) && gsSettings.getBoolean(SETTINGS_WINDOW_SAVE_STATE_KEY)) {
-            WindowState state = cast(WindowState)gsSettings.getInt(SETTINGS_WINDOW_STATE_KEY);
-            if (state & WindowState.Maximized) {
+            // GTK4: the persisted value is now a GdkToplevelState bitmask.
+            //
+            // MIGRATION HAZARD: this key was written by GTK3 builds as a
+            // GdkWindowState, and the two enums use DIFFERENT bit values —
+            // GTK3 Iconified=2/Maximized=4/Sticky=8/Fullscreen=16 versus GTK4
+            // Minimized=1/Maximized=2/Sticky=4/Fullscreen=8. A value saved by
+            // GTK3 is therefore misread here: a window last saved minimized (2)
+            // restores maximized, and one saved maximized (4) restores sticky.
+            // It self-corrects on the first save under GTK4, so the exposure is
+            // one launch per upgrading user. A schema-version bump that resets
+            // or translates this key at release time is the proper fix.
+            ToplevelState state = cast(ToplevelState) gsSettings.getInt(SETTINGS_WINDOW_STATE_KEY);
+            if (state & ToplevelState.Maximized) {
                 maximize();
-            } else if (state & WindowState.Iconified) {
+            } else if (state & ToplevelState.Minimized) {
                 iconify();
-            } else if (state & WindowState.Fullscreen) {
+            } else if (state & ToplevelState.Fullscreen) {
                 fullscreen();
             }
-            if (state & WindowState.Sticky) {
+            if (state & ToplevelState.Sticky) {
                 stick();
             }
         }
@@ -1339,6 +1348,21 @@ private:
             applyPreference(SETTINGS_QUAKE_HEIGHT_PERCENT_KEY);
         } else {
             handleGeometry();
+        }
+    }
+
+    void onWindowStateChanged(ParamSpec pspec, ObjectWrap obj) {
+        trace("Window state changed");
+        if (fullscreened) {
+            trace("Window state is fullscreen");
+        }
+        if (!isQuake() && gsSettings.getBoolean(SETTINGS_WINDOW_SAVE_STATE_KEY)) {
+            Toplevel toplevel = cast(Toplevel) getSurface();
+            if (toplevel !is null) {
+                // Written as GdkToplevelState bits — see the restore path for
+                // why that differs from what GTK3 builds wrote.
+                gsSettings.setInt(SETTINGS_WINDOW_STATE_KEY, cast(int) toplevel.state);
+            }
         }
     }
 
@@ -1438,48 +1462,54 @@ private:
     }
 
     void moveAndSizeQuake() {
-        if (getWindow() is null) return;
+        if (getSurface() is null) return;
         Rectangle rect;
         getQuakePosition(rect);
-        trace("Actually move/resize quake window");
-        if (getWindow() !is null) {
-            getWindow().moveResize(rect.x, rect.y, rect.width, rect.height);
-        } else {
-            move(rect.x, rect.y);
-            resize(rect.width, rect.height);
-        }
+        // GTK4 (WP5): there is NO client-side window positioning any more —
+        // gtk_window_move, gdk_window_move_resize and their like are all gone,
+        // on every backend. The size half of the computed rectangle can still
+        // be applied; the placement half (bottom/top edge, left/centre/right
+        // alignment) cannot be expressed through GTK at all and needs a
+        // protocol-level solution (xdg-positioner / wlr-layer-shell), which
+        // the ROADMAP already tracks. Until then the quake window is sized but
+        // placed by the compositor.
+        trace("Sizing quake window; placement is not available on GTK4 (WP5)");
+        setDefaultSize(rect.width, rect.height);
     }
 
     void getQuakePosition(out Rectangle rect) {
         bool wayland = isWayland(this);
-        Screen screen = getScreen();
 
-        int monitor = screen.getPrimaryMonitor();
-        if (!wayland) {
-            if (gsSettings.getBoolean(SETTINGS_QUAKE_ACTIVE_MONITOR_KEY)) {
-                int x, y = 0;
-                ModifierType mask;
-                Screen tempScreen;
-                screen.getDisplay().getPointer(tempScreen, x, y, mask);
-                if (tempScreen !is null) {
-                    monitor = tempScreen.getMonitorAtPoint(x, y);
-                } else if (screen.getActiveWindow() !is null) {
-                    monitor = screen.getMonitorAtWindow(screen.getActiveWindow());
-                }
-            } else {
-                int altMonitor = gsSettings.getInt(SETTINGS_QUAKE_SPECIFIC_MONITOR_KEY);
-                if (altMonitor>=0 && altMonitor < getScreen().getNMonitors()) {
-                    monitor = altMonitor;
-                } else {
-                    monitor = getScreen().getPrimaryMonitor();
-                }
+        // GTK4 (WP5): GdkScreen is gone and with it three things this relied on.
+        //  - There is no primary-monitor concept; monitors are a plain list, so
+        //    index 0 is the default.
+        //  - There is no pointer query (gdk_display_get_pointer) and no
+        //    "active window" query, so SETTINGS_QUAKE_ACTIVE_MONITOR_KEY —
+        //    "open on the monitor the mouse is on" — cannot be honoured. The
+        //    GTK3 code already skipped it under Wayland; it is now unavailable
+        //    everywhere and falls through to the specific/default monitor.
+        //  - There is no workarea API; getGeometry is the full monitor, so
+        //    panels are no longer subtracted.
+        Display display = Display.getDisplay();
+        ListModel monitors = display.getMonitors();
+        uint monitorCount = monitors.getNItems();
+        int monitor = 0;
+        if (!wayland && !gsSettings.getBoolean(SETTINGS_QUAKE_ACTIVE_MONITOR_KEY)) {
+            int altMonitor = gsSettings.getInt(SETTINGS_QUAKE_SPECIFIC_MONITOR_KEY);
+            if (altMonitor >= 0 && altMonitor < cast(int) monitorCount) {
+                monitor = altMonitor;
             }
         }
-        screen.getMonitorWorkarea(monitor, rect);
+        if (monitorCount == 0) {
+            warning("No monitors reported by the display; cannot size quake window");
+            return;
+        }
+        Monitor mon = cast(Monitor) monitors.getItem(cast(uint) monitor);
+        mon.getGeometry(rect);
         tracef("Monitor geometry: monitor=%d, x=%d, y=%d, width=%d, height=%d", monitor, rect.x, rect.y, rect.width, rect.height);
 
         // Wayland works with screen factor natively whereas X11 does not
-        int scaleFactor = screen.getMonitorScaleFactor(monitor);
+        int scaleFactor = mon.getScaleFactor();
         if (wayland && scaleFactor > 1) {
             rect.width = rect.width / scaleFactor;
             rect.height = rect.height / scaleFactor;
@@ -1857,7 +1887,10 @@ public:
             }
         }, Yes.After);
         connectCompositedChanged(&onCompositedChanged);
-        connectGdkEvent!EventFocus(this, "focus-out-event", delegate(EventFocus e, Widget widget) {
+        // GTK4: focus-in/out-event -> EventControllerFocus enter/leave. The
+        // callbacks return void; the GTK3 handlers always returned false.
+        EventControllerFocus windowFocus = new EventControllerFocus();
+        windowFocus.connectLeave(delegate void(EventControllerFocus c) {
             if (isQuake && gsSettings.getBoolean(SETTINGS_QUAKE_HIDE_LOSE_FOCUS_KEY)) {
                 Window window = tilix.getActiveWindow();
                 if (window !is null) {
@@ -1866,7 +1899,7 @@ public:
                         tracef("Top level windows = %d", toplevels.length);
                         foreach(Widget child; toplevels) {
                             Dialog dialog = cast(Dialog)child;
-                            if (dialog !is null && dialog.getTransientFor() !is null && dialog.getTransientFor()._cPtr is this._cPtr) return false;
+                            if (dialog !is null && dialog.getTransientFor() !is null && dialog.getTransientFor()._cPtr is this._cPtr) return;
                         }
                     }
                 }
@@ -1881,9 +1914,8 @@ public:
                     return false;
                 });
             }
-            return false;
         }, Yes.After);
-        connectGdkEvent!EventFocus(this, "focus-in-event", delegate(EventFocus e, Widget widget) {
+        windowFocus.connectEnter(delegate void(EventControllerFocus c) {
             // if we're restoring focus to quake window, we want to keep it open
             removeTimeout();
 
@@ -1891,18 +1923,13 @@ public:
             if (getCurrentSession() !is null) {
                 getCurrentSession().withdrawNotification();
             }
-            return false;
         });
-        connectGdkEvent!EventWindowState(this, "window-state-event", delegate(EventWindowState state, Widget widget) {
-            trace("Window state changed");
-            if ((state.newWindowState & WindowState.Fullscreen) == WindowState.Fullscreen) {
-                trace("Window state is fullscreen");
-            }
-            if (getWindow() !is null && !isQuake() && gsSettings.getBoolean(SETTINGS_WINDOW_SAVE_STATE_KEY)) {
-                gsSettings.setInt(SETTINGS_WINDOW_STATE_KEY, cast(int) getWindow().getState());
-            }
-            return false;
-        });
+        addController(windowFocus);
+        // GTK4: window-state-event is gone. Maximized and fullscreen are plain
+        // properties on GtkWindow, so watch those; the full bitmask to persist
+        // comes from the GdkToplevel behind the surface.
+        connectNotify("maximized", &onWindowStateChanged, Yes.After);
+        connectNotify("fullscreened", &onWindowStateChanged, Yes.After);
         handleGeometry();
     }
 
@@ -2168,7 +2195,8 @@ public:
      */
     override void hide() nothrow {
         if (_quake) {
-            if (getWindow() !is null && ((getWindow().getState() & WindowState.Fullscreen) == WindowState.Fullscreen)) {
+            // GTK4: GdkWindow is gone; the window exposes fullscreened directly.
+            if (fullscreened) {
                 unfullscreen();
                 wasFullscreen = true;
             } else {
@@ -2184,7 +2212,7 @@ public:
     override void present() nothrow {
         super.present();
         if (_quake) {
-            if (getWindow() !is null && wasFullscreen) {
+            if (getSurface() !is null && wasFullscreen) {
                 wasFullscreen = false;
                 fullscreen();
             }
@@ -2199,13 +2227,12 @@ class SessionTabLabel: Box {
 
 private:
 	Button button;
-    EventBox evNotifications;
+    Box evNotifications;
     AspectFrame afNotifications;
 	Label lblText;
     Label lblNotifications;
 	Session session;
     Image imgNewOutput;
-    EventBox lblBox;
     Entry lblEditBox;
     Stack stTitle;
 
@@ -2228,13 +2255,15 @@ public:
         lblNotifications.setWidthChars(2);
         setAllMargins(lblNotifications, 4);
 
-        evNotifications = new EventBox();
-        evNotifications.add(lblNotifications);
+        // GTK4: GtkEventBox is gone. This one carried nothing but a CSS class,
+        // so a plain Box does the same job.
+        evNotifications = new Box(Orientation.Horizontal, 0);
+        evNotifications.append(lblNotifications);
         evNotifications.getStyleContext().addClass("ttyx-notification-count");
 
         afNotifications = new AspectFrame(null, 0.5, 0.5, 1.0, false);
-        afNotifications.setShadowType(ShadowType.None);
-        afNotifications.add(evNotifications);
+        // GTK4: GtkShadowType is gone (AspectFrame has no shadow); Bin.add -> setChild.
+        afNotifications.setChild(evNotifications);
 
         add(afNotifications);
 
@@ -2246,34 +2275,40 @@ public:
         updatePositionType(position);
 
 
-        // double clicking the EventBox will hide the EventBox and show the lblEditBox
-        lblBox = new EventBox();
-        lblBox.add(lblText);
-        connectGdkEvent!EventButton(lblBox, "button-press-event", delegate(EventButton event, Widget w) {
-            if (event.type == EventType.DoubleButtonPress && event.button == MouseButton.PRIMARY) {
+        // Double-clicking the label switches to the edit entry. GTK4: the
+        // EventBox wrapper is gone — the label takes the gesture itself.
+        // setButton(1) restricts it to the primary button; a double-click is
+        // nPress == 2; and because pressed returns void, the GTK3 `return true`
+        // becomes an explicit claim of the event sequence.
+        GestureClick titleClick = new GestureClick();
+        titleClick.setButton(1);
+        titleClick.connectPressed(delegate void(int nPress, double x, double y, GestureClick g) {
+            if (nPress == 2) {
                 lblEditBox.setText(session.name());
                 stTitle.setVisibleChildName(PAGE_EDIT);
                 lblEditBox.grabFocus();
-                return true;
+                g.setState(EventSequenceState.Claimed);
             }
-            return false;
         });
-        stTitle.addNamed(lblBox, PAGE_LABEL);
+        lblText.addController(titleClick);
+        stTitle.addNamed(lblText, PAGE_LABEL);
 
         // when done editing the Entry, hide the Entry and show the lblBox again
         lblEditBox = new Entry();
         lblEditBox.setHexpand(true);
-        connectGdkEvent!EventFocus(lblEditBox, "focus-out-event", delegate(EventFocus event, Widget w) {
+        EventControllerFocus editFocus = new EventControllerFocus();
+        editFocus.connectLeave(delegate void(EventControllerFocus c) {
             string text = lblEditBox.getText().strip();
             if (text.length == 0)
-                return false; // GDK_EVENT_PROPAGATE
+                return;
 
             session.name(text);
             stTitle.setVisibleChildName(PAGE_LABEL);
-            return false; // GDK_EVENT_PROPAGATE
         });
-        connectGdkEvent!EventKey(lblEditBox, "key-press-event", delegate (EventKey event, Widget widget) {
-            switch (event.keyval) {
+        lblEditBox.addController(editFocus);
+        EventControllerKey editKeys = new EventControllerKey();
+        editKeys.connectKeyPressed(delegate bool(uint keyval, uint keycode, ModifierType state, EventControllerKey c) {
+            switch (keyval) {
                 case KEY_Escape:
                     stTitle.setVisibleChildName(PAGE_LABEL);
                     return true;
@@ -2288,6 +2323,7 @@ public:
             }
             return false;
         });
+        lblEditBox.addController(editKeys);
         if (checkVersion(3, 16, 0).length == 0) {
             stTitle.addNamed(createTitleEditHelper(lblEditBox, TitleEditScope.SESSION), PAGE_EDIT);
         } else {

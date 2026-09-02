@@ -49,8 +49,6 @@ import std.typecons : Yes;
 
 import gdk.atom : Atom;
 import gdk.drag_context : DragContext;
-import gdk.event_button : EventButton;
-import gdk.event_key : EventKey;
 import gdk.screen : Screen;
 import gdk.types : DragAction, ModifierType, KEY_0, KEY_9, KEY_Escape, KEY_Page_Down, KEY_Page_Up;
 import gdk.window : GdkWindow = Window;
@@ -73,6 +71,8 @@ import gtk.global : dragSetIconWidget;
 import gtk.grid : Grid;
 import gtk.image : Image;
 import gtk.label : Label;
+import gtk.event_controller_key : EventControllerKey;
+import gtk.gesture_click : GestureClick;
 import gtk.list_box : ListBox;
 import gtk.list_box_row : ListBoxRow;
 import gtk.overlay : Overlay;
@@ -95,7 +95,6 @@ import gx.i18n.l10n;
 
 static import gx.util.array;
 import gx.gtk.threads;
-import gx.gtk.events;
 
 import gx.ttyx.common;
 import gx.ttyx.preferences;
@@ -132,24 +131,24 @@ private:
         onSessionDetach.emit(sessionUUID, x, y);
     }
 
-    bool onButtonPress(EventButton event, Widget w) {
+    void onButtonPress(int nPress, double x, double y, GestureClick gesture) {
         trace("** Sidebar button press");
-        // If button press happened outside of sidebar close it
-        // Modified since DND uses eventbox so additional windows in play
-        if (event.window !is null && lbSessions.getWindow() !is null) {
-            if (event.window._cPtr == getWindow()._cPtr || event.window._cPtr == lbSessions.getWindow()._cPtr) {
-                return false;
-            }
-            GdkWindow[] windows = lbSessions.getWindow().getChildren();
-            foreach(window; windows) {
-                if (event.window._cPtr == window._cPtr) {
-                    return false;
-                }
-            }
-        }
-        trace("Close on button press");
-        notifySessionSelected(null);
-        return false;
+        // GTK3 decided whether to close by comparing event.window against this
+        // widget's and the list's GdkWindows (and the list's children), closing
+        // only for a press on some *other* window that had bubbled up here.
+        //
+        // GTK4 has no per-widget GdkWindow and a GestureClick on `this` fires
+        // only for presses inside this widget's subtree — exactly the set of
+        // presses the GTK3 code ignored. So a press reaching this handler is by
+        // construction one that should NOT close the sidebar, and there is
+        // nothing to do.
+        //
+        // The other half — "a press outside the sidebar closes it" — can no
+        // longer be observed from here at all. It has to be re-homed on the
+        // containing widget (see appwindow.d), e.g. a GestureClick in the
+        // CAPTURE phase on the overlay, testing whether the press landed within
+        // the sidebar's bounds. Until that lands, click-outside-to-dismiss is
+        // missing on GTK4.
     }
 
     void removeSession(string sessionUUID) {
@@ -212,11 +211,10 @@ private:
         lbSessions.selectRow(source);
     }
 
-    bool onKeyPress(EventKey event, Widget w) {
-        uint keyval = event.keyval;
+    bool onKeyPress(uint keyval, uint keycode, ModifierType state, EventControllerKey c) {
         switch (keyval) {
         case KEY_Page_Up:
-            if (event.state & ModifierType.ControlMask) {
+            if (state & ModifierType.ControlMask) {
                 SideBarRow source = cast(SideBarRow)lbSessions.getSelectedRow();
                 if (source is null) {
                     trace("No selected row");
@@ -231,7 +229,7 @@ private:
             }
             break;
         case KEY_Page_Down:
-            if (event.state & ModifierType.ControlMask) {
+            if (state & ModifierType.ControlMask) {
                 trace("Moving row down");
                 SideBarRow source = cast(SideBarRow)lbSessions.getSelectedRow();
                 if (source is null) {
@@ -239,7 +237,7 @@ private:
                     return true;
                 }
                 int index = source.getIndex();
-                if (index < lbSessions.getChildren().length - 1) {
+                if (index < cast(int) childWidgets(lbSessions).length - 1) {
                     SideBarRow target = cast(SideBarRow)lbSessions.getRowAtIndex(index + 1);
                     reorderSessions(source, target, true);
                 }
@@ -252,8 +250,9 @@ private:
         return false;
     }
 
-    bool onKeyRelease(EventKey event, Widget w) {
-        uint keyval = event.keyval;
+    // key-released returns void in GTK4; the GTK3 handler never consumed, so
+    // nothing is lost.
+    void onKeyRelease(uint keyval, uint keycode, ModifierType state, EventControllerKey c) {
         switch (keyval) {
         //If escape key is pressed, close sidebar
         case KEY_Escape:
@@ -276,7 +275,6 @@ private:
         default:
             //Ignore other keys
         }
-        return false;
     }
 
     /*
@@ -337,9 +335,14 @@ public:
             }
         });
 
-        connectGdkEvent!EventButton(this, "button-press-event", &onButtonPress);
-        connectGdkEvent!EventKey(this, "key-release-event", &onKeyRelease);
-        connectGdkEvent!EventKey(this, "key-press-event", &onKeyPress);
+        // GTK4: events arrive through controllers attached to the widget.
+        GestureClick clickGesture = new GestureClick();
+        clickGesture.connectPressed(&onButtonPress);
+        addController(clickGesture);
+        EventControllerKey keyController = new EventControllerKey();
+        keyController.connectKeyReleased(&onKeyRelease);
+        keyController.connectKeyPressed(&onKeyPress);
+        addController(keyController);
 
         setHexpand(false);
         setVexpand(true);

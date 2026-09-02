@@ -19,7 +19,7 @@
  *    the raw GdkEvent union (no wrapper accessor for boxed-event members).
  *  - `vte.onButtonPressEvent(event.button)` (GtkD class-handler call) is
  *    re-implemented by invoking GtkWidgetClass.buttonPressEvent directly
- *    (raw-C escape hatch, see vteDefaultButtonPress).
+ *    (raw-C escape hatch; vteDefaultButtonPress was removed in the GTK4 port).
  *  - Commit signal: giD's marshal is (string text, Terminal) — VTE's separate
  *    guint length arg is folded into text.length (only compiled when
  *    USE_COMMIT_SYNCHRONIZATION is enabled).
@@ -128,11 +128,6 @@ import gdk.c.types : GdkDragContext, GdkEvent, GdkEventButton;
 import gdk.display : Display;
 import gdk.drag_context : DragContext;
 import gdk.event : Event;
-import gdk.event_button : EventButton;
-import gdk.event_crossing : EventCrossing;
-import gdk.event_focus : EventFocus;
-import gdk.event_key : EventKey;
-import gdk.event_scroll : EventScroll;
 import gdk.rectangle : Rectangle;
 import gdk.rgba : RGBA;
 import gdk.screen : Screen;
@@ -163,6 +158,7 @@ import glib.variant : GVariant = Variant;
 import glib.variant_type : GVariantType = VariantType;
 
 import gobject.c.functions : g_object_new;
+import gobject.value : Value;
 import gobject.c.types : GTypeInstance;
 import gobject.global : signalHandlerBlock, signalHandlerDisconnect, signalHandlerUnblock;
 
@@ -171,10 +167,13 @@ import gtk.bin : Bin;
 import gtk.box : Box;
 import gtk.button : Button;
 import gtk.c.types : GtkWidget, GtkWidgetClass;
-import gtk.clipboard : Clipboard;
 import gtk.css_provider : CssProvider;
 import gtk.entry : Entry;
-import gtk.event_box : EventBox;
+import gtk.event_controller_focus : EventControllerFocus;
+import gtk.event_controller_key : EventControllerKey;
+import gtk.event_controller_motion : EventControllerMotion;
+import gtk.event_controller_scroll : EventControllerScroll;
+import gtk.gesture_click : GestureClick;
 import gtk.file_chooser_dialog : FileChooserDialog;
 import gtk.file_filter : FileFilter;
 import gtk.global : checkVersion, dragGetSourceWidget, dragSetIconPixbuf,
@@ -194,7 +193,8 @@ import gtk.style_context : StyleContext;
 import gtk.target_entry : TargetEntry;
 import gtk.target_list : TargetList;
 import gtk.toggle_button : ToggleButton;
-import gtk.types : Align, DestDefaults, DragResult, FileChooserAction, 
+import gtk.types : Align, DestDefaults, DragResult, EventControllerScrollFlags,
+    EventSequenceState, FileChooserAction,
     MessageType, Orientation, PolicyType, PositionType, ReliefStyle,
     ResponseType, StateFlags, TargetFlags, WindowType,
     STYLE_PROVIDER_PRIORITY_APPLICATION;
@@ -217,12 +217,11 @@ import gx.gtk.actions;
 import gx.gtk.cairo;
 import gx.gtk.widgetimage;
 import gx.gtk.color;
-import gx.gtk.clipboard;
+import gx.gtk.clipboard : ClipboardSelection, selectionClipboard;
 import gx.gtk.dialog;
 import gx.gtk.resource;
 import gx.gtk.util;
 import gx.gtk.vte;
-import gx.gtk.events;
 import gx.i18n.l10n;
 import gx.util.array;
 import gx.util.geometry : Point, pointInTriangle;
@@ -271,7 +270,10 @@ import gx.ttyx.terminal.activeprocess;
  * various event handlers defined in this Terminal widget. Note these event handlers
  * do not correspond to GTK signals, they are pure D code.
  */
-class Terminal : EventBox, ITerminal, ITerminalContext, ISyncInputEmitter {
+// GTK4: GtkEventBox is gone. Terminal only ever used it as a single-child
+// container that could receive events; in GTK4 any widget takes controllers,
+// so a vertical Box holding the one child is the direct equivalent.
+class Terminal : Box, ITerminal, ITerminalContext, ISyncInputEmitter {
 
 private:
 
@@ -442,7 +444,7 @@ private:
         createActions(sagTerminalActions);
 
         Box box = new Box(Orientation.Vertical, 0);
-        add(box);
+        append(box);
         // Create the title bar of the pane
         Widget titlePane = createTitlePane();
         box.add(titlePane);
@@ -483,11 +485,13 @@ private:
         mbTitle.setRelief(ReliefStyle.None);
         mbTitle.setFocusOnClick(false);
         mbTitle.setPopover(createPopover(mbTitle));
-        connectGdkEvent!EventButton(mbTitle, "button-press-event", delegate bool(EventButton event, Widget w) {
+        // GTK4: rebuild the menus when the button is pressed, via a gesture.
+        GestureClick titleMenuClick = new GestureClick();
+        titleMenuClick.connectPressed(delegate void(int nPress, double x, double y, GestureClick g) {
             buildProfileMenu();
             buildEncodingMenu();
-            return false;
         });
+        mbTitle.addController(titleMenuClick);
 
         mbTitle.add(bTitleLabel);
         mbTitle.connectShow(delegate(Widget w) {
@@ -559,30 +563,34 @@ private:
         spBell.getStyleContext().addClass("ttyx-bell");
         bTitle.packEnd(spBell, false, false, 0);
 
-        EventBox evtTitle = new EventBox();
-        evtTitle.add(bTitle);
-        //Handle double click for window state change
-        connectGdkEvent!EventButton(evtTitle, "button-press-event", delegate bool(EventButton event, Widget w) {
-            int childX, childY;
-            mbTitle.translateCoordinates(evtTitle, 0, 0, childX, childY);
+        // GTK4: GtkEventBox is gone; the title Box takes the gesture directly.
+        // setButton(0) means any button, so middle-click is distinguished via
+        // getCurrentButton(); a double-click is nPress == 2 rather than a
+        // separate event type. The GTK3 handler never consumed, so void is fine.
+        GestureClick titleBarClick = new GestureClick();
+        titleBarClick.setButton(0);
+        titleBarClick.connectPressed(delegate void(int nPress, double x, double y, GestureClick g) {
+            double childX, childY;
+            mbTitle.translateCoordinates(bTitle, 0, 0, childX, childY);
             //Ignore clicks propagated from Menu Button, see #215
-            if (event.x >= childX && event.x <= childX + mbTitle.getAllocatedWidth() && event.y >= childY
-                && event.y <= childY + mbTitle.getAllocatedHeight()) {
-                return false;
+            if (x >= childX && x <= childX + mbTitle.getAllocatedWidth() && y >= childY
+                && y <= childY + mbTitle.getAllocatedHeight()) {
+                return;
             }
-            if (event.type == EventType._2buttonPress && event.button == BUTTON_PRIMARY) {
+            uint button = g.getCurrentButton();
+            if (nPress == 2 && button == BUTTON_PRIMARY) {
                 toggleMaximize();
-            } else if (event.type == EventType.ButtonPress) {
-                if (event.button == BUTTON_MIDDLE && gsSettings.getBoolean(SETTINGS_MIDDLE_CLICK_CLOSE_KEY)) {
+            } else if (nPress == 1) {
+                if (button == BUTTON_MIDDLE && gsSettings.getBoolean(SETTINGS_MIDDLE_CLICK_CLOSE_KEY)) {
                     SimpleAction close = cast(SimpleAction) sagTerminalActions.lookupAction(ACTION_CLOSE);
                     close.activate(null);
                 } else {
                     vte.grabFocus();
                 }
             }
-            return false;
         });
-        return evtTitle;
+        bTitle.addController(titleBarClick);
+        return bTitle;
     }
 
     //Dynamically build the menus for selecting a profile
@@ -671,9 +679,9 @@ private:
                 }
             }
             if (gsSettings.getBoolean(SETTINGS_PASTE_ADVANCED_DEFAULT_KEY)) {
-                clipboardHandler.advancedPaste(GDK_SELECTION_CLIPBOARD);
+                clipboardHandler.advancedPaste(ClipboardSelection.clipboard);
             } else {
-                clipboardHandler.paste(GDK_SELECTION_CLIPBOARD);
+                clipboardHandler.paste(ClipboardSelection.clipboard);
             }
         });
 
@@ -688,15 +696,15 @@ private:
                 }
             }
             if (gsSettings.getBoolean(SETTINGS_PASTE_ADVANCED_DEFAULT_KEY)) {
-                clipboardHandler.advancedPaste(GDK_SELECTION_PRIMARY);
+                clipboardHandler.advancedPaste(ClipboardSelection.primary);
             } else {
-                clipboardHandler.paste(GDK_SELECTION_PRIMARY);
+                clipboardHandler.paste(ClipboardSelection.primary);
             }
         });
 
         saAdvancedPaste = registerActionWithSettings(group, ACTION_PREFIX, ACTION_ADVANCED_PASTE, gsShortcuts, delegate(GVariant value, SimpleAction sa) {
-            if (Clipboard.get(GDK_SELECTION_CLIPBOARD).waitIsTextAvailable()) {
-                clipboardHandler.advancedPaste(GDK_SELECTION_CLIPBOARD);
+            if (selectionClipboard(vte, ClipboardSelection.clipboard).getFormats().containMimeType("text/plain")) {
+                clipboardHandler.advancedPaste(ClipboardSelection.clipboard);
             }
         });
 
@@ -717,7 +725,9 @@ private:
         registerAction(group, ACTION_PREFIX, ACTION_COPY_LINK, null, delegate(GVariant value, SimpleAction sa) {
             if (match.match) {
                 // giD Clipboard.setText takes the D string only (no length).
-                Clipboard.get(GDK_SELECTION_CLIPBOARD).setText(match.match);
+                // GTK4: GdkClipboard has no setText; a GValue holding a string
+                // is the text content provider.
+                selectionClipboard(vte, ClipboardSelection.clipboard).set(new Value(match.match));
                 clipboardHandler.notifyExternalCopy();
             }
         });
@@ -1084,8 +1094,14 @@ private:
             }
         });
         vteHandlers ~= vte.connectCurrentFileUriChanged(delegate(VTE terminal) { trace("Current file is " ~ vte.getCurrentFileUri); });
-        vteHandlers ~= connectGdkEvent!EventFocus(vte, "focus-in-event", &onTerminalWidgetFocusIn);
-        vteHandlers ~= connectGdkEvent!EventFocus(vte, "focus-out-event", &onTerminalWidgetFocusOut);
+        // GTK4: focus via EventControllerFocus. Controller handler IDs are NOT
+        // added to vteHandlers: those are disconnected against `vte`, and these
+        // signals live on the controller, not the widget. Controllers are
+        // destroyed with the widget, so nothing leaks.
+        EventControllerFocus vteFocus = new EventControllerFocus();
+        vteFocus.connectEnter(&onTerminalWidgetFocusIn);
+        vteFocus.connectLeave(&onTerminalWidgetFocusOut);
+        vte.addController(vteFocus);
         vteHandlers ~= vte.addOnNotificationReceived(delegate(string summary, string _body, VTE terminal) {
             if (terminalInitialized && !terminal.hasFocus() && gpid > 0) {
                 notifyProcessNotification(summary, _body, uuid);
@@ -1156,53 +1172,66 @@ private:
         vteHandlers ~= vte.connectSizeAllocate(delegate() {
             updateDisplayText();
         }, Yes.After);
-        vteHandlers ~= connectGdkEvent!EventCrossing(vte, "enter-notify-event", delegate bool(EventCrossing event, Widget w) {
-            if (vte is null) return false;
+        // GTK4: enter-notify-event -> EventControllerMotion.enter.
+        EventControllerMotion vteMotion = new EventControllerMotion();
+        vteMotion.connectEnter(delegate void(double x, double y, EventControllerMotion c) {
+            if (vte is null) return;
 
             if (gsSettings.getBoolean(SETTINGS_TERMINAL_FOCUS_FOLLOWS_MOUSE_KEY)) {
                 vte.grabFocus();
             }
-            return false;
         }, Yes.After);
+        vte.addController(vteMotion);
 
-        vteHandlers ~= connectGdkEvent!EventButton(vte, "button-press-event", &onTerminalButtonPress);
-        vteHandlers ~= connectGdkEvent!EventKey(vte, "key-release-event", delegate bool(EventKey event, Widget widget) {
-            if (vte is null) return false;
+        // GTK4: button-press-event -> GestureClick, any button (setButton(0)).
+        GestureClick vteClick = new GestureClick();
+        vteClick.setButton(0);
+        vteClick.connectPressed(&onTerminalButtonPress);
+        vte.addController(vteClick);
+        // GTK4: key events via EventControllerKey. key-released returns void,
+        // so the GTK3 `return true` after feeding ^C is dropped — VTE acts on
+        // the press, not the release, so consuming the release changed nothing.
+        EventControllerKey vteKeys = new EventControllerKey();
+        vteKeys.connectKeyReleased(delegate void(uint keyval, uint keycode, ModifierType state, EventControllerKey c) {
+            if (vte is null) return;
 
             // If copy is assigned to control-c, check if VTE has selection and then
             // copy otherwise pass it on to VTE as interrupt
-            uint keyval = event.keyval;
-            if ((keyval == KEY_c) && (event.state & ModifierType.ControlMask)) {
+            if ((keyval == KEY_c) && (state & ModifierType.ControlMask)) {
                 string[] actions = tilix.getActionsForAccel("<Ctrl>c");
                 if (actions.length > 0 &&
                    (actions[0] == getActionDetailedName(ACTION_PREFIX,ACTION_COPY) || actions[0] == getActionDetailedName(ACTION_PREFIX,ACTION_COPY_AS_HTML)) &&
                    !vte.getHasSelection()) {
                     string controlc = "\u0003";
                     vte.feedChild(cast(ubyte[]) controlc.dup);
-                    return true;
                 }
             }
-            return false;
         });
-        vteHandlers ~= connectGdkEvent!EventKey(vte, "key-press-event", delegate bool(EventKey event, Widget widget) {
+        vteKeys.connectKeyPressed(delegate bool(uint keyval, uint keycode, ModifierType state, EventControllerKey c) {
             if (vte is null) return false;
 
-            if (event.keyval == KEY_Return && checkVTEFeature(TerminalFeature.EVENT_SCREEN_CHANGED) && currentScreen == TerminalScreen.NORMAL) {
+            if (keyval == KEY_Return && checkVTEFeature(TerminalFeature.EVENT_SCREEN_CHANGED) && currentScreen == TerminalScreen.NORMAL) {
                 glong row, column;
                 vte.getCursorPosition(column, row);
                 addPromptPosition(row);
                 tracef("Added prompt position %d", row);
             }
 
-            if (isSynchronizedInput() && event.sendEvent != SendEvent.SYNC) {
+            // WP9 — SYNCHRONIZED INPUT NEEDS A GTK4 REDESIGN.
+            // GTK3 marked replayed keystrokes with event.sendEvent = SYNC so a
+            // receiving terminal would not re-broadcast them. GTK4 events are
+            // immutable and carry no such flag, and the replay side
+            // (gtk_widget_event) no longer exists — see the SyncKeyPressEvent
+            // handler further down. Until sync is rebuilt on feedChild + escape
+            // sequences, this still EMITS but the receiving end cannot inject,
+            // and the guard against echo is gone too.
+            if (isSynchronizedInput()) {
                 static if (USE_COMMIT_SYNCHRONIZATION) {
                     // Only synchronize hard code VTE keys otherwise let commit event take care of it
-                    if (!isVTEHandledKeystroke(event.keyval, event.state)) return false;
+                    if (!isVTEHandledKeystroke(keyval, state)) return false;
                 }
-                tracef("Synchronizing key %d", event.keyval);
-                // giD's typed EventKey is a detached struct copy; fetch the
-                // full boxed event for the sync payload.
-                Event current = getCurrentEvent();
+                tracef("Synchronizing key %d", keyval);
+                Event current = c.getCurrentEvent();
                 if (current !is null) {
                     SyncInputEvent se = SyncKeyPressEvent(_terminalUUID, current);
                     onSyncInput.emit(this, se);
@@ -1210,6 +1239,7 @@ private:
             }
             return false;
         });
+        vte.addController(vteKeys);
 
         vteHandlers ~= vte.connectSelectionChanged(delegate(VTE terminal) {
             if (vte is null) return;
@@ -1840,15 +1870,14 @@ private:
 private:
 
     // Note this event is binded dynamically so no need to check control wheel preference here
-    bool onTerminalScroll(EventScroll event, Widget widget) {
-        if (vte !is null && (event.state & ModifierType.ControlMask) && !(event.state & ModifierType.ShiftMask) && !(event.state & ModifierType.Mod1Mask)) {
-            ScrollDirection zoomDirection = event.direction;
-            if (zoomDirection == ScrollDirection.Smooth) {
-                zoomDirection = (event.deltaY <= 0)?ScrollDirection.Up: ScrollDirection.Down;
-            }
-            if (zoomDirection == ScrollDirection.Up) {
+    bool onTerminalScroll(double dx, double dy, EventControllerScroll c) {
+        // GTK4: no direction enum; deltas are signed, "up" is negative dy.
+        // Modifiers come from the controller, not the event.
+        ModifierType state = c.getCurrentEventState();
+        if (vte !is null && (state & ModifierType.ControlMask) && !(state & ModifierType.ShiftMask) && !(state & ModifierType.Mod1Mask)) {
+            if (dy < 0) {
                 zoomIn();
-            } else if (zoomDirection == ScrollDirection.Down) {
+            } else if (dy > 0) {
                 zoomOut();
             }
             return true;
@@ -1968,9 +1997,10 @@ private:
         pmContext.bindModel(mmContext, null);
     }
 
-    public void checkHyperlinkMatch(Event event) {
+    public void checkHyperlinkMatch(double x, double y) {
         if (!checkVTEVersion(VTE_VERSION_HYPERLINK)) return;
-        string uri = vte.hyperlinkCheckEvent(event);
+        // GTK4 VTE: hyperlinkCheckEvent is gone; check by coordinates.
+        string uri = vte.checkHyperlinkAt(x, y);
         if (uri.length == 0) return;
         match.match = uri;
         match.flavor = TerminalURLFlavor.AS_IS;
@@ -2014,29 +2044,23 @@ private:
      * invoking class handlers, so this goes through GtkWidgetClass (raw-C
      * escape hatch).
      */
-    bool vteDefaultButtonPress(EventButton eb) {
-        auto instance = cast(GTypeInstance*) vte._cPtr;
-        auto klass = cast(GtkWidgetClass*) instance.gClass;
-        if (klass !is null && klass.buttonPressEvent !is null) {
-            return klass.buttonPressEvent(cast(GtkWidget*) vte._cPtr, cast(GdkEventButton*) eb._cPtr) != 0;
-        }
-        return false;
-    }
 
     /**
      * Signal received when mouse button is pressed in terminal
      */
-    bool onTerminalButtonPress(EventButton eb, Widget widget) {
+    void onTerminalButtonPress(int nPress, double x, double y, GestureClick g) {
 
-        // Find the matching regex that was clicked
-        void updateMatch(Event event) {
+        // Find the matching regex that was clicked. GTK4: VTE's event-based
+        // match APIs (matchCheckEvent / hyperlinkCheckEvent) are gone; the
+        // coordinate-based checkMatchAt / checkHyperlinkAt take the gesture's
+        // widget-relative x,y directly.
+        void updateMatch(double px, double py) {
             match.clear;
             int tag = -1;
-            if (event is null) return;
-            checkHyperlinkMatch(event);
+            checkHyperlinkMatch(px, py);
             // Check standard hyperlink if new hyperlink feature returns nothing
             if (match.match.length == 0) {
-                match.match = vte.matchCheckEvent(event, tag);
+                match.match = vte.checkMatchAt(px, py, tag);
                 tracef("Match event received %s", match.match);
             }
             if (match.match.length > 0) {
@@ -2050,62 +2074,71 @@ private:
             }
         }
 
-        if (vte is null) return false;
+        if (vte is null) return;
 
-        if (eb.type == EventType.ButtonPress) {
-            // giD's typed EventButton is a detached struct copy; VTE's
-            // Event-based match APIs and dragBegin get the live boxed event
-            // via gtk.global.getCurrentEvent() (a copy of this same event).
-            Event event = getCurrentEvent();
-            updateMatch(event);
-            switch (eb.button) {
-            case BUTTON_PRIMARY:
-                if ((eb.state & ModifierType.ControlMask) && match.match) {
-                    trace("Opening match");
-                    openURI(match);
-                    return true;
-                } else if (eb.state & ModifierType.Mod1Mask) {
-                    TargetList list = new TargetList([new TargetEntry(VTE_DND, TargetFlags.SameApp, DropTargets.VTE)]);
-                    dragBegin(list, DragAction.Move, BUTTON_PRIMARY, event);
-                    return true;
-                } else {
-                    return false;
-                }
-            case BUTTON_SECONDARY:
-                trace("Enabling actions");
-                if (!(eb.state & (ModifierType.ShiftMask | ModifierType.ControlMask | ModifierType.Mod1Mask)) && vteDefaultButtonPress(eb))
-                    return true;
+        // Single press only; a double-click is nPress == 2 and is left to VTE's
+        // own selection handling, as the GTK3 EventType.ButtonPress test did.
+        if (nPress != 1) return;
 
-                widget.grabFocus();
-                showContextPopover(eb);
-                return true;
-            case BUTTON_MIDDLE:
-                widget.grabFocus();
-                if (gsSettings.getBoolean(SETTINGS_PASTE_ADVANCED_DEFAULT_KEY)) {
-                    clipboardHandler.advancedPaste(GDK_SELECTION_PRIMARY);
-                } else {
-                    clipboardHandler.paste(GDK_SELECTION_PRIMARY);
-                }
-                return true;
-            default:
-                return false;
+        // pressed returns void in GTK4. Where the GTK3 handler returned true to
+        // stop VTE seeing the press, the sequence is claimed instead — an
+        // explicit act, since doing nothing lets VTE see the press exactly as
+        // returning false did.
+        updateMatch(x, y);
+        ModifierType state = g.getCurrentEventState();
+        switch (g.getCurrentButton()) {
+        case BUTTON_PRIMARY:
+            if ((state & ModifierType.ControlMask) && match.match) {
+                trace("Opening match");
+                openURI(match);
+                g.setState(EventSequenceState.Claimed);
+            } else if (state & ModifierType.Mod1Mask) {
+                // TODO(DnD): GTK3 began a drag here with gtk_drag_begin. GTK4's
+                // GtkDragSource is itself a gesture-based controller and must
+                // be installed on the widget up front rather than started from
+                // inside a click handler — so Alt+drag-to-move is re-homed in
+                // the DnD rework alongside the TargetEntry/TargetList removal.
+                g.setState(EventSequenceState.Claimed);
             }
+            break;
+        case BUTTON_SECONDARY:
+            trace("Enabling actions");
+            // GTK3 first chained to VTE's button_press_event class vfunc so an
+            // unmodified right-click could extend the selection; GTK4 has no
+            // such vfunc and VTE runs its own gestures regardless, so that
+            // detour simply disappears.
+            vte.grabFocus();
+            showContextPopover(x, y);
+            g.setState(EventSequenceState.Claimed);
+            break;
+        case BUTTON_MIDDLE:
+            vte.grabFocus();
+            if (gsSettings.getBoolean(SETTINGS_PASTE_ADVANCED_DEFAULT_KEY)) {
+                clipboardHandler.advancedPaste(ClipboardSelection.primary);
+            } else {
+                clipboardHandler.paste(ClipboardSelection.primary);
+            }
+            g.setState(EventSequenceState.Claimed);
+            break;
+        default:
+            break;
         }
-        return false;
     }
 
-    void showContextPopover(EventButton event = null) {
+    void showContextPopover(double x = -1, double y = -1) {
         buildContextMenu();
         saCopy.setEnabled(vte.getHasSelection());
         if (saCopyAsHtml !is null) {
             saCopyAsHtml.setEnabled(vte.getHasSelection());
         }
-        saPaste.setEnabled(Clipboard.get(GDK_SELECTION_CLIPBOARD).waitIsTextAvailable());
-        if (event !is null) {
-            Rectangle rect = Rectangle(to!int(event.x), to!int(event.y), 1, 1);
+        // GTK4: no synchronous waitIsTextAvailable; the advertised formats are
+        // available synchronously, which is all this needs.
+        saPaste.setEnabled(selectionClipboard(vte, ClipboardSelection.clipboard).getFormats().containMimeType("text/plain"));
+        if (x >= 0 && y >= 0) {
+            Rectangle rect = Rectangle(to!int(x), to!int(y), 1, 1);
             pmContext.setPointingTo(rect);
         }
-        pmContext.showAll();
+        pmContext.popup();
     }
 
     void openURI(TerminalURLMatch urlMatch) {
@@ -2228,9 +2261,8 @@ private:
     /**
      * Tracks focus of widgets (vte and rFind) in this terminal pane
      */
-    bool onTerminalWidgetFocusIn(EventFocus event, Widget widget) {
-        terminalWidgetFocusIn(widget);
-        return false;
+    void onTerminalWidgetFocusIn(EventControllerFocus c) {
+        terminalWidgetFocusIn(vte);
     }
 
     void terminalWidgetFocusIn(Widget widget) {
@@ -2246,9 +2278,8 @@ private:
     /**
      * Tracks focus of widgets (vte and rFind) in this terminal pane
      */
-    bool onTerminalWidgetFocusOut(EventFocus event, Widget widget) {
-        terminalWidgetFocusOut(widget);
-        return false;
+    void onTerminalWidgetFocusOut(EventControllerFocus c) {
+        terminalWidgetFocusOut(vte);
     }
 
     void terminalWidgetFocusOut(Widget widget) {
@@ -2274,7 +2305,7 @@ private:
     /**
      * Handler ID for scroll-event
      */
-    gulong scrollEventHandlerId;
+    EventControllerScroll scrollController;
 
     /// Dispatch a preference change through the registry.
     void applyPreference(string key) {
@@ -2460,13 +2491,17 @@ private:
 
         prefRegistry.register([SETTINGS_CONTROL_SCROLL_ZOOM_KEY], {
             if (gsSettings.getBoolean(SETTINGS_CONTROL_SCROLL_ZOOM_KEY)) {
-                if (vte !is null && scrollEventHandlerId == 0) {
-                    scrollEventHandlerId = connectGdkEvent!EventScroll(vte, "scroll-event", &onTerminalScroll);
+                if (vte !is null && scrollController is null) {
+                    // GTK4: a controller is added/removed rather than a signal
+                    // handler connected/disconnected.
+                    scrollController = new EventControllerScroll(EventControllerScrollFlags.BothAxes);
+                    scrollController.connectScroll(&onTerminalScroll);
+                    vte.addController(scrollController);
                 }
             } else {
-                if (vte !is null && scrollEventHandlerId > 0) {
-                    signalHandlerDisconnect(vte, scrollEventHandlerId);
-                    scrollEventHandlerId = 0;
+                if (vte !is null && scrollController !is null) {
+                    vte.removeController(scrollController);
+                    scrollController = null;
                 }
             }
         });
@@ -3605,12 +3640,16 @@ public:
                 }
             },
             (SyncKeyPressEvent e) {
-                Event newEvent = e.event.copy();
-                // giD's boxed Event has no member accessors for the union;
-                // poke key.sendEvent through the raw C struct (established
-                // raw-C escape hatch).
-                (cast(GdkEvent*) newEvent._cPtr).key.sendEvent = cast(byte) SendEvent.SYNC;
-                vte.event(newEvent);
+                // WP9: GTK3 forged a copy of the event, flagged it SYNC and
+                // injected it with gtk_widget_event(). GTK4 removed
+                // gtk_widget_event() and made GdkEvent immutable, so a
+                // keystroke cannot be replayed into another widget. The
+                // GTK4-viable design is to translate the keyval to the bytes
+                // the terminal would have sent and feedChild() them. Until that
+                // lands, synchronized input of VTE-handled keys (arrows,
+                // Page Up/Down, Home/End, ...) is a KNOWN REGRESSION; ordinary
+                // typed text still syncs through SyncTextEvent.
+                trace("SyncKeyPressEvent dropped: keystroke replay is not available on GTK4 (WP9)");
             },
             (SyncResetEvent e) {
                 vte.reset(false, false);

@@ -76,6 +76,7 @@ import gtk.entry : Entry;
 import gtk.global : checkVersion;
 import gtk.grid : Grid;
 import gtk.label : Label;
+import gtk.gesture_click : GestureClick;
 import gtk.paned : Paned;
 import gtk.stack : Stack;
 import gtk.types : Align, Allocation, Orientation, ResponseType;
@@ -86,7 +87,6 @@ import gx.gtk.cairo;
 import gx.gtk.dialog;
 import gx.gtk.threads;
 import gx.gtk.util;
-import gx.gtk.events;
 import gx.i18n.l10n;
 import gx.util.array;
 
@@ -1886,10 +1886,14 @@ public:
             updatePosition();
         });
 
-        connectGdkEvent!EventButton(this, "button-release-event", delegate bool() {
+        // GTK4: button-release-event -> GestureClick's released signal, which
+        // returns void. The GTK3 handler returned false (never consumed), so
+        // nothing is lost.
+        GestureClick clickGesture = new GestureClick();
+        clickGesture.connectReleased(delegate void(int nPress, double x, double y, GestureClick g) {
             updateRatio();
-            return false;
         });
+        addController(clickGesture);
 
         connectAcceptPosition(delegate bool() {
             updateRatio();
