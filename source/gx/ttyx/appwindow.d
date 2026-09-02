@@ -144,7 +144,7 @@ import gtk.popover_menu : PopoverMenu;
 import gtk.stack : Stack;
 import gtk.toggle_button : ToggleButton;
 import gtk.types : Allocation, ButtonsType, EventControllerScrollFlags, EventSequenceState, FileChooserAction,
-    MessageType, Orientation, PositionType, ResponseType;
+    MessageType, Orientation, PositionType, ResponseType, PropagationPhase;
 import gtk.widget : Widget;
 import gtk.window : Window;
 import gtk.window_group : WindowGroup;
@@ -343,6 +343,22 @@ private:
             sb.onRequestReorder.connect(&onSessionReorder);
             sb.onSessionDetach.connect(&onSessionDetach);
             sb.onIsActionAllowed.connect(&onIsActionAllowed);
+            // GTK4 removed gtk_grab_add, which the GTK3 sidebar used so that a
+            // click anywhere outside it dismissed it. A capture-phase gesture on
+            // the window sees every press first and does the same; presses on
+            // the sidebar's own toggle button are left to the button, which
+            // would otherwise toggle it straight back.
+            GestureClick outsideClick = new GestureClick();
+            outsideClick.setButton(0);
+            outsideClick.setPropagationPhase(PropagationPhase.Capture);
+            outsideClick.connectPressed(delegate void(int nPress, double x, double y, GestureClick g) {
+                if (sb is null || !sb.getChildRevealed()) return;
+                double lx, ly;
+                if (translateCoordinates(sb, x, y, lx, ly) && sb.contains(lx, ly)) return;
+                if (tbSideBar !is null && translateCoordinates(tbSideBar, x, y, lx, ly) && tbSideBar.contains(lx, ly)) return;
+                saViewSideBar.activate(null);
+            });
+            addController(outsideClick);
         } else {
             updateTabPosition();
         }
@@ -1372,17 +1388,10 @@ private:
                 getCurrentSession().focusTerminal(1);
             }
         } else if (tilix.getGlobalOverrides().geometry.flag == GeometryFlag.NONE && !isWayland(this) && gsSettings.getBoolean(SETTINGS_WINDOW_SAVE_STATE_KEY)) {
-            // GTK4: the persisted value is now a GdkToplevelState bitmask.
-            //
-            // MIGRATION HAZARD: this key was written by GTK3 builds as a
-            // GdkWindowState, and the two enums use DIFFERENT bit values —
-            // GTK3 Iconified=2/Maximized=4/Sticky=8/Fullscreen=16 versus GTK4
-            // Minimized=1/Maximized=2/Sticky=4/Fullscreen=8. A value saved by
-            // GTK3 is therefore misread here: a window last saved minimized (2)
-            // restores maximized, and one saved maximized (4) restores sticky.
-            // It self-corrects on the first save under GTK4, so the exposure is
-            // one launch per upgrading user. A schema-version bump that resets
-            // or translates this key at release time is the proper fix.
+            // GTK4: the persisted value is a GdkToplevelState bitmask, stored
+            // under its own key (toplevel-state). GTK3 builds wrote window-state
+            // as GdkWindowState, whose bit values differ (Iconified=2/Maximized=4
+            // vs Minimized=1/Maximized=2), so that key is deliberately not read.
             ToplevelState state = cast(ToplevelState) gsSettings.getInt(SETTINGS_WINDOW_STATE_KEY);
             if (state & ToplevelState.Maximized) {
                 maximize();
@@ -1415,8 +1424,7 @@ private:
         if (!isQuake() && gsSettings.getBoolean(SETTINGS_WINDOW_SAVE_STATE_KEY)) {
             Toplevel toplevel = cast(Toplevel) getSurface();
             if (toplevel !is null) {
-                // Written as GdkToplevelState bits — see the restore path for
-                // why that differs from what GTK3 builds wrote.
+                // Written as GdkToplevelState bits to the GTK4-only key.
                 gsSettings.setInt(SETTINGS_WINDOW_STATE_KEY, cast(int) toplevel.state);
             }
         }

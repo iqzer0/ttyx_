@@ -675,9 +675,14 @@ cannot check, roughly in order of user visibility:
 ### Still open (tracked)
 
 WP4-bg (background image), WP9 (synchronized input redesign), WP5 proper
-(quake placement strategy), bookmark drag-reorder, sidebar click-outside
-dismiss, the `GdkWindowState`→`ToplevelState` settings-bit migration,
-`use-theme-colors` background lookup, `text-deleted` prompt reset.
+(quake placement strategy), bookmark drag-reorder, `use-theme-colors`
+background lookup, `text-deleted` prompt reset.
+
+Resolved after the first build: the saved window state now lives under its
+own GTK4 key (`toplevel-state`) so GTK3-written `window-state` bits are never
+misread — **the schema must be recompiled/reinstalled** for the GTK4 binary;
+and the sidebar's click-outside dismissal is back via a capture-phase
+`GestureClick` on the window (GTK4 has no `gtk_grab_add`).
 
 ### First build, first run
 

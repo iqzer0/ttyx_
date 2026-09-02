@@ -157,10 +157,10 @@
   <!-- Global settings -->
   <schema id="io.github.gwelr.ttyx.Settings" path="/io/github/gwelr/ttyx/">
 
-    <key name="window-state" type="i">
+    <key name="toplevel-state" type="i">
       <default>0</default>
       <summary>The window state (maximized, minimized, etc) to restore</summary>
-      <description>Saves the last window state on exit and restores it upon new invocation</description>
+      <description>Saves the last window state on exit and restores it upon new invocation. Stored as GdkToplevelState bits; the GTK3 builds' window-state key used GdkWindowState bits with different values and is deliberately not read.</description>
     </key>
     <key name="window-save-state" type="b">
       <default>false</default>

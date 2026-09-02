@@ -63,7 +63,10 @@ immutable string[] SETTINGS_NEW_INSTANCE_MODE_VALUES = [SETTINGS_NEW_INSTANCE_MO
 enum SETTINGS_MENU_ACCELERATOR_KEY = "menu-accelerator-enabled";
 enum SETTINGS_ACCELERATORS_ENABLED = "accelerators-enabled";
 
-enum SETTINGS_WINDOW_STATE_KEY = "window-state";
+// GTK4: GdkToplevelState bits. Deliberately a NEW key — GTK3 builds wrote
+// "window-state" as GdkWindowState, whose bit values differ (Maximized=4 there
+// is Sticky=4 here), so a GTK3 value must never be read as a GTK4 one.
+enum SETTINGS_WINDOW_STATE_KEY = "toplevel-state";
 enum SETTINGS_WINDOW_SAVE_STATE_KEY = "window-save-state";
 enum SETTINGS_WINDOW_STYLE_KEY = "window-style";
 immutable string[] SETTINGS_WINDOW_STYLE_VALUES = ["normal","disable-csd","disable-csd-hide-toolbar","borderless"];

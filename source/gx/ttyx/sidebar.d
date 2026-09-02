@@ -441,8 +441,8 @@ public:
             if (revealChild) {
                 trace("** Show sidebar");
                 // GTK4 removed gtk_grab_add, which the GTK3 build used so that a
-                // click outside the sidebar dismissed it. Documented regression
-                // (docs/gtk4-wp0-status.md); the sidebar action still toggles it.
+                // click outside the sidebar dismissed it; AppWindow now does that
+                // with a capture-phase GestureClick on the window.
                 lbSessions.getSelectedRow().grabFocus();
             } else {
                 trace("** Hide sidebar");
