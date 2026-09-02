@@ -77,6 +77,7 @@ import gio.action : Action;
 import gio.action_group : ActionGroup;
 import gio.application : GApplication = Application;
 import gio.application_command_line : ApplicationCommandLine;
+import gio.file : File;
 import gio.settings : GSettings = Settings;
 import gio.simple_action : SimpleAction;
 import gio.types : ApplicationFlags;
@@ -150,8 +151,6 @@ private:
 
     enum THEME_AMBIANCE = "Ambiance";
 
-    enum MAX_BG_WIDTH = 3840;
-    enum MAX_BG_HEIGHT = 2160;
 
     GSettings gsDesktop;
     GSettings gsShortcuts;
@@ -169,7 +168,8 @@ private:
     PreferenceDialog preferenceDialog;
 
     //Background Image for terminals, store it here as singleton instance
-    Surface isFullBGImage;
+    /// GTK4: the background image is CSS on .ttyx-background (WP4-bg).
+    CssProvider bgImageProvider;
 
     bool warnedVTEConfigIssue = false;
 
@@ -389,26 +389,57 @@ private:
         return result;
     }
 
+    /**
+     * GTK4 (WP4-bg): the background image is a CSS background on the Session's
+     * `.ttyx-background` node, installed as one display-wide provider, instead
+     * of a cairo surface painted in a draw handler. The four layout modes map
+     * onto background-size/-repeat/-position exactly as the old renderer laid
+     * them out: "scale" filled the box preserving aspect (cover), "tile"
+     * repeated from the origin, "center" drew at natural size, "stretch"
+     * scaled to the box. The cairo filter preference has no CSS equivalent
+     * and is now inert. The image shows through the terminal's transparency,
+     * as before.
+     */
+    /**
+     * True when a background image is configured. WP4-bg: the image is a CSS
+     * background behind the terminals, so each terminal has to stop VTE from
+     * painting over it — see Terminal.updateVTEBackground().
+     */
+    public bool hasBackgroundImage() {
+        return bgImageProvider !is null;
+    }
+
     void loadBackgroundImage() {
-        string filename = gsGeneral.getString(SETTINGS_BACKGROUND_IMAGE_KEY);
-        // giD cairo surfaces are GC-managed, no explicit destroy
-        isFullBGImage = null;
-        Pixbuf image;
-        try {
-            if (exists(filename)) {
-                int width, height;
-                Pixbuf.getFileInfo(filename, width, height);
-                if (width > MAX_BG_WIDTH || height > MAX_BG_HEIGHT) {
-                    trace("Background image is too large, scaling");
-                    image = Pixbuf.newFromFileAtScale(filename, MAX_BG_WIDTH, MAX_BG_HEIGHT, true);
-                } else {
-                    image = Pixbuf.newFromFile(filename);
-                }
-                isFullBGImage = renderImage(image, true);
-            }
-        } catch (ErrorWrap ge) {
-            errorf("Could not load image '%s'", filename);
+        if (bgImageProvider !is null) {
+            StyleContext.removeProviderForDisplay(Display.getDefault(), bgImageProvider);
+            bgImageProvider = null;
         }
+        string filename = gsGeneral.getString(SETTINGS_BACKGROUND_IMAGE_KEY);
+        if (filename.length == 0 || !exists(filename)) {
+            if (filename.length > 0) errorf("Could not load image '%s'", filename);
+            return;
+        }
+        string layout;
+        switch (gsGeneral.getString(SETTINGS_BACKGROUND_IMAGE_MODE_KEY)) {
+            case SETTINGS_BACKGROUND_IMAGE_MODE_TILE_VALUE:
+                layout = "background-size: auto; background-repeat: repeat; background-position: left top;";
+                break;
+            case SETTINGS_BACKGROUND_IMAGE_MODE_CENTER_VALUE:
+                layout = "background-size: auto; background-repeat: no-repeat; background-position: center;";
+                break;
+            case SETTINGS_BACKGROUND_IMAGE_MODE_STRETCH_VALUE:
+                layout = "background-size: 100% 100%; background-repeat: no-repeat; background-position: left top;";
+                break;
+            default:    // "scale"
+                layout = "background-size: cover; background-repeat: no-repeat; background-position: center;";
+                break;
+        }
+        // File.getUri() percent-escapes the path, so it is safe inside url("").
+        string uri = File.newForPath(filename).getUri();
+        bgImageProvider = new CssProvider();
+        bgImageProvider.loadFromData(".ttyx-background { background-image: url(\"" ~ uri ~ "\"); " ~ layout ~ " }");
+        StyleContext.addProviderForDisplay(Display.getDefault(), bgImageProvider, cast(uint) ProviderPriority.APPLICATION);
+        tracef("Background image %s installed as CSS (%s)", filename, layout);
     }
 
     int onCommandLine(ApplicationCommandLine acl, GApplication app) {
@@ -670,12 +701,8 @@ private:
                 Settings.getDefault().gtkEnableAccels = gsGeneral.getBoolean(SETTINGS_ACCELERATORS_ENABLED);
                 break;
             case SETTINGS_BACKGROUND_IMAGE_KEY, SETTINGS_BACKGROUND_IMAGE_MODE_KEY, SETTINGS_BACKGROUND_IMAGE_SCALE_KEY:
-                if (key == SETTINGS_BACKGROUND_IMAGE_KEY) {
-                    loadBackgroundImage();
-                }
-                foreach(window; appWindows) {
-                    window.updateBackgroundImage();
-                }
+                // GTK4: one display-wide CSS provider covers every window.
+                loadBackgroundImage();
                 break;
             case SETTINGS_CORE_DUMP_PROTECTION:
                 size_t dumpable = gsGeneral.getBoolean(SETTINGS_CORE_DUMP_PROTECTION) ? 0 : 1;
@@ -949,15 +976,6 @@ public:
      */
     CommandParameters getGlobalOverrides() {
         return cp;
-    }
-
-    /**
-     * Note: was GtkD cairo.ImageSurface; giD binds cairo procedurally so the
-     * cached background image is a cairo.surface.Surface (matches the ported
-     * gx.gtk.cairo renderImage). Callers snapshot semantics are unchanged.
-     */
-    Surface getBackgroundImage() {
-        return isFullBGImage;
     }
 
     /**

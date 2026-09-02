@@ -241,9 +241,7 @@ private:
     GSettings gsSettings;
 
     // Cached rendered background image
-    Surface isBGImage;
     // Track size changes, only invalidate if size really changed
-    int lastWidth, lastHeight;
 
     // True if window is in quake mode
     bool _quake;
@@ -1929,21 +1927,6 @@ public:
         */
 
         connectShow(&onWindowShow, Yes.After);
-        // GTK4: no size-allocate; a toplevel's default-width/height properties
-        // track its actual size, so watch those to invalidate the background.
-        void onWindowSizeChanged(ParamSpec pspec, ObjectWrap obj) {
-            int width = getWidth();
-            int height = getHeight();
-            if (lastWidth != width || lastHeight != height) {
-                //invalidate rendered background
-                // (giD cairo surfaces are GC managed, no explicit destroy)
-                isBGImage = null;
-                lastWidth = width;
-                lastHeight = height;
-            }
-        }
-        connectNotify("default-width", &onWindowSizeChanged, Yes.After);
-        connectNotify("default-height", &onWindowSizeChanged, Yes.After);
         // GTK4: composited-changed is gone; windows are always composited.
         // GTK4: focus-in/out-event -> EventControllerFocus enter/leave. The
         // callbacks return void; the GTK3 handlers always returned false.
@@ -2179,58 +2162,6 @@ public:
      */
     @property string uuid() {
         return _windowUUID;
-    }
-
-    /**
-     * Invaidates background image cache and redraws
-     */
-    void updateBackgroundImage() {
-        if (isBGImage !is null) {
-            trace("Destroying cached background image");
-            // giD cairo surfaces are GC managed, dropping the reference
-            // is all that is needed
-            isBGImage = null;
-        }
-        queueDraw();
-    }
-
-    /**
-     * Returns an image surface that contains the rendered background
-     * image. This returns null if no background image has been set.
-     *
-     * The image surface is cached between invocations to improve draw
-     * performance as per #340.
-     */
-    Surface getBackgroundImage(Widget widget) {
-        if (isBGImage !is null) {
-            return isBGImage;
-        }
-
-        Surface surface = tilix.getBackgroundImage();
-        if (surface is null) {
-            isBGImage = null;
-            return isBGImage;
-        }
-
-        ImageLayoutMode mode;
-        string bgMode = gsSettings.getString(SETTINGS_BACKGROUND_IMAGE_MODE_KEY);
-        final switch (bgMode) {
-            case SETTINGS_BACKGROUND_IMAGE_MODE_SCALE_VALUE:
-                mode = ImageLayoutMode.SCALE;
-                break;
-            case SETTINGS_BACKGROUND_IMAGE_MODE_TILE_VALUE:
-                mode = ImageLayoutMode.TILE;
-                break;
-            case SETTINGS_BACKGROUND_IMAGE_MODE_CENTER_VALUE:
-                mode = ImageLayoutMode.CENTER;
-                break;
-            case SETTINGS_BACKGROUND_IMAGE_MODE_STRETCH_VALUE:
-                mode = ImageLayoutMode.STRETCH;
-                break;
-        }
-        int scale = gsSettings.getEnum(SETTINGS_BACKGROUND_IMAGE_SCALE_KEY);
-        isBGImage = renderImage(surface, widget.getAllocatedWidth(), widget.getAllocatedHeight(), mode, true, cast(Filter) scale);
-        return isBGImage;
     }
 
 // Quake methods

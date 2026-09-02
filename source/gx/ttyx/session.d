@@ -1196,11 +1196,9 @@ private:
         });
         getStyleContext.addClass("ttyx-background");
 
-        // GTK4: no draw signal, so the GTK3 onDraw that painted the cached
-        // background image behind the visible group (and composited the
-        // children over it) is gone. Background images need a Picture behind
-        // the pane tree in an Overlay — tracked as WP4-bg in
-        // docs/gtk4-wp0-status.md; until then the setting has no effect.
+        // GTK4: no draw signal. The background image that the GTK3 onDraw
+        // painted here is now a CSS background on this .ttyx-background node,
+        // installed display-wide by Tilix.loadBackgroundImage() (WP4-bg).
     }
 
     void updateWideHandle(bool value) {

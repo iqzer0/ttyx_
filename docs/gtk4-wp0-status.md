@@ -674,9 +674,10 @@ cannot check, roughly in order of user visibility:
 
 ### Still open (tracked)
 
-WP4-bg (background image), WP9 (synchronized input redesign), WP5 proper
-(quake placement strategy), bookmark drag-reorder, `use-theme-colors`
-background lookup, `text-deleted` prompt reset.
+WP9 (synchronized input redesign), WP5 proper (quake placement strategy),
+bookmark drag-reorder, `use-theme-colors` background lookup, `text-deleted`
+prompt reset, and terminal transparency *without* a background image (see
+below).
 
 Resolved after the first build: the saved window state now lives under its
 own GTK4 key (`toplevel-state`) so GTK3-written `window-state` bits are never
@@ -764,3 +765,61 @@ glib-compile-resources --sourcedir=data/resources \
 XDG_DATA_DIRS=$PWD/build/share:/usr/local/share:/usr/share \
 GSETTINGS_SCHEMA_DIR=$PWD/build/schemas ./ttyx --new-process
 ```
+
+## WP4-bg resolved: the background image is CSS, and VTE has to get out of the way
+
+The GTK3 build painted the image in `Session.onDraw`: a cairo surface, cached
+per window, re-rendered on resize, with the children composited over it via
+`propagateDraw`. None of that exists in GTK4. The image is now a **CSS
+background** on the same `.ttyx-background` node, installed once display-wide
+by `Tilix.loadBackgroundImage()`, and the four layout modes map onto standard
+CSS:
+
+| Mode | CSS |
+|---|---|
+| `scale` | `background-size: cover; no-repeat; center` |
+| `tile` | `background-size: auto; repeat; left top` |
+| `center` | `background-size: auto; no-repeat; center` |
+| `stretch` | `background-size: 100% 100%; no-repeat; left top` |
+
+All four were verified by sampling pixels inside the terminal: centring leaves
+the corners imageless, tiling repeats the image's marker bands, scale and
+stretch fill the box. Whole subsystems went away with this — the per-window
+`Surface` cache, its resize invalidation, `AppWindow.getBackgroundImage`,
+`updateBackgroundImage`, `Tilix.getBackgroundImage`, and the 3840×2160
+pre-scale. **One preference is now inert:** `background-image-scale` chose a
+cairo filter, which CSS does not expose (it has no UI control; the schema key
+stays for compatibility).
+
+### The part that could not be done in CSS
+
+With the image installed, the terminal body stayed exactly as dark as before.
+The measurement that settled it: sample the same pixel with and without an
+image configured, at 70% transparency.
+
+| Sample | With image | Without |
+|---|---|---|
+| title row (above the terminal) | `srgb(252,137,29)` | `srgb(53,53,53)` |
+| terminal body | `srgb(34,34,34)` | `srgb(34,34,34)` |
+
+The title row changed, so the image *was* painted behind the terminal's whole
+subtree; the body did not, so **VTE 0.84 under GTK4 paints its background
+fully opaque and ignores the alpha passed to `setColors`** — the compositing
+GTK3 relied on is gone. VTE's own documentation points at the fix: the one
+listed use of `vte_terminal_set_clear_background(false)` is "to add a
+background image to the terminal".
+
+So `Terminal.updateVTEBackground()` now, *only when an image is configured*,
+tells VTE not to paint its background and paints the profile's background
+colour at its configured alpha with a CSS provider on the VTE node (the
+per-widget provider pattern already used for `sbProvider`). The body then
+samples `srgb(153,97,89)` / `srgb(51,127,88)` at two points — the image
+showing through, tinted, with the prompt legible over it.
+
+Limiting it to the image case is deliberate: with no image there is nothing to
+reveal, and leaving VTE's painting alone keeps the default path byte-for-byte
+as it was (re-measured: `srgb(34,34,34)`, unchanged). The consequence is that
+**a transparent terminal with no image still renders opaque under GTK4** —
+that needs the toplevel itself to be transparent, since `.ttyx-background`
+paints an opaque `@theme_bg_color`, and it is now tracked as its own item
+rather than folded in here.

@@ -1343,6 +1343,9 @@ private:
             tracef("Initialized overlay scrollbar to %d", _useOverlayScrollbar);
         }
 
+        // WP4-bg: the node updateVTEBackground() styles.
+        vte.getStyleContext().addClass("ttyx-vte-background");
+
         terminalOverlay = new Overlay();
         // GTK4 removed size-allocate and draw. An overlay child is allocated
         // exactly the terminal's size and DrawingArea keeps a resize signal, so
@@ -2332,6 +2335,8 @@ private:
      * CSSProvider to enhance terminal scrollbar
      */
     CssProvider sbProvider;
+    /// WP4-bg: paints the terminal colour when VTE's own painting is off.
+    CssProvider vteBgProvider;
 
     /**
      * Handler ID for scroll-event
@@ -2365,6 +2370,7 @@ private:
             SETTINGS_PROFILE_BG_TRANSPARENCY_KEY, SETTINGS_PROFILE_DIM_TRANSPARENCY_KEY
         ], {
             renderer.applyMainColors();
+            updateVTEBackground();
             if (!useOverlayScrollbar) {
                 if (sbProvider !is null) {
                     sb.getStyleContext().removeProvider(sbProvider);
@@ -2382,6 +2388,10 @@ private:
                 }
             }
         });
+
+        prefRegistry.register([
+            SETTINGS_BACKGROUND_IMAGE_KEY, SETTINGS_BACKGROUND_IMAGE_MODE_KEY
+        ], { updateVTEBackground(); });
 
         prefRegistry.register([SETTINGS_PROFILE_BADGE_POSITION_KEY], { redrawTerminal(); });
 
@@ -3509,6 +3519,45 @@ public:
      * Finalize the terminal and cleanup any references, this can be
      * called multiple times with no ill effect.
      */
+    /**
+     * Let the CSS background image show through the terminal (WP4-bg).
+     *
+     * VTE 0.84 under GTK4 paints its background fully opaque and ignores the
+     * alpha of the colour given to setColors — measured, not assumed: with a
+     * background image configured and 70% transparency, the terminal body was
+     * pixel-identical to a run with no image at all, while the semi-transparent
+     * title row above it showed the image. GTK3 got the blend from VTE's own
+     * alpha compositing, which is gone.
+     *
+     * So when an image is configured, VTE is told not to paint its background
+     * (the one documented use of set_clear_background) and the profile's
+     * background colour is painted at its configured alpha by CSS on the VTE's
+     * node instead, leaving the image visible underneath — the GTK3 result.
+     *
+     * This is deliberately limited to the image case: with no image there is
+     * nothing to reveal, and leaving VTE's painting alone keeps the default
+     * path byte-for-byte as it was. A terminal that is transparent with no
+     * image still renders opaque under GTK4; that needs the window itself to
+     * be transparent and is tracked separately.
+     */
+    void updateVTEBackground() {
+        if (vte is null) return;
+        RGBA bg = renderer.vteBG;
+        bool paintWithCss = tilix.hasBackgroundImage() && bg.alpha < 1.0;
+
+        if (vteBgProvider !is null) {
+            vte.getStyleContext().removeProvider(vteBgProvider);
+            vteBgProvider = null;
+        }
+        vte.setClearBackground(!paintWithCss);
+        if (!paintWithCss) return;
+
+        vteBgProvider = new CssProvider();
+        vteBgProvider.loadFromData(format(".ttyx-vte-background { background-color: rgba(%d,%d,%d,%.3f); }",
+            cast(int) (bg.red * 255.0), cast(int) (bg.green * 255.0), cast(int) (bg.blue * 255.0), bg.alpha));
+        vte.getStyleContext().addProvider(vteBgProvider, STYLE_PROVIDER_PRIORITY_APPLICATION);
+    }
+
     /**
      * GTK4 caches each widget's render node, so a redraw queued on the VTE
      * does not repaint the decor layer above it; queue both together.
