@@ -674,9 +674,9 @@ cannot check, roughly in order of user visibility:
 
 ### Still open (tracked)
 
-WP5 proper (quake placement strategy), bookmark drag-reorder,
-`use-theme-colors` background lookup, `text-deleted` prompt reset, and
-terminal transparency *without* a background image (see below).
+Bookmark drag-reorder, `use-theme-colors` background lookup, `text-deleted`
+prompt reset, terminal transparency *without* a background image (see below),
+and quake mode under Wayland (never supported here — see WP5 below).
 
 Resolved after the first build: the saved window state now lives under its
 own GTK4 key (`toplevel-state`) so GTK3-written `window-state` bits are never
@@ -865,3 +865,57 @@ Not verifiable from this machine: whether two synchronized terminals agree in
 practice needs typing into one of them, and XTEST input does not reach GTK4
 windows here. Manual test: split a terminal, enable Synchronize Input on both,
 type, paste, then Shift+Page Up.
+
+## WP5 resolved for X11: quake placement, keep-on-top and all-workspaces
+
+GTK4 removed client-side window positioning from the portable API on every
+backend, which took quake mode's whole geometry with it: `gtk_window_move`,
+`set_keep_above`, `stick`/`unstick`, the window role and the taskbar hints.
+The earlier checkpoint left the window sized but placed by the compositor.
+
+None of that needed a protocol-level answer, because **quake mode here has
+always been X11-only** — the `AppWindow` constructor refuses it under Wayland
+and says so in a notification. So the requests go to X11 directly, where they
+worked all along:
+
+| Feature | GTK3 | Now |
+|---|---|---|
+| placement | `gtk_window_move` | `XMoveResizeWindow` on the surface's xid |
+| keep on top | `set_keep_above` | `_NET_WM_STATE_ABOVE` client message |
+| all workspaces | `stick`/`unstick` | `_NET_WM_STATE_STICKY` client message |
+| taskbar/pager | GtkWindow hints | `gdk_x11_surface_set_skip_*_hint` |
+
+`gx.gtk.x11` gained `moveResizeSurface()` and `setNetWmState()`, both
+error-trapped like the existing `activateX11Window`.
+
+**Verified by launching `--quake` and reading the window back** (monitor 0 is
+1920×1080 at +1920+0):
+
+| Settings | Expected | Got |
+|---|---|---|
+| top, 100%, 40% | 1920×432 at 1920,0 | ✅ same |
+| bottom, 25% | 1920×270 at 1920,810 | 1920×270 at 1920,**770** |
+| 50% wide, right | 960×… at 2880 | ✅ same |
+| 50% wide, centre | 960×… at 2400 | ✅ same |
+| monitor 2 (+0+0) | at 0,0 | ✅ same |
+| monitor 1 (+3840+0) | at 3840,0 | ✅ same |
+
+with `_NET_WM_STATE` reporting `SKIP_PAGER, SKIP_TASKBAR, ABOVE, STICKY`. The
+bottom case sits 40px higher than requested because the window manager keeps
+it clear of its panel — GTK3 got that for free from the workarea API, which
+GTK4 does not have, so the WM does it for us instead.
+
+### Two ordering rules this uncovered
+
+7. **An EWMH `_NET_WM_STATE` client message is ignored before the window is
+   mapped.** Sticky was applied at realize and silently did nothing; moved to
+   the show handler it works. GDK's own hint setters (skip taskbar/pager) write
+   the property directly and are fine at realize — so the two groups belong in
+   different handlers, which is why they now are.
+8. Preferences that reach X11 cannot be applied from the constructor at all;
+   there is no surface yet, and the call is a silent no-op.
+
+Still unavailable, and unchanged from the GTK3 build's own limits: quake under
+Wayland, and "open on the monitor the mouse is on" (GTK4 has no pointer query,
+so it falls back to the configured monitor — a `--quake` run with
+`quake-active-monitor` left on lands on monitor 0).

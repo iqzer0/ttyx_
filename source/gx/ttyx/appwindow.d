@@ -157,7 +157,7 @@ import gx.gtk.widgetimage;
 import gx.gtk.dialog;
 import gx.gtk.threads;
 import gx.gtk.util;
-import gx.gtk.x11 : setSkipTaskbarAndPager;
+import gx.gtk.x11 : moveResizeSurface, setNetWmState, setSkipTaskbarAndPager;
 import gx.i18n.l10n;
 
 import gx.ttyx.application;
@@ -1379,7 +1379,10 @@ private:
             fullscreen();
         } else if (isQuake()) {
             moveAndSizeQuake();
+            // Both are EWMH _NET_WM_STATE messages, which a window manager only
+            // honours once the window is mapped — realize is too early.
             applyPreference(SETTINGS_QUAKE_KEEP_ON_TOP_KEY);
+            applyPreference(SETTINGS_QUAKE_SHOW_ON_ALL_WORKSPACES_KEY);
             trace("Focus terminal");
             // GTK4: activateFocus() is gone; the terminal is focused explicitly.
             if (getActiveTerminal() !is null) {
@@ -1400,15 +1403,18 @@ private:
             } else if (state & ToplevelState.Fullscreen) {
                 fullscreen();
             }
-            // GTK4 has no sticky/all-workspaces API (WP5); the Sticky bit is
-            // read but cannot be applied.
+            if ((state & ToplevelState.Sticky) && !isWayland(this)) {
+                // GTK4 dropped stick(); the EWMH state is unchanged.
+                setNetWmState(getSurface(), "_NET_WM_STATE_STICKY", true);
+            }
         }
     }
 
     void onWindowRealized(Widget widget) {
         if (isQuake()) {
-            // GTK4: skip-taskbar/pager are X11 surface hints, set once the
-            // surface exists (quake mode is X11-only, see the constructor).
+            // GTK4: these are X11 surface hints and EWMH states, so they need
+            // a realized surface — the constructor runs too early for them
+            // (quake mode is X11-only, see the constructor).
             setSkipTaskbarAndPager(getSurface(), true);
             applyPreference(SETTINGS_QUAKE_HEIGHT_PERCENT_KEY);
         } else {
@@ -1469,8 +1475,11 @@ private:
                 }
                 break;
             case SETTINGS_QUAKE_SHOW_ON_ALL_WORKSPACES_KEY:
-                // GTK4 has no sticky/all-workspaces API (WP5); the preference
-                // is kept but has no effect under GTK4.
+                // GTK4 dropped stick/unstick; same EWMH state as before.
+                if (isQuake && !isWayland(this)) {
+                    setNetWmState(getSurface(), "_NET_WM_STATE_STICKY",
+                        gsSettings.getBoolean(SETTINGS_QUAKE_SHOW_ON_ALL_WORKSPACES_KEY));
+                }
                 break;
             case SETTINGS_QUAKE_TAB_POSITION_KEY:
                 updateTabPosition();
@@ -1497,8 +1506,12 @@ private:
                 }
                 break;
             case SETTINGS_QUAKE_KEEP_ON_TOP_KEY:
-                // GTK4 has no keep-above API (WP5); the preference is kept but
-                // has no effect under GTK4.
+                // GTK4 dropped set_keep_above; the EWMH state behind it is
+                // unchanged, so quake keep-on-top works on X11.
+                if (isQuake && !isWayland(this)) {
+                    setNetWmState(getSurface(), "_NET_WM_STATE_ABOVE",
+                        gsSettings.getBoolean(SETTINGS_QUAKE_KEEP_ON_TOP_KEY));
+                }
                 break;
             default:
                 break;
@@ -1509,16 +1522,18 @@ private:
         if (getSurface() is null) return;
         Rectangle rect;
         getQuakePosition(rect);
-        // GTK4 (WP5): there is NO client-side window positioning any more —
-        // gtk_window_move, gdk_window_move_resize and their like are all gone,
-        // on every backend. The size half of the computed rectangle can still
-        // be applied; the placement half (bottom/top edge, left/centre/right
-        // alignment) cannot be expressed through GTK at all and needs a
-        // protocol-level solution (xdg-positioner / wlr-layer-shell), which
-        // the ROADMAP already tracks. Until then the quake window is sized but
-        // placed by the compositor.
-        trace("Sizing quake window; placement is not available on GTK4 (WP5)");
+        // GTK4 removed client-side positioning from the portable API on every
+        // backend, so the placement goes straight to X11. Quake is X11-only
+        // here (the constructor refuses it under Wayland and says so), which is
+        // exactly the case where this works; under Wayland the window is sized
+        // and the compositor places it, as before.
         setDefaultSize(rect.width, rect.height);
+        if (!isWayland(this)) {
+            tracef("Positioning quake window at %d,%d %dx%d", rect.x, rect.y, rect.width, rect.height);
+            moveResizeSurface(getSurface(), rect.x, rect.y, rect.width, rect.height);
+        } else {
+            trace("Sizing quake window; Wayland places it");
+        }
     }
 
     void getQuakePosition(out Rectangle rect) {

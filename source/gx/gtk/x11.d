@@ -41,8 +41,8 @@ import gdk.c.types : GdkDisplay, GdkSurface;
 
 import gtk.window : GtkWindow = Window;
 
-import x11.X : Atom, ClientMessage, StructureNotifyMask, XWindow = Window;
-import x11.Xlib : Display, XClientMessageEvent, XSendEvent, XEvent;
+import x11.X : Atom, ClientMessage, StructureNotifyMask, SubstructureNotifyMask, SubstructureRedirectMask, XWindow = Window;
+import x11.Xlib : Display, XClientMessageEvent, XSendEvent, XEvent, XMoveResizeWindow, XFlush;
 
 /**
  * This function activates an X11 window using the _NET_ACTIVE_WINDOW
@@ -119,6 +119,75 @@ void setSkipTaskbarAndPager(GdkSurfaceWrap surface, bool skip) {
     if (surface is null) return;
     gdk_x11_surface_set_skip_taskbar_hint(cast(GdkSurface*) surface._cPtr, skip ? 1 : 0);
     gdk_x11_surface_set_skip_pager_hint(cast(GdkSurface*) surface._cPtr, skip ? 1 : 0);
+}
+
+/**
+ * Move and resize a realized surface through the X server.
+ *
+ * GTK4 removed client-side positioning from the portable API on every backend
+ * (gtk_window_move, gdk_window_move_resize), which is what quake mode needs.
+ * Quake is X11-only in this application — the AppWindow constructor refuses it
+ * under Wayland and says so — so the request goes to X directly, which is what
+ * GDK itself used to do here.
+ *
+ * The window manager is free to adjust the request; under a reparenting WM the
+ * coordinates apply to our frame. Callers must have checked !isWayland().
+ */
+void moveResizeSurface(GdkSurfaceWrap surface, int x, int y, int width, int height) {
+    if (surface is null) return;
+    GdkDisplayWrap gdkDisplay = surface.getDisplay();
+    if (gdkDisplay is null) return;
+
+    GdkDisplay* rawDisplay = cast(GdkDisplay*) gdkDisplay._cPtr;
+    Display* display = gdk_x11_display_get_xdisplay(rawDisplay);
+    XWindow xid = gdk_x11_surface_get_xid(cast(GdkSurface*) surface._cPtr);
+
+    gdk_x11_display_error_trap_push(rawDisplay);
+    XMoveResizeWindow(display, xid, x, y, width, height);
+    XFlush(display);
+    if (gdk_x11_display_error_trap_pop(rawDisplay) != 0) {
+        error("Failed to move and resize window");
+    }
+}
+
+/**
+ * Add or remove an EWMH window state (`_NET_WM_STATE_ABOVE`,
+ * `_NET_WM_STATE_STICKY`, ...) on a realized surface.
+ *
+ * GTK4 dropped the GtkWindow wrappers for these hints (set_keep_above,
+ * stick/unstick) because they are window-manager policy rather than toolkit
+ * state. The underlying EWMH message is unchanged, so the quake preferences
+ * that depended on them keep working on X11. Callers must have checked
+ * !isWayland(); a WM that does not implement the state simply ignores it.
+ */
+void setNetWmState(GdkSurfaceWrap surface, string state, bool enabled) {
+    if (surface is null) return;
+    GdkDisplayWrap gdkDisplay = surface.getDisplay();
+    if (gdkDisplay is null) return;
+
+    GdkDisplay* rawDisplay = cast(GdkDisplay*) gdkDisplay._cPtr;
+    Display* display = gdk_x11_display_get_xdisplay(rawDisplay);
+    XWindow root = gdk_x11_display_get_xrootwindow(rawDisplay);
+
+    XClientMessageEvent event;
+    event.type = ClientMessage;
+    event.window = gdk_x11_surface_get_xid(cast(GdkSurface*) surface._cPtr);
+    event.message_type = gdk_x11_get_xatom_by_name_for_display(rawDisplay, toStringz("_NET_WM_STATE"));
+    event.format = 32;
+    // _NET_WM_STATE_REMOVE = 0, _NET_WM_STATE_ADD = 1
+    event.data.l[0] = enabled ? 1 : 0;
+    event.data.l[1] = gdk_x11_get_xatom_by_name_for_display(rawDisplay, toStringz(state));
+    event.data.l[2] = 0;
+    // Source indication: 1 = normal application, per EWMH.
+    event.data.l[3] = 1;
+    event.data.l[4] = 0;
+
+    gdk_x11_display_error_trap_push(rawDisplay);
+    XSendEvent(display, root, false, SubstructureNotifyMask | SubstructureRedirectMask, cast(XEvent*) &event);
+    XFlush(display);
+    if (gdk_x11_display_error_trap_pop(rawDisplay) != 0) {
+        errorf("Failed to set window state %s", state);
+    }
 }
 
 private:
