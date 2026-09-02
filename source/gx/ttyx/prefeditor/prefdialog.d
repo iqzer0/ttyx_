@@ -1174,7 +1174,7 @@ private:
             // Check if shortcut supported in current GTK Version
             if (key in gtkVersioned) {
                 int[2] gtkVersion = gtkVersioned[key];
-                if (checkVersion(gtkVersion[0], gtkVersion[1], 0).length > 0) continue;
+                if (!gtkAtLeast(gtkVersion[0], gtkVersion[1], 0)) continue;
             }
             // Check if shortcut supported in current VTE Version
             if (key in vteVersioned) {
@@ -1335,7 +1335,7 @@ class AppearancePreferences: Box {
             Entry eSessionName = new Entry();
             eSessionName.setHexpand(true);
             bh.bind(SETTINGS_SESSION_NAME_KEY, eSessionName, "text", SettingsBindFlags.Default);
-            if (checkVersion(3, 16, 0).length == 0) {
+            if (gtkAtLeast(3, 16, 0)) {
                 grid.attach(createTitleEditHelper(eSessionName, TitleEditScope.SESSION), 1, row, 1, 1);
             } else {
                 grid.attach(eSessionName, 1, row, 1, 1);
@@ -1350,7 +1350,7 @@ class AppearancePreferences: Box {
             Entry eAppTitle = new Entry();
             eAppTitle.setHexpand(true);
             bh.bind(SETTINGS_APP_TITLE_KEY, eAppTitle, "text", SettingsBindFlags.Default);
-            if (checkVersion(3, 16, 0).length == 0) {
+            if (gtkAtLeast(3, 16, 0)) {
                 grid.attach(createTitleEditHelper(eAppTitle, TitleEditScope.WINDOW), 1, row, 1, 1);
             } else {
                 grid.attach(eAppTitle, 1, row, 1, 1);
@@ -1366,7 +1366,7 @@ class AppearancePreferences: Box {
                 append(cbTransparent);
             }
 
-            if (checkVersion(3, 16, 0).length == 0) {
+            if (gtkAtLeast(3, 16, 0)) {
                 CheckButton cbWideHandle = CheckButton.newWithLabel(_("Use a wide handle for splitters"));
                 bh.bind(SETTINGS_ENABLE_WIDE_HANDLE_KEY, cbWideHandle, "active", SettingsBindFlags.Default);
                 append(cbWideHandle);
@@ -1385,7 +1385,7 @@ class AppearancePreferences: Box {
             bh.bind(SETTINGS_TERMINAL_TITLE_SHOW_WHEN_SINGLE_KEY, cbTitleShowWhenSingle, "active", SettingsBindFlags.Default);
             append(cbTitleShowWhenSingle);
 
-            if (checkVersion(3, GTK_SCROLLEDWINDOW_VERSION, 0).length == 0 && environment.get("GTK_OVERLAY_SCROLLING","1") == "1") {
+            if (gtkAtLeast(3, GTK_SCROLLEDWINDOW_VERSION, 0) && environment.get("GTK_OVERLAY_SCROLLING","1") == "1") {
                 CheckButton cbOverlay = CheckButton.newWithLabel(_("Use overlay scrollbars (Application restart required)"));
                 bh.bind(SETTINGS_USE_OVERLAY_SCROLLBAR_KEY, cbOverlay, "active", SettingsBindFlags.Default);
                 append(cbOverlay);

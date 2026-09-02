@@ -299,7 +299,7 @@ protected:
         Entry eTerminalTitle = new Entry();
         eTerminalTitle.setHexpand(true);
         bh.bind(SETTINGS_PROFILE_TITLE_KEY, eTerminalTitle, "text", SettingsBindFlags.Default);
-        if (checkVersion(3, 16, 0).length == 0) {
+        if (gtkAtLeast(3, 16, 0)) {
             grid.attach(createTitleEditHelper(eTerminalTitle, TitleEditScope.TERMINAL), 1, row, 1, 1);
         } else {
             grid.attach(eTerminalTitle, 1, row, 1, 1);
@@ -325,7 +325,7 @@ protected:
         Box box = new Box(Orientation.Horizontal, 5);
         box.append(sbColumn);
         Label lblColumns = new Label(_("columns"));
-        if (checkVersion(3, 16, 0).length == 0) {
+        if (gtkAtLeast(3, 16, 0)) {
             lblColumns.setXalign(0.0);
         }
         lblColumns.setMarginEnd(6);
@@ -334,7 +334,7 @@ protected:
 
         box.append(sbRow);
         Label lblRows = new Label(_("rows"));
-        if (checkVersion(3, 16, 0).length == 0) {
+        if (gtkAtLeast(3, 16, 0)) {
             lblRows.setXalign(0.0);
         }
         lblRows.setMarginEnd(6);
@@ -364,7 +364,7 @@ protected:
             Box bSpacing = new Box(Orientation.Horizontal, 5);
             bSpacing.append(sbWidthSpacing);
             Label lblWidthSpacing = new Label(_("width"));
-            if (checkVersion(3, 16, 0).length == 0) {
+            if (gtkAtLeast(3, 16, 0)) {
                 lblWidthSpacing.setXalign(0.0);
             }
             lblWidthSpacing.setMarginEnd(6);
@@ -373,7 +373,7 @@ protected:
 
             bSpacing.append(sbHeightSpacing);
             Label lblHeightSpacing = new Label(_("height"));
-            if (checkVersion(3, 16, 0).length == 0) {
+            if (gtkAtLeast(3, 16, 0)) {
                 lblHeightSpacing.setXalign(0.0);
             }
             lblHeightSpacing.setMarginEnd(6);
@@ -1241,7 +1241,7 @@ class BadgePage: ProfilePage {
         Entry eBadge = new Entry();
         eBadge.setHexpand(true);
         bh.bind(SETTINGS_PROFILE_BADGE_TEXT_KEY, eBadge, "text", SettingsBindFlags.Default);
-        if (checkVersion(3, 16, 0).length == 0) {
+        if (gtkAtLeast(3, 16, 0)) {
             grid.attach(createTitleEditHelper(eBadge, TitleEditScope.TERMINAL), 1, row, 1, 1);
         } else {
             grid.attach(eBadge, 1, row, 1, 1);

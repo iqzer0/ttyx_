@@ -1338,7 +1338,7 @@ private:
         // Shift+F10) are handled in the key controller above.
 
         if (_useOverlayScrollbar == 2) {
-            if ( checkVersion(3, GTK_SCROLLEDWINDOW_VERSION, 0).length != 0 || environment.get("GTK_OVERLAY_SCROLLING","1") == "0") _useOverlayScrollbar = 0;
+            if ( !gtkAtLeast(3, GTK_SCROLLEDWINDOW_VERSION, 0) || environment.get("GTK_OVERLAY_SCROLLING","1") == "0") _useOverlayScrollbar = 0;
             else _useOverlayScrollbar = gsSettings.getBoolean(SETTINGS_USE_OVERLAY_SCROLLBAR_KEY)?-1:0;
             tracef("Initialized overlay scrollbar to %d", _useOverlayScrollbar);
         }
@@ -3514,7 +3514,7 @@ public:
      * does not repaint the decor layer above it; queue both together.
      */
     void redrawTerminal() {
-        if (vte !is null) redrawTerminal();
+        if (vte !is null) vte.queueDraw();
         if (vteDecor !is null) vteDecor.queueDraw();
     }
 

@@ -253,7 +253,7 @@ private:
 
         registerActionWithSettings(this, ACTION_PREFIX_APP, ACTION_PREFERENCES, gsShortcuts, delegate(GVariant value, SimpleAction sa) { onShowPreferences(); });
 
-        if (checkVersion(3, 19, 0).length == 0) {
+        if (gtkAtLeast(3, 19, 0)) {
             registerActionWithSettings(this, ACTION_PREFIX_APP, ACTION_SHORTCUTS, gsShortcuts, delegate(GVariant value, SimpleAction sa) {
                 import gtk.shortcuts_window : ShortcutsWindow;
 
@@ -644,7 +644,7 @@ private:
                 if (reset) {
                     // gtk_settings_reset_property is bound in giD (GtkD lacked
                     // it, hence the original's version-gated comment)
-                    if (checkVersion(3, 19, 0).length == 0) {
+                    if (gtkAtLeast(3, 19, 0)) {
                         Settings.getDefault.resetProperty(GTK_APP_PREFER_DARK_THEME);
                     }
                 } else {
@@ -735,7 +735,7 @@ private:
         addMainOption(CMD_PROFILE, 'p', OptionFlags.None, OptionArg.String, _("Set the starting profile"), _("PROFILE_NAME"));
         addMainOption(CMD_TITLE, 't', OptionFlags.None, OptionArg.String, _("Set the title of the new terminal"), _("TITLE"));
         addMainOption(CMD_SESSION, 's', OptionFlags.None, OptionArg.StringArray, _("Open the specified session"), _("SESSION_NAME"));
-        if (checkVersion(3, 16, 0).length == 0) {
+        if (gtkAtLeast(3, 16, 0)) {
             addMainOption(CMD_ACTION, 'a', OptionFlags.None, OptionArg.String, _("Send an action to current ttyx_ instance"), _("ACTION_NAME"));
         }
         addMainOption(CMD_COMMAND, 'e', OptionFlags.None, OptionArg.String, _("Execute the parameter as a command"), _("COMMAND"));

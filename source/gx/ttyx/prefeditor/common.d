@@ -38,6 +38,7 @@ import gx.i18n.l10n;
 
 import gx.ttyx.preferences;
 import gx.ttyx.prefeditor.advdialog;
+import gx.gtk.util : gtkAtLeast;
 
 
 /**
@@ -123,7 +124,7 @@ Label createDescriptionLabel(string desc) {
     lblDescription.setHalign(Align.Start);
     // giD checkVersion returns null (not "") when compatible; .length == 0
     // covers both, matching the GtkD check.
-    if (checkVersion(3, 16, 0).length == 0) {
+    if (gtkAtLeast(3, 16, 0)) {
         lblDescription.setXalign(0.0);
     }
     lblDescription.setMaxWidthChars(70);

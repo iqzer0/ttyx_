@@ -724,7 +724,7 @@ private:
                 dialog.response(ResponseType.Ok);
             });
             // Note check for Wayland below otherwise popover will clip
-            if (isWayland(this) && checkVersion(3, 16, 0).length == 0) {
+            if (isWayland(this) && gtkAtLeast(3, 16, 0)) {
                 (cast(Box) dialog.getMessageArea()).append(createTitleEditHelper(entry, TitleEditScope.SESSION));
             } else {
                 (cast(Box) dialog.getMessageArea()).append(entry);
@@ -767,7 +767,7 @@ private:
     void createDelegatedTerminalActions(GSettings gsShortcuts) {
         import gx.ttyx.terminal.terminal : Terminal;
 
-        if (checkVersion(3, 15, 3).length != 0) {
+        if (!gtkAtLeast(3, 15, 3)) {
             SimpleActionGroup terminalActions = new SimpleActionGroup();
 
             foreach (string action; gsShortcuts.listKeys) {
@@ -2381,7 +2381,7 @@ public:
             return false;
         });
         lblEditBox.addController(editKeys);
-        if (checkVersion(3, 16, 0).length == 0) {
+        if (gtkAtLeast(3, 16, 0)) {
             stTitle.addNamed(createTitleEditHelper(lblEditBox, TitleEditScope.SESSION), PAGE_EDIT);
         } else {
             stTitle.addNamed(lblEditBox, PAGE_EDIT);

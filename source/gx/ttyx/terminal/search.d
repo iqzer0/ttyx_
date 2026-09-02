@@ -76,6 +76,7 @@ import gx.ttyx.common;
 import gx.ttyx.constants;
 import gx.ttyx.preferences;
 import gx.ttyx.terminal.actions;
+import gx.gtk.util : gtkAtLeast;
 
 /**
  * Widget that displays the Find UI for a terminal and manages the search actions
@@ -128,7 +129,7 @@ private:
         seSearch = new SearchEntry();
         seSearch.setWidthChars(1);
         seSearch.setMaxWidthChars(30);
-        if (checkVersion(3, 20, 0).length != 0) {
+        if (!gtkAtLeast(3, 20, 0)) {
             seSearch.getStyleContext().addClass("ttyx-search-entry");
         }
         seSearch.connectSearchChanged(delegate() {

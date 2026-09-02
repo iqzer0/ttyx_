@@ -701,4 +701,20 @@ run yet. giD's report also lists a handful of non-VTE symbols absent from the
 installed libraries (`g_thread_init`, `hb_shape_justify`, the cairo-gobject
 type getters, …); those are informational and only matter if called.
 
-Next: install the GTK4 VTE, run, and work the verification list above.
+With `vte4` installed the binary **runs** (X11, GTK 4.22.4 / VTE 0.84.1).
+Two startup faults were fixed on the way. The GTK 3.18 minimum-version
+constants are now 4.10 (`FileDialog`/`UriLauncher`), and the 26
+`checkVersion(3, x, 0).length == 0` feature gates — which on GTK4 report a
+*major mismatch* and so all took the legacy branch — became
+`gtkAtLeast(3, x, 0)`, a plain numeric comparison. Then a stack overflow: the
+sweep regex that turned `vte.queueDraw()` into `redrawTerminal()` also rewrote
+the `vte.queueDraw()` inside `redrawTerminal()` itself (rulebook 7: a sweep
+must exclude the definition it introduces; run regexes before adding the
+helper, or anchor them away from it). Note that a running GTK3 ttyx is the
+primary instance on the session bus — a GTK4 binary launched without
+`--new-process` forwards its command line to it and exits 0.
+
+Remaining startup noise: four CSS parser warnings for GTK3-only constructs —
+`@binding-set`/`-gtk-key-bindings` in `ttyx.base320.css` (tree-view Left/Right
+navigation, needs a `ShortcutController`) and two `-gtk-gradient(radial …)`
+backgrounds in `ttyx.base.css`.

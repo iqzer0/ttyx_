@@ -139,7 +139,7 @@ private:
         focusController = new EventControllerFocus();
         focusOutHandlerId = focusController.connectLeave(&onFocusOut, Yes.After);
         eTitle.addController(focusController);
-        if (checkVersion(3, 16, 0).length == 0) {
+        if (gtkAtLeast(3, 16, 0)) {
             titleEditor = createTitleEditHelper(eTitle, TitleEditScope.WINDOW);
             titleEditor.onPopoverShow.connect(&onPopoverShow);
             titleEditor.onPopoverClosed.connect(&onPopoverClosed);

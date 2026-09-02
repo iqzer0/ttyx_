@@ -43,8 +43,9 @@ immutable bool USE_COMMIT_SYNCHRONIZATION = false;
  **************************************/
 
 // GTK Version required
-enum GTK_VERSION_MAJOR = 3;
-enum GTK_VERSION_MINOR = 18;
+// GTK4 port: FileDialog and UriLauncher need 4.10.
+enum GTK_VERSION_MAJOR = 4;
+enum GTK_VERSION_MINOR = 10;
 enum GTK_VERSION_PATCH = 0;
 
 // GTK version required for scrolledwindow

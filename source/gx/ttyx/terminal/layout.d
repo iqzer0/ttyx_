@@ -49,6 +49,7 @@ import gx.i18n.l10n;
 import gx.gtk.vte;
 
 import gx.ttyx.prefeditor.titleeditor;
+import gx.gtk.util : gtkAtLeast;
 
 /**
  * Dialog that enables the user to set the layout options for a terminal
@@ -96,7 +97,7 @@ public:
         eTitle = new Entry();
         eTitle.setWidthChars(20);
         eTitle.setHexpand(true);
-        if (checkVersion(3, 16, 0).length == 0) {
+        if (gtkAtLeast(3, 16, 0)) {
             grid.attach(createTitleEditHelper(eTitle, TitleEditScope.TERMINAL), 1, row, 1, 1);
         } else {
             grid.attach(eTitle, 1, row, 1, 1);
@@ -110,7 +111,7 @@ public:
             eBadge = new Entry();
             eBadge.setHexpand(true);
             eBadge.setWidthChars(20);
-            if (checkVersion(3, 16, 0).length == 0) {
+            if (gtkAtLeast(3, 16, 0)) {
                 grid.attach(createTitleEditHelper(eBadge, TitleEditScope.TERMINAL), 1, row, 1, 1);
             } else {
                 grid.attach(eBadge, 1, row, 1, 1);

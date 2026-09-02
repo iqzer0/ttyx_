@@ -296,7 +296,7 @@ private:
      */
     TerminalPaned createPaned(Orientation orientation) {
         TerminalPaned result = new TerminalPaned(orientation);
-        if (checkVersion(3, 16, 0).length == 0) {
+        if (gtkAtLeast(3, 16, 0)) {
             result.setWideHandle(gsSettings.getBoolean(SETTINGS_ENABLE_WIDE_HANDLE_KEY));
         }
         result.positionSet = true;
@@ -921,7 +921,7 @@ private:
     void applyPreference(string key) {
         switch (key) {
             case SETTINGS_ENABLE_WIDE_HANDLE_KEY:
-                if (checkVersion(3, 16, 0).length == 0) {
+                if (gtkAtLeast(3, 16, 0)) {
                     updateWideHandle(gsSettings.getBoolean(SETTINGS_ENABLE_WIDE_HANDLE_KEY));
                 }
                 break;
@@ -1204,7 +1204,7 @@ private:
     }
 
     void updateWideHandle(bool value) {
-        if (checkVersion(3, 16, 0).length == 0) {
+        if (gtkAtLeast(3, 16, 0)) {
             Paned[] all = gx.gtk.util.getChildren!(Paned)(stackGroup, true);
             tracef("Updating wide handle for %d paned", all.length);
             foreach (paned; all) {

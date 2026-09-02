@@ -54,6 +54,7 @@ import gtk.tree_view_column : TreeViewColumn;
 import gtk.types : Orientation, StateFlags;
 import gtk.widget : Widget;
 import gtk.window : Window;
+import gtk.global : getMajorVersion, getMinorVersion, getMicroVersion;
 
 import gx.gtk.x11;
 
@@ -444,3 +445,20 @@ private:
 // giD does not bind the GDK X11 backend; resolves at link time from libgdk-3
 // (same pattern as gx.gtk.x11).
 extern(C) GType gdk_x11_surface_get_type();
+
+/**
+ * True when the running GTK is at least major.minor.micro.
+ *
+ * Replaces the GTK3-era `checkVersion(3, x, 0).length == 0` feature gates.
+ * gtk_check_version() reports a *major mismatch* as an error, so on GTK4 every
+ * one of those gates answered "too old" and took the legacy branch. A plain
+ * numeric comparison says what the gates always meant.
+ */
+public bool gtkAtLeast(uint major, uint minor, uint micro = 0) {
+    uint rMajor = getMajorVersion();
+    uint rMinor = getMinorVersion();
+    uint rMicro = getMicroVersion();
+    if (rMajor != major) return rMajor > major;
+    if (rMinor != minor) return rMinor > minor;
+    return rMicro >= micro;
+}

@@ -32,7 +32,8 @@ import vte.terminal : Terminal;
 import vte.global : getMajorVersion, getMinorVersion;
 
 // Constants used to version VTE features
-int[2] VTE_VERSION_MINIMAL = [0, 46];
+// GTK4 port links the vte-2.91-gtk4 flavour, first stable in 0.70.
+int[2] VTE_VERSION_MINIMAL = [0, 70];
 int[2] VTE_VERSION_COPY_AS_HTML = [0, 49];
 int[2] VTE_VERSION_HYPERLINK = [0, 49];
 int[2] VTE_VERSION_BACKGROUND_OPERATOR = [0, 51];
